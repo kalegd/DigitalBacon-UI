@@ -1,3 +1,4 @@
+import { nodeResolve } from '@rollup/plugin-node-resolve';
 import rootImport from 'rollup-plugin-root-import';
 import terser from '@rollup/plugin-terser';
 
@@ -33,6 +34,7 @@ export default {
         'three',
     ],
     plugins: [
+        nodeResolve(),
         rootImport({
             // Will first look in `client/src/*` and then `common/src/*`.
             root: `${__dirname}`,

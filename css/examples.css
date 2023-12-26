@@ -1,0 +1,14 @@
+#container {
+    height: calc(100vh - 76px);
+}
+
+#vr-button {
+    position: absolute;
+    left: calc(50%);
+    bottom: 54px;
+}
+
+#ar-button {
+    position: absolute;
+    left: calc(50%);
+}
