@@ -1,6 +1,6 @@
 <html>
   <head>
-    <title>Examples - Touch Interactables</title>
+    <title>Examples - Basic UI Components</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="theme-color" content="#ffebfd"/>
     <link rel="apple-touch-icon" sizes="180x180" href="/images/favicons/apple-touch-icon.png">
@@ -21,7 +21,7 @@
     </script>
   </head>
   <body>
-    <h1>Touch Interactables</h1>
+    <h1>Basic UI Components</h1>
     <div id="container"></div>
     <div id="vr-button"></div>
     <div id="ar-button"></div>
@@ -45,11 +45,14 @@
       stats.dom.style.top = '';
       stats.dom.style.left = '';
       container.appendChild(stats.dom, container.firstChild);
+      scene.background = new THREE.CubeTextureLoader()
+        .setPath('/images/skyboxes/blue_sky/')
+        .load(['skybox_right.jpg', 'skybox_left.jpg', 'skybox_up.jpg', 'skybox_down.jpg', 'skybox_front.jpg', 'skybox_back.jpg']);
       
       const renderer = new THREE.WebGLRenderer({ antialias : true });
       renderer.setSize(container.clientWidth, container.clientHeight);
       container.appendChild(renderer.domElement);
-      if('xr' in renderer) {
+      if('xr' in navigator && (await navigator.xr.isSessionSupported('immersive-vr') || await navigator.xr.isSessionSupported('immersive-ar'))) {
         let features = ['local-floor', 'bounded-floor', 'hand-tracking',
                         'layers', 'anchors', 'plane-detection'];
         let vrButton = VRButton.createButton(renderer);
@@ -60,8 +63,13 @@
         renderer.xr.enabled = true;
       }
 
-      const geometry = new THREE.BoxGeometry(0.3, 0.3, 0.3);
-      const material = new THREE.MeshStandardMaterial({ color: 0x00ff00 });
+      const geometry = new THREE.PlaneGeometry(1, 1);
+      const material = new THREE.MeshPhysicalMaterial({
+        color: 0xeeeeee,
+        transmission: 1,
+        roughness: 0.45,
+        ior: 1.5,
+      });
       const cube = new THREE.Mesh(geometry, material);
       const ambientLight = new THREE.AmbientLight(0x404040, 1);
       const pointLight = new THREE.PointLight(0xffffff, 100);
@@ -72,27 +80,22 @@
       scene.add(cube);
       scene.add(ambientLight);
       scene.add(pointLight);
-      geometry.computeBoundsTree();
+      window.camera = camera;
 
       //End Boilerplate
 
-      function randomSaturatedColor() {
-        return "hsl(" + 360 * Math.random() + ',100%,'
-          + (40 + 20 * Math.random()) + '%)';
-      }
-
-      DigitalBaconUI.init(container, renderer, scene, camera);
+      await DigitalBaconUI.init(container, renderer, scene, camera);
       DigitalBaconUI.InputHandler.enableXRControllerManagement(scene);
 
-      const interactable = new DigitalBaconUI.TouchInteractable(cube);
-      interactable.addAction(() => material.color.set(randomSaturatedColor()));
-      DigitalBaconUI.addTouchInteractable(interactable);
+      const interactable = new DigitalBaconUI.PointerInteractable(cube);
+      interactable.addAction(() => {
+        console.log("Nice menu isn't it?");
+      });
+      DigitalBaconUI.addPointerInteractable(interactable);
 
       renderer.setAnimationLoop((time, frame) => {
         stats.begin();
         let timeDelta = clock.getDelta();
-        cube.rotation.x += timeDelta;
-        cube.rotation.y += timeDelta;
         DigitalBaconUI.update(frame);
         renderer.render(scene, camera);
         stats.end();
