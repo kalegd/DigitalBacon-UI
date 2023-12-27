@@ -6,6 +6,7 @@
 
 import Handedness from '/scripts/enums/Handedness.js';
 import XRInputDeviceTypes from '/scripts/enums/XRInputDeviceTypes.js';
+import { updateBVHForComplexObject } from '/scripts/utils.js';
 import { Object3D, Vector2 } from 'three';
 import { XRControllerModelFactory } from '/scripts/three/XRControllerModelFactory.js';
 import { XRHandModelFactory } from '/scripts/three/XRHandModelFactory.js';
@@ -370,6 +371,8 @@ class InputHandler {
                 if(motionController){
                     motionController.updateMesh(frame, referenceSpace,
                         xrControllers.grip.matrix);
+                    if(xrInputDevice.model.children.length)
+                        updateBVHForComplexObject(xrInputDevice.model);
                 }
             }
         }

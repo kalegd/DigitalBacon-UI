@@ -1,12 +1,11 @@
+import { setupBVHForComplexObject } from '/scripts/utils.js';
 import {
     Mesh,
     MeshBasicMaterial,
     Object3D,
     SphereGeometry,
 } from 'three';
-
 import { GLTFLoader } from '/node_modules/three/examples/jsm/loaders/GLTFLoader.js';
-
 import {
     Constants as MotionControllerConstants,
     fetchProfile,
@@ -222,13 +221,11 @@ class XRControllerModelFactory {
 
         fetchProfile( xrInputSource, this.path, DEFAULT_PROFILE )
             .then( ( { profile, assetPath } ) => {
-
                 controllerModel.motionController = new MotionController(
                     xrInputSource,
                     profile,
                     assetPath
                 );
-
                 const cachedAsset = this._assetCache[
                     controllerModel.motionController.assetUrl];
                 if ( cachedAsset ) {
@@ -238,21 +235,18 @@ class XRControllerModelFactory {
                     if ( ! this.gltfLoader ) {
                         throw new Error( 'GLTFLoader not set.' );
                     }
-
                     this.gltfLoader.setPath( '' );
                     this.gltfLoader.load(controllerModel.motionController
-                        .assetUrl, ( asset ) => {
-
+                            .assetUrl, ( asset ) => {
                         this._assetCache[controllerModel.motionController
                             .assetUrl] = asset;
-
                         scene = asset.scene.clone();
-
                         addAssetSceneToControllerModel(controllerModel, scene);
-
+                        setupBVHForComplexObject(controllerModel);
                     },
                     null,
-                    () => {
+                    (e) => {
+                        console.error(e);
                         throw new Error('Asset '
                             + controllerModel.motionController.assetUrl
                             + ' missing or malformed.');

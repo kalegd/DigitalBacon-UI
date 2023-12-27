@@ -12,9 +12,9 @@ import * as THREE from 'three';
 const vector3 = new THREE.Vector3();
 
 class GripInteractable extends Interactable {
-    constructor(threeObj) {
-        super(threeObj);
-        if(threeObj) threeObj.gripInteractable = this;
+    constructor(object) {
+        super(object);
+        if(object) object.gripInteractable = this;
         this._createBoundingObject();
     }
 
@@ -40,7 +40,7 @@ class GripInteractable extends Interactable {
     }
 
     _getBoundingObject() {
-        this._boundingBox.setFromObject(this._threeObj);
+        this._boundingBox.setFromObject(this._object);
         return this._boundingBox;
     }
 

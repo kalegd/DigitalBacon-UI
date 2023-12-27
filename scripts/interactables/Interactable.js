@@ -9,8 +9,8 @@ import InteractionTool from '/scripts/handlers/InteractionTool.js';
 import { uuidv4 } from '/scripts/utils.js';
 
 class Interactable {
-    constructor(threeObj) {
-        this._threeObj = threeObj;
+    constructor(object) {
+        this._object = object;
         this._state = States.IDLE;
         this.children = new Set();
         this._hoveredOwners = new Set();
@@ -56,7 +56,7 @@ class Interactable {
     }
 
     getObject() {
-        return this._threeObj;
+        return this._object;
     }
 
     getState() {

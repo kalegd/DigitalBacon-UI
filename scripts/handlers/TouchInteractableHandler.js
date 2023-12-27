@@ -11,7 +11,7 @@ import InteractableHandler from '/scripts/handlers/InteractableHandler.js';
 import { isDescendant } from '/scripts/utils.js';
 import * as THREE from 'three';
 
-class GripInteractableHandler extends InteractableHandler {
+class TouchInteractableHandler extends InteractableHandler {
     constructor() {
         super();
     }
@@ -49,10 +49,9 @@ class GripInteractableHandler extends InteractableHandler {
             if(object == null || interactable.isOnlyGroup()) continue;
             let intersects = interactable.intersectsSphere(boundingSphere);
             if(intersects) {
-                let distance = interactable.distanceToSphere(boundingSphere);
-                if(distance < controller['closestPointDistance']) {
-                    controller['closestPointDistance'] = distance;
-                    controller['closestInteractable'] = interactable;
+                let controllerObject = controller.model || controller.option;
+                if(interactable.intersectsObject(controllerObject)) {
+                    controller['touchedInteractables'].add(interactable);
                 }
             }
         }
@@ -60,42 +59,23 @@ class GripInteractableHandler extends InteractableHandler {
 
     _updateInteractables(controller) {
         let option = controller.option;
-        let isPressed = controller['isPressed'];
         this._scopeInteractables(controller, this._interactables);
-        let hoveredInteractable = this._hoveredInteractables.get(option);
-        let selectedInteractable = this._selectedInteractables.get(option);
-        let closestInteractable = controller['closestInteractable'];
-        if(closestInteractable) {
-            if(isPressed) {
-                if(!selectedInteractable 
-                        && hoveredInteractable == closestInteractable)
-                {
-                    closestInteractable.addSelectedBy(option);
-                    this._selectedInteractables.set(option,closestInteractable);
-                    closestInteractable.removeHoveredBy(option);
-                    this._hoveredInteractables.delete(option);
-                }
+        if(!this._selectedInteractables.get(option))
+            this._selectedInteractables.set(option, new Set());
+        let selectedInteractables = this._selectedInteractables.get(option);
+        let touchedInteractables = controller['touchedInteractables'];
+        for(let interactable of selectedInteractables) {
+            if(!touchedInteractables.has(interactable)) {
+                interactable.removeSelectedBy(option);
+                selectedInteractables.delete(interactable);
+            }
+        }
+        for(let interactable of touchedInteractables) {
+            if(selectedInteractables.has(interactable)) {
+                interactable.triggerDraggableActions(option);
             } else {
-                if(hoveredInteractable != closestInteractable) {
-                    if(hoveredInteractable) {
-                        hoveredInteractable.removeHoveredBy(option);
-                    }
-                    closestInteractable.addHoveredBy(option);
-                    this._hoveredInteractables.set(option, closestInteractable);
-                }
-                if(selectedInteractable) {
-                    selectedInteractable.removeSelectedBy(option);
-                    this._selectedInteractables.delete(option);
-                }
-            }
-        } else if(!isPressed) {
-            if(hoveredInteractable) {
-                hoveredInteractable.removeHoveredBy(option);
-                this._hoveredInteractables.delete(option);
-            }
-            if(selectedInteractable) {
-                selectedInteractable.removeSelectedBy(option);
-                this._selectedInteractables.delete(option);
+                interactable.addSelectedBy(option);
+                selectedInteractables.add(interactable);
             }
         }
     }
@@ -118,19 +98,18 @@ class GripInteractableHandler extends InteractableHandler {
                         active = false;
                     }
                 }
-                let boundingSphere, isPressed;
+                let boundingSphere;
                 if(active) {
                     let isChild = isDescendant(xrController, xrControllerModel);
                     boundingSphere = (isChild)
                         ? this._getBoundingSphere(xrControllerModel)
                         : this._getBoundingSphere(xrController);
-                    isPressed = this._isXRControllerPressed(type, handedness);
                 }
                 let controller = {
                     option: xrController,
+                    model: xrControllerModel,
                     boundingSphere: boundingSphere,
-                    isPressed: isPressed,
-                    closestPointDistance: Number.MAX_SAFE_INTEGER,
+                    touchedInteractables: new Set(),
                 };
                 let skipUpdate = false;
                 if(this._toolHandlers[this._tool]) {
@@ -151,5 +130,5 @@ class GripInteractableHandler extends InteractableHandler {
 
 }
 
-let gripInteractableHandler = new GripInteractableHandler();
-export default gripInteractableHandler;
+let touchInteractableHandler = new TouchInteractableHandler();
+export default touchInteractableHandler;

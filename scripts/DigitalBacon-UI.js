@@ -6,10 +6,21 @@
 
 import GripInteractable from '/scripts/interactables/GripInteractable.js';
 import PointerInteractable from '/scripts/interactables/PointerInteractable.js';
+import TouchInteractable from '/scripts/interactables/TouchInteractable.js';
 import GripInteractableHandler from '/scripts/handlers/GripInteractableHandler.js';
 import PointerInteractableHandler from '/scripts/handlers/PointerInteractableHandler.js';
+import TouchInteractableHandler from '/scripts/handlers/TouchInteractableHandler.js';
 import InputHandler from '/scripts/handlers/InputHandler.js';
+import * as utils from '/scripts/utils.js';
 import * as TroikaThreeText from '/node_modules/troika-three-text/dist/troika-three-text.esm.js';
+import * as ThreeMeshBVH from '/node_modules/three-mesh-bvh/build/index.module.js';
+import * as THREE from 'three';
+
+const {computeBoundsTree, disposeBoundsTree, acceleratedRaycast} = ThreeMeshBVH;
+
+THREE.BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
+THREE.BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
+THREE.Mesh.prototype.raycast = acceleratedRaycast;
 
 const version = '0.0.1';
 var deviceType;
@@ -28,6 +39,14 @@ const addPointerInteractable = (interactable) => {
 
 const removePointerInteractable = (interactable) => {
     PointerInteractableHandler.removeInteractable(interactable);
+};
+
+const addTouchInteractable = (interactable) => {
+    TouchInteractableHandler.addInteractable(interactable);
+};
+
+const removeTouchInteractable = (interactable) => {
+    TouchInteractableHandler.removeInteractable(interactable);
 };
 
 async function isXR() {
@@ -58,26 +77,34 @@ const init = async (container, renderer, scene, camera, _deviceType, orbitTarget
     PointerInteractableHandler.init(deviceType, renderer, scene, camera,
         orbitTarget);
     GripInteractableHandler.init(deviceType, scene);
+    TouchInteractableHandler.init(deviceType, scene);
 };
 
 const update = (frame) => {
     if(deviceType == 'XR') {
         InputHandler.update(frame);
         GripInteractableHandler.update();
+        TouchInteractableHandler.update();
     }
     PointerInteractableHandler.update();
 };
 
 export { GripInteractable };
 export { PointerInteractable };
+export { TouchInteractable };
 export { GripInteractableHandler };
 export { PointerInteractableHandler };
+export { TouchInteractableHandler };
 export { InputHandler };
+export { ThreeMeshBVH };
 export { TroikaThreeText };
 export { addGripInteractable };
 export { addPointerInteractable };
+export { addTouchInteractable };
 export { removeGripInteractable };
 export { removePointerInteractable };
+export { removeTouchInteractable };
 export { init };
 export { update };
+export { utils };
 export { version };

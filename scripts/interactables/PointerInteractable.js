@@ -9,9 +9,9 @@ import InteractionTool from '/scripts/handlers/InteractionTool.js';
 import Interactable from '/scripts/interactables/Interactable.js';
 
 class PointerInteractable extends Interactable {
-    constructor(threeObj) {
-        super(threeObj);
-        if(threeObj) threeObj.pointerInteractable = this;
+    constructor(object) {
+        super(object);
+        if(object) object.pointerInteractable = this;
         this._maxDistance = -Infinity;
     }
 
@@ -108,7 +108,6 @@ class PointerInteractable extends Interactable {
                     || action.maxDistance >= distance))
             {
                 action.draggableAction(owner, closestPoint);
-                action.isDragging = true;
                 if(!action.draggingOwners.has(owner))
                     action.draggingOwners.add(owner);
             }
@@ -131,8 +130,8 @@ class PointerInteractable extends Interactable {
         return new PointerInteractable();
     }
 
-    static createDraggable(threeObj, actionFunc, draggableActionFunc) {
-        let interactable = new PointerInteractable(threeObj, true, null);
+    static createDraggable(object, actionFunc, draggableActionFunc) {
+        let interactable = new PointerInteractable(object);
         interactable.addAction(actionFunc, draggableActionFunc);
         return interactable;
     }

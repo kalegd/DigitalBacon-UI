@@ -1,3 +1,4 @@
+import { setupBVHForComplexObject } from '/scripts/utils.js';
 import { GLTFLoader } from '/node_modules/three/examples/jsm/loaders/GLTFLoader.js';
 
 const DEFAULT_HAND_PROFILE_PATH = 'https://cdn.jsdelivr.net/npm/@webxr-input-profiles/assets@1.0/dist/profiles/generic-hand/';
@@ -95,6 +96,7 @@ class XRHandMeshModel {
             this._palmTriangleBones.push(this.bones[6]);
             this._palmTriangleBones.push(this.bones[10]);
             if(handedness == 'left') this._palmTriangleBones.reverse();
+            setupBVHForComplexObject(handModel);
         } );
 
     }
