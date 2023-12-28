@@ -4,6 +4,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
+import Body from '/scripts/components/Body.js';
 import GripInteractable from '/scripts/interactables/GripInteractable.js';
 import PointerInteractable from '/scripts/interactables/PointerInteractable.js';
 import TouchInteractable from '/scripts/interactables/TouchInteractable.js';
@@ -89,6 +90,7 @@ const update = (frame) => {
     PointerInteractableHandler.update();
 };
 
+export { Body };
 export { GripInteractable };
 export { PointerInteractable };
 export { TouchInteractable };

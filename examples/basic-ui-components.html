@@ -63,31 +63,23 @@
         renderer.xr.enabled = true;
       }
 
-      const geometry = new THREE.PlaneGeometry(1, 1);
-      const material = new THREE.MeshPhysicalMaterial({
-        color: 0xeeeeee,
-        transmission: 1,
-        roughness: 0.45,
-        ior: 1.5,
-      });
-      const cube = new THREE.Mesh(geometry, material);
+      const body = new DigitalBaconUI.Body({ width: 1.5 });
       const ambientLight = new THREE.AmbientLight(0x404040, 1);
       const pointLight = new THREE.PointLight(0xffffff, 100);
       pointLight.position.set(0, 2.5, 5);
-      cube.position.set(0, 1.7, -1);
+      body.position.set(0, 1.7, -1);
       camera.position.y = 1.7;
       scene.add(camera);
-      scene.add(cube);
+      scene.add(body);
       scene.add(ambientLight);
       scene.add(pointLight);
-      window.camera = camera;
 
       //End Boilerplate
 
       await DigitalBaconUI.init(container, renderer, scene, camera);
       DigitalBaconUI.InputHandler.enableXRControllerManagement(scene);
 
-      const interactable = new DigitalBaconUI.PointerInteractable(cube);
+      const interactable = new DigitalBaconUI.PointerInteractable(body);
       interactable.addAction(() => {
         console.log("Nice menu isn't it?");
       });
