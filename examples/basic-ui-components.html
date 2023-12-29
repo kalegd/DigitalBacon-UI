@@ -63,14 +63,11 @@
         renderer.xr.enabled = true;
       }
 
-      const body = new DigitalBaconUI.Body({ width: 1.5 });
       const ambientLight = new THREE.AmbientLight(0x404040, 1);
       const pointLight = new THREE.PointLight(0xffffff, 100);
       pointLight.position.set(0, 2.5, 5);
-      body.position.set(0, 1.7, -1);
       camera.position.y = 1.7;
       scene.add(camera);
-      scene.add(body);
       scene.add(ambientLight);
       scene.add(pointLight);
 
@@ -79,6 +76,9 @@
       await DigitalBaconUI.init(container, renderer, scene, camera);
       DigitalBaconUI.InputHandler.enableXRControllerManagement(scene);
 
+      const body = new DigitalBaconUI.Body({ width: 1.5 });
+      body.position.set(0, 1.7, -1);
+      scene.add(body);
       const interactable = new DigitalBaconUI.PointerInteractable(body);
       interactable.addAction(() => {
         console.log("Nice menu isn't it?");

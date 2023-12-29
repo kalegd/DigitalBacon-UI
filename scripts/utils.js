@@ -16,6 +16,9 @@ export const numberOr = (number, defaultValue) =>
         ? number
         : defaultValue;
 
+export const capitalizeFirstLetter = (string) =>
+    string.charAt(0).toUpperCase() + string.slice(1);
+
 export const isDescendant = (ancestor, child) => {
     while(child?.parent) {
         if(child.parent == ancestor) return true;

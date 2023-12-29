@@ -5,6 +5,7 @@
  */
 
 import Body from '/scripts/components/Body.js';
+import Style from '/scripts/components/Style.js';
 import GripInteractable from '/scripts/interactables/GripInteractable.js';
 import PointerInteractable from '/scripts/interactables/PointerInteractable.js';
 import TouchInteractable from '/scripts/interactables/TouchInteractable.js';
