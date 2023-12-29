@@ -9,14 +9,17 @@ import { numberOr } from '/scripts/utils.js';
 import * as THREE from 'three';
 
 const DEFAULT_MATERIAL = new THREE.MeshPhysicalMaterial({
-    color: 0xeeeeee,
+    color: 0xffffff,
     transmission: 1,
     roughness: 0.45,
+    side: THREE.DoubleSide,
 });
+
 const DEFAULT_BORDER_MATERIAL = new THREE.MeshBasicMaterial({
     color: 0xffffff,
     transparent: true,
     opacity: 0.5,
+    side: THREE.DoubleSide,
 });
 
 //https://stackoverflow.com/a/65576761/11626958
