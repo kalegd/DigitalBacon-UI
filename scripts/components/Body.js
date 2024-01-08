@@ -4,7 +4,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
-import UIComponent from '/scripts/components/UIComponent.js';
+import LayoutComponent from '/scripts/components/LayoutComponent.js';
 import * as THREE from 'three';
 
 const DEFAULT_MATERIAL = new THREE.MeshPhysicalMaterial({
@@ -21,7 +21,7 @@ const DEFAULT_BORDER_MATERIAL = new THREE.MeshBasicMaterial({
     side: THREE.DoubleSide,
 });
 
-class Body extends UIComponent {
+class Body extends LayoutComponent {
     constructor(...styles) {
         super(...styles);
         this._defaults['borderMaterial'] = DEFAULT_BORDER_MATERIAL;
@@ -30,33 +30,7 @@ class Body extends UIComponent {
         this._defaults['material'] = DEFAULT_MATERIAL;
         this._defaults['height'] = 1;
         this._defaults['width'] = 1;
-        this._content = new THREE.Object3D();
-        this.add(this._content);
         this._createBackground();
-    }
-
-    _handleStyleUpdateForHeight() {
-        this._createBackground();
-    }
-
-    _handleStyleUpdateForWidth() {
-        this._createBackground();
-    }
-
-    add(object) {
-        if(object instanceof UIComponent) {
-            this._content.add(object);
-        } else {
-            super.add(object);
-        }
-    }
-
-    remove(object) {
-        if(object instanceof UIComponent && !(object.constructor.name=='Body')){
-            this._content.remove(object);
-        } else {
-            super.remove(object);
-        }
     }
 }
 

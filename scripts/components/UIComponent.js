@@ -5,7 +5,7 @@
  */
 
 import Style from '/scripts/components/Style.js';
-import { capitalizeFirstLetter, numberOr } from '/scripts/utils.js';
+import { capitalizeFirstLetter } from '/scripts/utils.js';
 import * as THREE from 'three';
 
 class UIComponent extends THREE.Object3D {
@@ -71,45 +71,6 @@ class UIComponent extends THREE.Object3D {
         }
     }
 
-    _createBackground() {
-        if(this._background) this.remove(this._background);
-        if(this._border) this.remove(this._border);
-        this._border = null;
-        let borderWidth = this.borderWidth || 0;
-        let borderRadius = this.borderRadius || 0;
-        let topLeftRadius = numberOr(this.topLeftRadius, borderRadius);
-        let topRightRadius = numberOr(this.topRightRadius, borderRadius);
-        let bottomLeftRadius = numberOr(this.bottomLeftRadius, borderRadius);
-        let bottomRightRadius = numberOr(this.bottomRightRadius, borderRadius);
-        let height = this.height;
-        let width = this.width;
-        if(borderRadius) {
-            let borderShape = createShape(width, height, topLeftRadius,
-                topRightRadius, bottomLeftRadius, bottomRightRadius);
-            topLeftRadius = Math.max(topLeftRadius - borderWidth, 0);
-            topRightRadius = Math.max(topRightRadius - borderWidth, 0);
-            bottomLeftRadius = Math.max(bottomLeftRadius - borderWidth, 0);
-            bottomRightRadius = Math.max(bottomRightRadius - borderWidth, 0);
-            height -= 2 * borderWidth;
-            width -= 2 * borderWidth;
-            let shape = createShape(width, height, topLeftRadius,
-                topRightRadius, bottomLeftRadius, bottomRightRadius);
-            let geometry = new THREE.ShapeGeometry(shape);
-            this._background = new THREE.Mesh(geometry, this.material);
-            this.add(this._background);
-            borderShape.holes.push(shape);
-            geometry = new THREE.ShapeGeometry(borderShape);
-            this._border = new THREE.Mesh(geometry, this.borderMaterial);
-            this.add(this._border);
-        } else {
-            let shape = createShape(width, height, topLeftRadius,
-                topRightRadius, bottomLeftRadius, bottomRightRadius);
-            let geometry = new THREE.ShapeGeometry(this._bodyShape);
-            this._background = new THREE.Mesh(geometry, this._material);
-            this.add(this._background);
-        }
-    }
-
     _genericGet(param) {
         if(param in this._overrideStyle) return this._overrideStyle[param];
         if(!this._needsUpdate[param] && this._latestValue[param] != null)
@@ -170,33 +131,6 @@ class UIComponent extends THREE.Object3D {
     set height(v) { this._genericSet('height', v); }
     set material(v) { return this._genericSet('material', v); }
     set width(v) { this._genericSet('width', v); }
-}
-
-//https://stackoverflow.com/a/65576761/11626958
-function createShape(width, height, topLeftRadius, topRightRadius,
-        bottomLeftRadius, bottomRightRadius) {
-    let shape = new THREE.Shape();
-    let halfWidth = width / 2;
-    let halfHeight = height / 2;
-    let negativeHalfWidth = halfWidth * -1;
-    let negativeHalfHeight = halfHeight * -1;
-    shape.moveTo(negativeHalfWidth, negativeHalfHeight + bottomLeftRadius);
-    shape.lineTo(negativeHalfWidth, halfHeight - topLeftRadius);
-    if(topLeftRadius)
-        shape.quadraticCurveTo(negativeHalfWidth, halfHeight,
-            negativeHalfWidth + topLeftRadius, halfHeight);
-    shape.lineTo(halfWidth - topRightRadius, halfHeight);
-    if(topRightRadius)
-        shape.quadraticCurveTo(halfWidth, halfHeight, halfWidth,
-            halfHeight - topRightRadius);
-    shape.lineTo(halfWidth, negativeHalfHeight + bottomRightRadius);
-    if(bottomRightRadius)
-        shape.quadraticCurveTo(halfWidth, negativeHalfHeight, halfWidth - bottomRightRadius, negativeHalfHeight);
-    shape.lineTo(negativeHalfWidth + bottomLeftRadius, negativeHalfHeight);
-    if(bottomLeftRadius)
-        shape.quadraticCurveTo(negativeHalfWidth, negativeHalfHeight,
-            negativeHalfWidth, negativeHalfHeight + bottomLeftRadius);
-    return shape;
 }
 
 export default UIComponent;
