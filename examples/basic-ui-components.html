@@ -77,8 +77,22 @@
       DigitalBaconUI.InputHandler.enableXRControllerManagement(scene);
 
       const body = new DigitalBaconUI.Body({ width: 1.5 });
+      const row1 = new DigitalBaconUI.Span({
+        borderTopLeftRadius: 0.05,
+        borderTopRightRadius: 0.05,
+        materialColor: '#dddddd',
+        height: '50%',
+        width: '100%',
+      });
+      const row2 = new DigitalBaconUI.Span({
+        materialColor: '#999999',
+        height: '50%',
+        width: '90%',
+      });
       body.position.set(0, 1.7, -1);
       scene.add(body);
+      body.add(row1);
+      body.add(row2);
       const interactable = new DigitalBaconUI.PointerInteractable(body);
       interactable.addAction(() => {
         console.log("Nice menu isn't it?");

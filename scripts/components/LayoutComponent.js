@@ -8,25 +8,52 @@ import UIComponent from '/scripts/components/UIComponent.js';
 import { capitalizeFirstLetter, numberOr } from '/scripts/utils.js';
 import * as THREE from 'three';
 
+const DEFAULT_MATERIAL = new THREE.MeshPhysicalMaterial({
+    color: 0xffffff,
+    transmission: 1,
+    roughness: 0.45,
+    side: THREE.DoubleSide,
+    polygonOffset: true,
+    polygonOffsetFactor: 1,
+    polygonOffsetUnits: 1,
+});
+
+const DEFAULT_BORDER_MATERIAL = new THREE.MeshBasicMaterial({
+    color: 0xffffff,
+    transparent: true,
+    opacity: 0.5,
+    side: THREE.DoubleSide,
+});
+
 class LayoutComponent extends UIComponent {
     constructor(...styles) {
         super(...styles);
+        this._defaults['borderMaterial'] = DEFAULT_BORDER_MATERIAL.clone();
+        this._defaults['borderRadius'] = 0;
+        this._defaults['borderWidth'] = 0;
+        this._defaults['material'] = DEFAULT_MATERIAL.clone();
+        this._defaults['height'] = 'auto';
+        this._defaults['width'] = 'auto';
+        this._materialOffset = 0;
         this._content = new THREE.Object3D();
         this.add(this._content);
     }
 
     _handleStyleUpdateForHeight() {
-        this._createBackground();
+        this.updateLayout();
     }
 
     _handleStyleUpdateForWidth() {
-        this._createBackground();
+        this.updateLayout();
     }
 
     _createBackground() {
         if(this._background) this.remove(this._background);
         if(this._border) this.remove(this._border);
         this._border = null;
+        let material = this.material;
+        let materialColor = this.materialColor;
+        if(materialColor) material.color.set(materialColor);
         let borderWidth = this.borderWidth || 0;
         let borderRadius = this.borderRadius || 0;
         let topLeftRadius = numberOr(this.borderTopLeftRadius, borderRadius);
@@ -35,8 +62,8 @@ class LayoutComponent extends UIComponent {
             borderRadius);
         let bottomRightRadius = numberOr(this.borderBottomRightRadius,
             borderRadius);
-        let height = this.height;
-        let width = this.width;
+        let height = this.computedHeight;
+        let width = this.computedWidth;
         if(borderWidth) {
             let borderShape = createShape(width, height, topLeftRadius,
                 topRightRadius, bottomLeftRadius, bottomRightRadius);
@@ -58,15 +85,135 @@ class LayoutComponent extends UIComponent {
         } else {
             let shape = createShape(width, height, topLeftRadius,
                 topRightRadius, bottomLeftRadius, bottomRightRadius);
-            let geometry = new THREE.ShapeGeometry(this._bodyShape);
-            this._background = new THREE.Mesh(geometry, this._material);
+            let geometry = new THREE.ShapeGeometry(shape);
+            this._background = new THREE.Mesh(geometry, this.material);
             this.add(this._background);
+        }
+    }
+
+    updateLayout() {
+        let height = this._computeDimension('height');
+        let width = this._computeDimension('width');
+        let contentHeight = this._computeContentHeight;
+        let contentWidth = this._computeContentWidth;
+        let contentDirection = this.contentDirection;
+        let alignItems = this.alignItems;
+        let justifyContent = this.justifyContent;
+        let p, dimension, dimensionName, sign, contentDimension,
+            computedDimensionName, vec2Param;
+        if(this.contentDirection == 'row') {
+            dimension = -width;
+            contentDimension = -contentWidth;
+            computedDimensionName = 'computedWidth';
+            vec2Param = 'x';
+            sign = 1;
+        } else {
+            dimension = height;
+            contentDimension = contentHeight;
+            computedDimensionName = 'computedHeight';
+            vec2Param = 'y';
+            sign = -1;
+        }
+        if(justifyContent == 'start') {
+            p = dimension / 2;
+        } else if(justifyContent == 'end') {
+            p = dimension / -2 + contentDimension;
+        } else {
+            p = contentDimension / 2;
+        }
+        for(let child of this._content.children) {
+            if(child instanceof LayoutComponent) {
+                child.position[vec2Param] = p + child[computedDimensionName]
+                    / 2 * sign;
+                p += child[computedDimensionName] * sign;
+            }
+        }
+        this._createBackground();
+    }
+
+    _computeDimension(dimensionName) {
+        let dimension = this[dimensionName];
+        let computedParam = 'computed' + capitalizeFirstLetter(dimensionName);
+        if(typeof dimension == 'number') {
+            this[computedParam] = dimension;
+        } else if(dimension == 'auto') {
+            if((this.contentDirection=='column') == (dimensionName=='height')) {
+                let sum = 0;
+                for(let child of this._content.children) {
+                    if(child instanceof LayoutComponent)
+                        sum += child[computedParam];
+                }
+                this[computedParam] = sum;
+            } else {
+                let max = 0;
+                for(let child of this._content.children) {
+                    if(child instanceof LayoutComponent)
+                        max = Math.max(max, child[computedParam]);
+                }
+                this[computedParam] = max;
+            }
+        } else {
+            let parentComponent = this.parentComponent;
+            if(parentComponent instanceof LayoutComponent) {
+                let percent = Number(dimension.replace('%', '')) / 100;
+                this[computedParam] = parentComponent[computedParam] * percent;
+            }
+        }
+        return this[computedParam];
+    }
+
+    _getContentHeight() {
+        if(this.contentDirection == 'column') {
+            let sum = 0;
+            for(let child of this._content.children) {
+                if(child instanceof LayoutComponent)
+                    sum += child.computedHeight;
+            }
+            return sum;
+        } else {
+            let max = 0;
+            for(let child of this._content.children) {
+                if(child instanceof LayoutComponent)
+                    max = Math.max(max, child.computedHeight);
+            }
+            return max;
+        }
+    }
+
+    _getContentWidth() {
+        if(this.contentDirection == 'row') {
+            let sum = 0;
+            for(let child of this._content.children) {
+                if(child instanceof LayoutComponent)
+                    sum += child.computedWidth;
+            }
+            return sum;
+        } else {
+            let max = 0;
+            for(let child of this._content.children) {
+                if(child instanceof LayoutComponent)
+                    max = Math.max(max, child.computedWidth);
+            }
+            return max;
+        }
+    }
+
+    _updateMaterialOffset(parentOffset) {
+        this._materialOffset = parentOffset + 1;
+        this.material.polygonOffsetUnits = -10 * this._materialOffset;
+        this.renderOrder = 100 - this._materialOffset;
+        for(let child of this._content.children) {
+            if(child instanceof LayoutComponent)
+                child._updateMaterialOffset(this._materialOffset);
         }
     }
 
     add(object) {
         if(object instanceof UIComponent) {
             this._content.add(object);
+            object.updateLayout();
+            object._updateMaterialOffset(this._materialOffset);
+            this.updateLayout();
         } else {
             super.add(object);
         }
@@ -79,6 +226,13 @@ class LayoutComponent extends UIComponent {
             super.remove(object);
         }
     }
+
+    get alignItems() { return this._genericGet('alignItems'); }
+    get justifyContent() { return this._genericGet('justifyContent'); }
+    get parentComponent() { return this.parent?.parent; }
+
+    set alignItems(v) { this._genericSet('alignItems', v); }
+    set justifyContent(v) { this._genericSet('justifyContent', v); }
 }
 
 //https://stackoverflow.com/a/65576761/11626958

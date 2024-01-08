@@ -35,6 +35,7 @@ class Style {
         }
     }
 
+    get alignItems() { return this._genericGet('alignItems'); }
     get borderMaterial() { return this._genericGet('borderMaterial'); }
     get borderRadius() { return this._genericGet('borderRadius'); }
     get borderBottomLeftRadius() {
@@ -50,10 +51,14 @@ class Style {
         return this._genericGet('borderTopRightRadius');
     }
     get borderWidth() { return this._genericGet('borderWidth'); }
+    get contentDirection() { return this._genericGet('contentDirection'); }
     get height() { return this._genericGet('height'); }
+    get justifyContent() { return this._genericGet('justifyContent'); }
     get material() { return this._genericGet('material'); }
+    get materialColor() { return this._genericGet('materialColor'); }
     get width() { return this._genericGet('width'); }
 
+    set alignItems(v) { this._genericSet('alignItems', v); }
     set borderMaterial(v) { this._genericSet('borderMaterial', v); }
     set borderRadius(v) { this._genericSet('borderRadius', v); }
     set borderBottomLeftRadius(v) {
@@ -65,11 +70,15 @@ class Style {
     set borderTopLeftRadius(v) { this._genericSet('borderTopLeftRadius', v); }
     set borderTopRightRadius(v) { this._genericSet('borderTopRightRadius', v); }
     set borderWidth(v) { this._genericSet('borderWidth', v); }
+    set contentDirection(v) { this._genericSet('contentDirection', v); }
     set height(v) { this._genericSet('height', v); }
+    set justifyContent(v) { this._genericSet('justifyContent', v); }
     set material(v) { this._genericSet('material', v); }
+    set materialColor(v) { this._genericSet('materialColor', v); }
     set width(v) { this._genericSet('width', v); }
 
     static PROPERTIES = [
+        'alignItems',
         'borderMaterial',
         'borderRadius',
         'borderBottomLeftRadius',
@@ -77,8 +86,11 @@ class Style {
         'borderTopLeftRadius',
         'borderTopRightRadius',
         'borderWidth',
+        'contentDirection',
         'height',
+        'justifyContent',
         'material',
+        'materialColor',
         'width'
     ];
 }

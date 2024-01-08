@@ -5,20 +5,15 @@
  */
 
 import LayoutComponent from '/scripts/components/LayoutComponent.js';
-import * as THREE from 'three';
 
-class Body extends LayoutComponent {
+class Div extends LayoutComponent {
     constructor(...styles) {
         super(...styles);
         this._defaults['alignItems'] = 'center';
-        this._defaults['borderRadius'] = 0.05;
-        this._defaults['borderWidth'] = 0.001;
         this._defaults['contentDirection'] = 'column';
         this._defaults['justifyContent'] = 'start';
-        this._defaults['height'] = 1;
-        this._defaults['width'] = 1;
         this.updateLayout();
     }
 }
 
-export default Body;
+export default Div;

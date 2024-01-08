@@ -5,6 +5,8 @@
  */
 
 import Body from '/scripts/components/Body.js';
+import Div from '/scripts/components/Div.js';
+import Span from '/scripts/components/Span.js';
 import Style from '/scripts/components/Style.js';
 import GripInteractable from '/scripts/interactables/GripInteractable.js';
 import PointerInteractable from '/scripts/interactables/PointerInteractable.js';
@@ -92,6 +94,9 @@ const update = (frame) => {
 };
 
 export { Body };
+export { Div };
+export { Span };
+export { Style };
 export { GripInteractable };
 export { PointerInteractable };
 export { TouchInteractable };

@@ -113,8 +113,10 @@ class UIComponent extends THREE.Object3D {
         return this._genericGet('borderTopRightRadius');
     }
     get borderWidth() { return this._genericGet('borderWidth'); }
+    get contentDirection() { return this._genericGet('contentDirection'); }
     get height() { return this._genericGet('height'); }
     get material() { return this._genericGet('material'); }
+    get materialColor() { return this._genericGet('materialColor'); }
     get width() { return this._genericGet('width'); }
 
     set borderMaterial(v) { return this._genericSet('borderMaterial', v); }
@@ -128,8 +130,10 @@ class UIComponent extends THREE.Object3D {
     set borderTopLeftRadius(v) { this._genericSet('borderTopLeftRadius', v); }
     set borderTopRightRadius(v) { this._genericSet('borderTopRightRadius', v); }
     set borderWidth(v) { return this._genericSet('borderWidth', v); }
+    set contentDirection(v) { this._genericSet('contentDirection', v); }
     set height(v) { this._genericSet('height', v); }
     set material(v) { return this._genericSet('material', v); }
+    set materialColor(v) { return this._genericSet('materialColor', v); }
     set width(v) { this._genericSet('width', v); }
 }
 
