@@ -250,10 +250,30 @@ class LayoutComponent extends UIComponent {
             }
         }
         this._createBackground();
-        if((oldWidth != width || oldHeight != height)
-                && this.parentComponent instanceof LayoutComponent) {
+        if(oldWidth != width || oldHeight != height) {
             if(this.clippingPlanes) this._updateClippingPlanes();
-            this.parent.parent.updateLayout();
+            if(this.parentComponent instanceof LayoutComponent)
+                this.parent.parent.updateLayout();
+            this._updateChildrensLayout(oldWidth != width, oldHeight != height);
+        }
+    }
+
+    _updateChildrensLayout(widthChanged, heightChanged) {
+        for(let child of this._content.children) {
+            if(child instanceof LayoutComponent) {
+                let needsUpdate = false;
+                if(widthChanged) {
+                    let width = child.width;
+                    if(typeof width == 'string' && width.endsWith('%'))
+                        needsUpdate = true;
+                }
+                if(!needsUpdate && heightChanged) {
+                    let height = child.height;
+                    if(typeof height == 'string' && height.endsWith('%'))
+                        needsUpdate = true;
+                }
+                if(needsUpdate) child.updateLayout();
+            }
         }
     }
 
