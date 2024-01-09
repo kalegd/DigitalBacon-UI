@@ -43,6 +43,11 @@ class Interactable {
         return action;
     }
 
+    hasAction(id) {
+        if(id?.id) id = id.id;
+        return this._actions[id] != null;
+    }
+
     getActionsLength(tool) {
         return (tool) ? this._toolCounts[tool] : this._actionsLength;
     }
