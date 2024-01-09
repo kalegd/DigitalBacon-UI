@@ -45,6 +45,13 @@ class LayoutComponent extends UIComponent {
         if(this.overflow != 'visible') this._createClippingPlanes();
     }
 
+    _handleStyleUpdateForBackgroundVisibility() {
+        if(!this._background) return;
+        this._background.visible = (this.backgroundVisibility == 'visible')
+            ? true
+            : false;
+    }
+
     _handleStyleUpdateForHeight() {
         this.updateLayout();
     }
@@ -72,7 +79,6 @@ class LayoutComponent extends UIComponent {
         if(this._border) this.remove(this._border);
         this._background = null;
         this._border = null;
-        if(this.backgroundVisibility == 'hidden') return;
         let material = this.material;
         let materialColor = this.materialColor;
         if(materialColor) material.color.set(materialColor);
@@ -111,6 +117,8 @@ class LayoutComponent extends UIComponent {
             this._background = new THREE.Mesh(geometry, this.material);
             this.add(this._background);
         }
+        if(this.backgroundVisibility != 'visible')
+            this._background.visible = false;
     }
 
     _createClippingPlanes() {
@@ -150,13 +158,19 @@ class LayoutComponent extends UIComponent {
         this.clippingPlanes[1].constant = y;
         this.clippingPlanes[2].constant = x;
         this.clippingPlanes[3].constant = x;
+        this.clippingPlanes[0].normal.set(0, 1, 0);
+        this.clippingPlanes[1].normal.set(0, -1, 0);
+        this.clippingPlanes[2].normal.set(1, 0, 0);
+        this.clippingPlanes[3].normal.set(-1, 0, 0);
         for(let plane of this.clippingPlanes) {
             plane.applyMatrix4(this.matrixWorld);
         }
     }
 
     updateClippingPlanes(recursive) {
-        this.material.clippingPlanes = this._getClippingPlanes();
+        let clippingPlanes = this._getClippingPlanes();
+        this.material.clippingPlanes = clippingPlanes;
+        if(this._text) this._text.material.clippingPlanes = clippingPlanes;
         if(!recursive) return;
         for(let child of this._content.children) {
             if(child instanceof LayoutComponent)

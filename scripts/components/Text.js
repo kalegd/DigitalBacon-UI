@@ -24,6 +24,8 @@ class TextComponent extends LayoutComponent {
         this._text.anchorX = 'center';
         this._text.anchorY = 'middle';
         this._text.sync(() => this.updateLayout());
+        if(this.overflow != 'visible')
+            this._text.material.clippingPlanes = this._getClippingPlanes();
     }
 
     _computeDimension(dimensionName) {
