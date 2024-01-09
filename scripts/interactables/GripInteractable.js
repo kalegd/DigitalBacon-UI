@@ -18,18 +18,18 @@ class GripInteractable extends Interactable {
         this._createBoundingObject();
     }
 
-    addAction(selectedAction, releasedAction, tool) {
-        if(selectedAction && typeof selectedAction == 'object') {
-            if(!this._actions[selectedAction.id]) {
-                this._toolCounts[selectedAction.tool || 'none']++;
+    addAction(selectAction, releaseAction, tool) {
+        if(selectAction && typeof selectAction == 'object') {
+            if(!this._actions[selectAction.id]) {
+                this._toolCounts[selectAction.tool || 'none']++;
             }
-            this._actions[selectedAction.id] = selectedAction;
+            this._actions[selectAction.id] = selectAction;
             this._actionsLength = Object.keys(this._actions).length;
-            return selectedAction;
+            return selectAction;
         }
         let action = super.addAction(tool);
-        action['selectedAction'] = selectedAction;
-        action['releasedAction'] = releasedAction;
+        action['selectAction'] = selectAction;
+        action['releaseAction'] = releaseAction;
         action['selectedBy'] = new Set();
         action['type'] = 'GRIP';
         return action;
@@ -80,7 +80,7 @@ class GripInteractable extends Interactable {
             let action = this._actions[id];
             if(!action) continue;
             if(!action.tool || action.tool == tool) {
-                if(action.selectedAction) action.selectedAction(owner);
+                if(action.selectAction) action.selectAction(owner);
                 action.selectedBy.add(owner);
             }
         }
@@ -92,14 +92,10 @@ class GripInteractable extends Interactable {
             let action = this._actions[id];
             if(!action) continue;
             if(action.selectedBy.has(owner)) {
-                if(action.releasedAction) action.releasedAction(owner);
+                if(action.releaseAction) action.releaseAction(owner);
                 action.selectedBy.delete(owner);
             }
         }
-    }
-
-    static emptyGroup() {
-        return new GripInteractable();
     }
 }
 

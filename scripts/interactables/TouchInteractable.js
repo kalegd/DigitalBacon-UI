@@ -22,7 +22,7 @@ class TouchInteractable extends Interactable {
         this._createBoundingObject();
     }
 
-    addAction(touchAction, draggableAction, tool) {
+    addAction(touchAction, dragAction, tool) {
         if(touchAction && typeof touchAction == 'object') {
             if(!this._actions[touchAction.id]) {
                 this._toolCounts[touchAction.tool || 'none']++;
@@ -33,7 +33,7 @@ class TouchInteractable extends Interactable {
         }
         let action = super.addAction(tool);
         action['touchAction'] = touchAction;
-        action['draggableAction'] = draggableAction;
+        action['dragAction'] = dragAction;
         action['draggingOwners'] = new Set();
         action['type'] = 'TOUCH';
         return action;
@@ -76,7 +76,7 @@ class TouchInteractable extends Interactable {
     addSelectedBy(owner) {
         this._selectedOwners.add(owner);
         this.setState(States.SELECTED);
-        this.triggerDraggableActions(owner);
+        this.triggerDragActions(owner);
     }
 
     removeSelectedBy(owner) {
@@ -87,15 +87,15 @@ class TouchInteractable extends Interactable {
         this._determineAndSetState();
     }
 
-    triggerDraggableActions(owner) {
+    triggerDragActions(owner) {
         let ids = Object.keys(this._actions);
         let tool = InteractionTool.getTool();
         for(let id of ids) {
             let action = this._actions[id];
             if(!action) continue;
             if(!action.tool || action.tool == tool) {
-                if(action.draggableAction)
-                    action.draggableAction(owner);
+                if(action.dragAction)
+                    action.dragAction(owner);
                 if(!action.draggingOwners.has(owner))
                     action.draggingOwners.add(owner);
             }
@@ -112,16 +112,6 @@ class TouchInteractable extends Interactable {
                 action.draggingOwners.delete(owner);
             }
         }
-    }
-
-    static emptyGroup() {
-        return new TouchInteractable();
-    }
-
-    static createDraggable(object, actionFunc, draggableActionFunc) {
-        let interactable = new TouchInteractable(object);
-        interactable.addAction(actionFunc, draggableActionFunc);
-        return interactable;
     }
 }
 

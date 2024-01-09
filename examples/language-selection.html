@@ -82,7 +82,10 @@
       await DigitalBaconUI.init(container, renderer, scene, camera);
       DigitalBaconUI.InputHandler.enableXRControllerManagement(scene);
 
-      const body = new DigitalBaconUI.Body({ width: 1.5, justifyContent: 'spaceBetween' });
+      const body = new DigitalBaconUI.Body({
+        justifyContent: 'spaceBetween',
+        width: 1.5,
+      });
       const row1 = new DigitalBaconUI.Span({
         backgroundVisibility: 'visible',
         borderTopLeftRadius: 0.05,
@@ -93,9 +96,14 @@
         justifyContent: 'center',
       });
       const row2 = new DigitalBaconUI.Span({
-        materialColor: '#999999',
-        height: '20%',
+        height: '37.5%',
         width: '100%',
+        justifyContent: 'center',
+        overflow: 'scroll',
+      });
+      const languages = new DigitalBaconUI.Span({
+        height: '100%',
+        width: '150%',
         justifyContent: 'spaceAround',
       });
       const row3 = new DigitalBaconUI.Span({
@@ -115,8 +123,8 @@
         borderRadius: 0.05,
         justifyContent: 'center',
         materialColor: '#999999',
-        height: '100%',
-        width: '22%',
+        height: 0.2,
+        width: 0.33,
       });
       const englishDiv = new DigitalBaconUI.Div(buttonStyle);
       const chineseDiv = new DigitalBaconUI.Div(buttonStyle);
@@ -129,7 +137,8 @@
       scene.add(body);
       body.add(row1, row2, row3);
       row1.add(helloText);
-      row2.add(englishDiv, chineseDiv, hindiDiv);
+      row2.add(languages);
+      languages.add(englishDiv, chineseDiv, hindiDiv);
       englishDiv.add(english);
       chineseDiv.add(chinese);
       hindiDiv.add(hindi);

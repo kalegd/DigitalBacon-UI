@@ -72,7 +72,7 @@ class TouchInteractableHandler extends InteractableHandler {
         }
         for(let interactable of touchedInteractables) {
             if(selectedInteractables.has(interactable)) {
-                interactable.triggerDraggableActions(option);
+                interactable.triggerDragActions(option);
             } else {
                 interactable.addSelectedBy(option);
                 selectedInteractables.add(interactable);

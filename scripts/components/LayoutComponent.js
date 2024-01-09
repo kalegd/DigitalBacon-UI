@@ -28,6 +28,8 @@ const DEFAULT_BORDER_MATERIAL = new THREE.MeshBasicMaterial({
     side: THREE.DoubleSide,
 });
 
+const vec3 = new THREE.Vector3();
+
 class LayoutComponent extends UIComponent {
     constructor(...styles) {
         super(...styles);
@@ -46,8 +48,12 @@ class LayoutComponent extends UIComponent {
         this.add(this._content);
         this.position.z = 0.00000001;
         this.pointerInteractable = new PointerInteractable(this);
+        this._clickAction = (owner, closestPoint) => this._onPointerClick(owner,
+            closestPoint);
+        this._dragAction = (owner, closestPoint) => this._onPointerDrag(owner,
+            closestPoint);
         this._pointerInteractableAction = this.pointerInteractable.addAction(
-            () => this._onPointerClick(), () => this._onPointerDrag());
+            this._clickAction, this._dragAction);
         this.pointerInteractable.removeAction(this._pointerInteractableAction);
         this.addEventListener('added', () => this._onAdded());
         this.addEventListener('removed', () => this._onAdded());
@@ -268,6 +274,7 @@ class LayoutComponent extends UIComponent {
                 this.parent.parent.updateLayout();
             this._updateChildrensLayout(oldWidth != width, oldHeight != height);
         }
+        this._updateInteractables();
     }
 
     _updateChildrensLayout(widthChanged, heightChanged) {
@@ -374,7 +381,14 @@ class LayoutComponent extends UIComponent {
         let scrollable = this._verticallyScrollable
             || this._horizontallyScrollable;
         let active = scrollable || this._onClick != null || this._onDrag !=null;
-        if(active == this.pointerInteractable.hasAction(this._pointerInteractableAction)) return;
+        let hasAction = this.pointerInteractable.hasAction(
+            this._pointerInteractableAction);
+        if(scrollable || this._onDrag) {
+            this._pointerInteractableAction.dragAction = this._dragAction;
+        } else {
+            delete this._pointerInteractableAction.dragAction;
+        }
+        if(active == hasAction) return;
         if(active) {
             this.pointerInteractable.addAction(this._pointerInteractableAction);
         } else {
@@ -383,12 +397,26 @@ class LayoutComponent extends UIComponent {
         }
     }
 
-    _onPointerClick() {
-        if(this._onClick) this._onClick();
+    _onPointerClick(owner, closestPoint) {
+        if(this._scrollStart) {
+            this._scrollStart = this._scrollStartPosition = null;
+        }
+        if(this._onClick) this._onClick(owner, closestPoint);
     }
 
-    _onPointerDrag() {
-        if(this._onDrag) this._onDrag();
+    _onPointerDrag(owner, closestPoint) {
+        if(!this._scrollStart && closestPoint
+                && (this._horizontallyScrollable ||this._verticallyScrollable)){
+            this._scrollStart = this.worldToLocal(closestPoint.clone());
+            this._scrollStartPosition = this._content.position.clone();
+        } else if(this._scrollStart && closestPoint) {
+            closestPoint = this.worldToLocal(vec3.copy(closestPoint));
+            if(this._horizontallyScrollable) {
+                this._content.position.x = this._scrollStartPosition.x
+                    - this._scrollStart.x + closestPoint.x;
+            }
+        }
+        if(this._onDrag) this._onDrag(owner, closestPoint);
     }
 
     _onAdded() {

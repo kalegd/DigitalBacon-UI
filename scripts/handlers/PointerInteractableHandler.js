@@ -158,7 +158,7 @@ class PointerInteractableHandler extends InteractableHandler {
             if(isPressed) {
                 if(selectedInteractable) {
                     if(selectedInteractable == closestInteractable) {
-                        selectedInteractable.triggerDraggableActions(option,
+                        selectedInteractable.triggerDragActions(option,
                             controller['closestPoint'], userDistance);
                     }
                 } else if(hoveredInteractable == closestInteractable) {
@@ -222,7 +222,7 @@ class PointerInteractableHandler extends InteractableHandler {
                 }
                 selectedInteractable.removeSelectedBy(option);
             } else if(selectedInteractable == closestInteractable) {
-                selectedInteractable.triggerDraggableActions(option,
+                selectedInteractable.triggerDragActions(option,
                     controller['closestPoint'], userDistance);
             }
         } else if(isPressed) {

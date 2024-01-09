@@ -15,7 +15,7 @@ class PointerInteractable extends Interactable {
         this._maxDistance = -Infinity;
     }
 
-    addAction(clickAction, draggableAction, maxDistance, tool) {
+    addAction(clickAction, dragAction, maxDistance, tool) {
         if(clickAction && typeof clickAction == 'object') {
             if(!this._actions[clickAction.id]) {
                 this._toolCounts[clickAction.tool || 'none']++;
@@ -31,7 +31,7 @@ class PointerInteractable extends Interactable {
         if(maxDistance > this._maxDistance) this._maxDistance = maxDistance;
         let action = super.addAction(tool);
         action['clickAction'] = clickAction;
-        action['draggableAction'] = draggableAction;
+        action['dragAction'] = dragAction;
         action['draggingOwners'] = new Set();
         action['maxDistance'] = maxDistance;
         action['type'] = 'POINTER';
@@ -72,7 +72,7 @@ class PointerInteractable extends Interactable {
     addSelectedBy(owner, closestPoint, distance) {
         this._selectedOwners.add(owner);
         this.setState(States.SELECTED);
-        this.triggerDraggableActions(owner, closestPoint, distance);
+        this.triggerDragActions(owner, closestPoint, distance);
     }
 
     removeSelectedBy(owner) {
@@ -100,17 +100,17 @@ class PointerInteractable extends Interactable {
         }
     }
 
-    triggerDraggableActions(owner, closestPoint, distance) {
+    triggerDragActions(owner, closestPoint, distance) {
         let ids = Object.keys(this._actions);
         let tool = InteractionTool.getTool();
         for(let id of ids) {
             let action = this._actions[id];
             if(!action) continue;
-            if(action.draggableAction && (!action.tool || action.tool == tool)
+            if(action.dragAction && (!action.tool || action.tool == tool)
                 && (action.draggingOwners.has(owner)
                     || action.maxDistance >= distance))
             {
-                action.draggableAction(owner, closestPoint);
+                action.dragAction(owner, closestPoint);
                 if(!action.draggingOwners.has(owner))
                     action.draggingOwners.add(owner);
             }
@@ -127,16 +127,6 @@ class PointerInteractable extends Interactable {
                 action.draggingOwners.delete(owner);
             }
         }
-    }
-
-    static emptyGroup() {
-        return new PointerInteractable();
-    }
-
-    static createDraggable(object, actionFunc, draggableActionFunc) {
-        let interactable = new PointerInteractable(object);
-        interactable.addAction(actionFunc, draggableActionFunc);
-        return interactable;
     }
 }
 
