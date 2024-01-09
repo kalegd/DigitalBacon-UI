@@ -127,40 +127,30 @@
       const hindi = new DigitalBaconUI.Text('हिंदी', { color: '#ffffff' });
       body.position.set(0, 1.7, -1);
       scene.add(body);
-      body.add(row1);
-      body.add(row2);
-      body.add(row3);
+      body.add(row1, row2, row3);
       row1.add(helloText);
-      row2.add(englishDiv);
-      row2.add(chineseDiv);
-      row2.add(hindiDiv);
+      row2.add(englishDiv, chineseDiv, hindiDiv);
       englishDiv.add(english);
       chineseDiv.add(chinese);
       hindiDiv.add(hindi);
-      let interactable = new DigitalBaconUI.PointerInteractable(englishDiv);
-      interactable.addAction(() => {
+      englishDiv.onClick = () => {
         englishDiv.materialColor = '#ff00ff';
         chineseDiv.materialColor = '#999999';
         hindiDiv.materialColor = '#999999';
         helloText.text = hello.english;
-      });
-      DigitalBaconUI.addPointerInteractable(interactable);
-      interactable = new DigitalBaconUI.PointerInteractable(chineseDiv);
-      interactable.addAction(() => {
+      };
+      chineseDiv.onClick = () => {
         englishDiv.materialColor = '#999999';
         chineseDiv.materialColor = '#ff00ff';
         hindiDiv.materialColor = '#999999';
         helloText.text = hello.chinese;
-      });
-      DigitalBaconUI.addPointerInteractable(interactable);
-      interactable = new DigitalBaconUI.PointerInteractable(hindiDiv);
-      interactable.addAction(() => {
+      };
+      hindiDiv.onClick = () => {
         englishDiv.materialColor = '#999999';
         chineseDiv.materialColor = '#999999';
         hindiDiv.materialColor = '#ff00ff';
         helloText.text = hello.hindi;
-      });
-      DigitalBaconUI.addPointerInteractable(interactable);
+      };
 
       renderer.setAnimationLoop((time, frame) => {
         stats.begin();

@@ -120,11 +120,7 @@
       body.add(row3);
       row1.add(text1);
       row2.add(text2);
-      const interactable = new DigitalBaconUI.PointerInteractable(body);
-      interactable.addAction(() => {
-        console.log("Nice menu isn't it?");
-      });
-      DigitalBaconUI.addPointerInteractable(interactable);
+      body.onClick = () => console.log("Nice menu isn't it?");
 
       renderer.setAnimationLoop((time, frame) => {
         stats.begin();

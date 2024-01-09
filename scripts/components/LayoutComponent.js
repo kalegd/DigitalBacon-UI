@@ -5,6 +5,8 @@
  */
 
 import UIComponent from '/scripts/components/UIComponent.js';
+import PointerInteractable from '/scripts/interactables/PointerInteractable.js';
+import PointerInteractableHandler from '/scripts/handlers/PointerInteractableHandler.js';
 import UpdateHandler from '/scripts/handlers/UpdateHandler.js';
 import { capitalizeFirstLetter, numberOr } from '/scripts/utils.js';
 import * as THREE from 'three';
@@ -43,6 +45,12 @@ class LayoutComponent extends UIComponent {
         this._content = new THREE.Object3D();
         this.add(this._content);
         this.position.z = 0.00000001;
+        this.pointerInteractable = new PointerInteractable(this);
+        this._pointerInteractableAction = this.pointerInteractable.addAction(
+            () => this._onPointerClick(), () => this._onPointerDrag());
+        this.pointerInteractable.removeAction(this._pointerInteractableAction);
+        this.addEventListener('added', () => this._onAdded());
+        this.addEventListener('removed', () => this._onAdded());
         if(this.overflow != 'visible') this._createClippingPlanes();
     }
 
@@ -186,6 +194,9 @@ class LayoutComponent extends UIComponent {
         let width = this._computeDimension('width');
         let contentHeight = this._getContentHeight();
         let contentWidth = this._getContentWidth();
+        let overflowScroll = this.overflow == 'scroll';
+        this._verticallyScrollable = contentHeight > height && overflowScroll;
+        this._horizontallyScrollable = contentWidth > width && overflowScroll;
         let contentSize = this._content.children.reduce(
             (sum, child) => sum + (child instanceof LayoutComponent ? 1 : 0),0);
         let contentDirection = this.contentDirection;
@@ -359,8 +370,62 @@ class LayoutComponent extends UIComponent {
         }
     }
 
+    _updateInteractables() {
+        let scrollable = this._verticallyScrollable
+            || this._horizontallyScrollable;
+        let active = scrollable || this._onClick != null || this._onDrag !=null;
+        if(active == this.pointerInteractable.hasAction(this._pointerInteractableAction)) return;
+        if(active) {
+            this.pointerInteractable.addAction(this._pointerInteractableAction);
+        } else {
+            this.pointerInteractable.removeAction(
+                this._pointerInteractableAction);
+        }
+    }
+
+    _onPointerClick() {
+        if(this._onClick) this._onClick();
+    }
+
+    _onPointerDrag() {
+        if(this._onDrag) this._onDrag();
+    }
+
+    _onAdded() {
+        let p = this.parentComponent;
+        if(p instanceof LayoutComponent) {
+            p.pointerInteractable.addChild(this.pointerInteractable);
+        } else {
+            p = this.parent;
+            while(p) {
+                if(p instanceof THREE.Scene) {
+                    PointerInteractableHandler.addInteractable(
+                        this.pointerInteractable);
+                    return;
+                }
+                p = p.parent;
+            }
+            PointerInteractableHandler.removeInteractable(
+                this.pointerInteractable);
+        }
+    }
+
+    _onRemoved() {
+        if(this.pointerInteractable.parent) {
+            this.pointerInteractable.parent.removeChild(
+                this.pointerInteractable);
+        } else {
+            PointerInteractableHandler.removeInteractable(
+                this.pointerInteractable);
+        }
+    }
+
     add(object) {
-        if(object instanceof UIComponent) {
+        if(arguments.length > 1) {
+            for(let argument of arguments) {
+                this.add(argument);
+            }
+        } else if(object instanceof UIComponent) {
             this._content.add(object);
             object.updateLayout();
             object._updateMaterialOffset(this._materialOffset);
@@ -372,7 +437,12 @@ class LayoutComponent extends UIComponent {
     }
 
     remove(object) {
-        if(object instanceof UIComponent && !(object.constructor.name=='Body')){
+        if(arguments.length > 1) {
+            for(let argument of arguments) {
+                this.add(argument);
+            }
+        } else if(object instanceof UIComponent
+                && !(object.constructor.name == 'Body')) {
             this._content.remove(object);
         } else {
             super.remove(object);
@@ -380,6 +450,11 @@ class LayoutComponent extends UIComponent {
     }
 
     get parentComponent() { return this.parent?.parent; }
+    get onClick() { return this._onClick; }
+    get onDrag() { return this._onDrag; }
+
+    set onClick(v) { this._onClick = v; this._updateInteractables(); }
+    set onDrag(v) { this._onDrag = v; this._updateInteractables(); }
 }
 
 //https://stackoverflow.com/a/65576761/11626958
