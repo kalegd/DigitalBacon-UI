@@ -35,6 +35,8 @@ class LayoutComponent extends UIComponent {
         this._defaults['material'] = DEFAULT_MATERIAL.clone();
         this._defaults['height'] = 'auto';
         this._defaults['width'] = 'auto';
+        this.computedHeight = 0;
+        this.computedWidth = 0;
         this._materialOffset = 0;
         this._content = new THREE.Object3D();
         this.add(this._content);
@@ -95,6 +97,8 @@ class LayoutComponent extends UIComponent {
     }
 
     updateLayout() {
+        let oldHeight = this.computedHeight;
+        let oldWidth = this.computedWidth;
         let height = this._computeDimension('height');
         let width = this._computeDimension('width');
         let contentHeight = this._getContentHeight();
@@ -148,6 +152,10 @@ class LayoutComponent extends UIComponent {
             }
         }
         this._createBackground();
+        if((oldWidth != width || oldHeight != height)
+                && this.parent?.parent instanceof LayoutComponent) {
+            this.parent.parent.updateLayout();
+        }
     }
 
     _computeDimension(dimensionName) {

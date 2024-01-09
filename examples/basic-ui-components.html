@@ -99,11 +99,13 @@
         height: '12.5%',
         width: '100%',
       });
+      const text = new DigitalBaconUI.Text('你好!');
       body.position.set(0, 1.7, -1);
       scene.add(body);
       body.add(row1);
       body.add(row2);
       body.add(row3);
+      row1.add(text);
       const interactable = new DigitalBaconUI.PointerInteractable(body);
       interactable.addAction(() => {
         console.log("Nice menu isn't it?");
