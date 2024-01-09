@@ -114,20 +114,27 @@ class LayoutComponent extends UIComponent {
         let contentDirection = this.contentDirection;
         let alignItems = this.alignItems;
         let justifyContent = this.justifyContent;
-        let p, dimension, dimensionName, sign, contentDimension,
-            computedDimensionName, vec2Param;
+        let p, dimension, dimensionName, otherDimension, sign, contentDimension,
+            computedDimensionName, otherComputedDimensionName, vec2Param,
+            otherVec2Param;
         let itemGap = 0;
         if(this.contentDirection == 'row') {
             dimension = -width;
             contentDimension = -contentWidth;
+            otherDimension = height;
             computedDimensionName = 'computedWidth';
+            otherComputedDimensionName = 'computedHeight';
             vec2Param = 'x';
+            otherVec2Param = 'y';
             sign = 1;
         } else {
             dimension = height;
             contentDimension = contentHeight;
+            otherDimension = -width;
             computedDimensionName = 'computedHeight';
+            otherComputedDimensionName = 'computedWidth';
             vec2Param = 'y';
+            otherVec2Param = 'x';
             sign = -1;
         }
         if(justifyContent == 'spaceBetween') {
@@ -155,6 +162,15 @@ class LayoutComponent extends UIComponent {
                     / 2 * sign;
                 p += child[computedDimensionName] * sign;
                 p += itemGap;
+                if(alignItems == 'start') {
+                    child.position[otherVec2Param] = otherDimension / 2
+                        - child[otherComputedDimensionName] / 2 * sign;
+                } else if(alignItems == 'end') {
+                    child.position[otherVec2Param] = -otherDimension / 2
+                        + child[otherComputedDimensionName] / 2 * sign;
+                } else {
+                    child.position[otherVec2Param] = 0;
+                }
             }
         }
         this._createBackground();
