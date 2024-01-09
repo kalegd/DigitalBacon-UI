@@ -18,6 +18,7 @@ class PointerInteractableHandler extends InteractableHandler {
         super();
         this._cursors = {};
         this._emptyClickListeners = {};
+        this._ignoredInteractables = new Set();;
         this._wasPressed = new Map();
     }
 
@@ -121,6 +122,7 @@ class PointerInteractableHandler extends InteractableHandler {
     }
 
     _raycastInteractables(controller, interactables) {
+        this._ignoredInteractables.clear();
         let raycaster = controller['raycaster'];
         if(!raycaster) return;
         raycaster.firstHitOnly = true;
@@ -130,7 +132,12 @@ class PointerInteractableHandler extends InteractableHandler {
         let intersections = raycaster.intersectObjects(objects);
         for(let intersection of intersections) {
             let interactable = this._getObjectInteractable(intersection.object);
-            if(!interactable) continue;
+            if(!interactable || this._ignoredInteractables.has(interactable))
+                continue;
+            if(this._checkClipped(intersection.object, intersection.point)) {
+                this._ignoredInteractables.add(interactable);
+                continue;
+            }
             let distance = intersection.distance;
             let userDistance = distance;
             if(this._deviceType != 'XR') {
@@ -145,6 +152,16 @@ class PointerInteractableHandler extends InteractableHandler {
             controller['userDistance'] = userDistance;
             return;
         }
+    }
+
+    _checkClipped(object, point) {
+        let clippingPlanes = object?.material?.clippingPlanes;
+        if(clippingPlanes && clippingPlanes.length > 0) {
+            for(let plane of clippingPlanes) {
+                if(plane.distanceToPoint(point) < 0) return true;
+            }
+        }
+        return false;
     }
 
     _updateInteractables(controller) {
