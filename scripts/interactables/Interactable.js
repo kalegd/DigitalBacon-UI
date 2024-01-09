@@ -35,6 +35,7 @@ class Interactable {
     }
 
     removeAction(id) {
+        if(id?.id) id = id.id;
         let action = this._actions[id];
         delete this._actions[id];
         this._actionsLength = Object.keys(this._actions).length;

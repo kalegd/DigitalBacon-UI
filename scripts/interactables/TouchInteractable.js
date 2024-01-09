@@ -22,6 +22,23 @@ class TouchInteractable extends Interactable {
         this._createBoundingObject();
     }
 
+    addAction(touchAction, draggableAction, tool) {
+        if(touchAction && typeof touchAction == 'object') {
+            if(!this._actions[touchAction.id]) {
+                this._toolCounts[touchAction.tool || 'none']++;
+            }
+            this._actions[touchAction.id] = touchAction;
+            this._actionsLength = Object.keys(this._actions).length;
+            return touchAction;
+        }
+        let action = super.addAction(tool);
+        action['touchAction'] = touchAction;
+        action['draggableAction'] = draggableAction;
+        action['draggingOwners'] = new Set();
+        action['type'] = 'TOUCH';
+        return action;
+    }
+
     _createBoundingObject() {
         this._boundingBox = new THREE.Box3();
     }
@@ -54,23 +71,6 @@ class TouchInteractable extends Interactable {
     getIntersectionCenter(owner) {
         //TODO
         console.log("TODO");
-    }
-
-    addAction(touchAction, draggableAction, tool, option) {
-        if(touchAction && typeof touchAction == 'object') {
-            if(!this._actions[touchAction.id]) {
-                this._toolCounts[touchAction.tool || 'none']++;
-            }
-            this._actions[touchAction.id] = touchAction;
-            this._actionsLength = Object.keys(this._actions).length;
-            return touchAction;
-        }
-        let action = super.addAction(tool, option);
-        action['touchAction'] = touchAction;
-        action['draggableAction'] = draggableAction;
-        action['draggingOwners'] = new Set();
-        action['type'] = 'TOUCH';
-        return action;
     }
 
     addSelectedBy(owner) {

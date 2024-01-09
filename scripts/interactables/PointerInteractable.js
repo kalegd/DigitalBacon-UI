@@ -15,7 +15,7 @@ class PointerInteractable extends Interactable {
         this._maxDistance = -Infinity;
     }
 
-    addAction(clickAction, draggableAction, maxDistance, tool, option) {
+    addAction(clickAction, draggableAction, maxDistance, tool) {
         if(clickAction && typeof clickAction == 'object') {
             if(!this._actions[clickAction.id]) {
                 this._toolCounts[clickAction.tool || 'none']++;
@@ -26,7 +26,7 @@ class PointerInteractable extends Interactable {
         }
         if(!maxDistance) maxDistance = Infinity;
         if(maxDistance > this._maxDistance) this._maxDistance = maxDistance;
-        let action = super.addAction(tool, option);
+        let action = super.addAction(tool);
         action['clickAction'] = clickAction;
         action['draggableAction'] = draggableAction;
         action['draggingOwners'] = new Set();
