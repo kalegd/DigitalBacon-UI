@@ -76,7 +76,7 @@
       await DigitalBaconUI.init(container, renderer, scene, camera);
       DigitalBaconUI.InputHandler.enableXRControllerManagement(scene);
 
-      const body = new DigitalBaconUI.Body({ width: 1.5 });
+      const body = new DigitalBaconUI.Body({ width: 1.5, justifyContent: 'spaceBetween' });
       const row1 = new DigitalBaconUI.Span({
         backgroundVisibility: 'visible',
         borderTopLeftRadius: 0.05,
@@ -88,13 +88,22 @@
       const row2 = new DigitalBaconUI.Span({
         backgroundVisibility: 'visible',
         materialColor: '#999999',
-        height: '50%',
+        height: '25%',
         width: '90%',
+      });
+      const row3 = new DigitalBaconUI.Span({
+        backgroundVisibility: 'visible',
+        borderBottomLeftRadius: 0.05,
+        borderBottomRightRadius: 0.05,
+        materialColor: '#333333',
+        height: '12.5%',
+        width: '100%',
       });
       body.position.set(0, 1.7, -1);
       scene.add(body);
       body.add(row1);
       body.add(row2);
+      body.add(row3);
       const interactable = new DigitalBaconUI.PointerInteractable(body);
       interactable.addAction(() => {
         console.log("Nice menu isn't it?");

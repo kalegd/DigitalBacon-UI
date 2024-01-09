@@ -97,13 +97,16 @@ class LayoutComponent extends UIComponent {
     updateLayout() {
         let height = this._computeDimension('height');
         let width = this._computeDimension('width');
-        let contentHeight = this._computeContentHeight;
-        let contentWidth = this._computeContentWidth;
+        let contentHeight = this._getContentHeight();
+        let contentWidth = this._getContentWidth();
+        let contentSize = this._content.children.reduce(
+            (sum, child) => sum + (child instanceof LayoutComponent ? 1 : 0),0);
         let contentDirection = this.contentDirection;
         let alignItems = this.alignItems;
         let justifyContent = this.justifyContent;
         let p, dimension, dimensionName, sign, contentDimension,
             computedDimensionName, vec2Param;
+        let itemGap = 0;
         if(this.contentDirection == 'row') {
             dimension = -width;
             contentDimension = -contentWidth;
@@ -117,7 +120,19 @@ class LayoutComponent extends UIComponent {
             vec2Param = 'y';
             sign = -1;
         }
-        if(justifyContent == 'start') {
+        if(justifyContent == 'spaceBetween') {
+            itemGap = Math.abs(dimension - contentDimension) / (contentSize - 1)
+                * sign;
+            p = dimension / 2;
+        } else if(justifyContent == 'spaceAround') {
+            itemGap = Math.abs(dimension - contentDimension) / contentSize
+                * sign;
+            p = dimension / 2 + itemGap / 2;
+        } else if(justifyContent == 'spaceEvenly') {
+            itemGap = Math.abs(dimension - contentDimension) / (contentSize + 1)
+                * sign;
+            p = dimension / 2 + itemGap;
+        } else if(justifyContent == 'start') {
             p = dimension / 2;
         } else if(justifyContent == 'end') {
             p = dimension / -2 + contentDimension;
@@ -129,6 +144,7 @@ class LayoutComponent extends UIComponent {
                 child.position[vec2Param] = p + child[computedDimensionName]
                     / 2 * sign;
                 p += child[computedDimensionName] * sign;
+                p += itemGap;
             }
         }
         this._createBackground();
