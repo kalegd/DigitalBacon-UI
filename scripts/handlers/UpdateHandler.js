@@ -6,33 +6,27 @@
 
 import { uuidv4 } from '/scripts/utils.js';
 
-class InteractionTool {
+class UpdateHandler {
     constructor() {
-        this._tool = null;
         this._listeners = {};
     }
 
-    getTool() {
-        return this._tool;
-    }
-
-    setTool(tool) {
-        this._tool = tool;
-        for(let id in this._listeners) {
-            this._listeners[id](tool);
-        }
-    }
-
-    addUpdateListener(callback) {
+    add(callback) {
         let id = uuidv4();
         this._listeners[id] = callback;
         return id;
     }
 
-    removeUpdateListener(id) {
+    remove(id) {
         delete this._listeners[id];
+    }
+
+    update() {
+        for(let id in this._listeners) {
+            this._listeners[id]();
+        }
     }
 }
 
-let interactionTool = new InteractionTool();
-export default interactionTool;
+let updateHandler = new UpdateHandler();
+export default updateHandler;

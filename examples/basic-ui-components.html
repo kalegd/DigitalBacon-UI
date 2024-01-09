@@ -76,7 +76,10 @@
       await DigitalBaconUI.init(container, renderer, scene, camera);
       DigitalBaconUI.InputHandler.enableXRControllerManagement(scene);
 
-      const body = new DigitalBaconUI.Body({ width: 1.5, justifyContent: 'spaceBetween' });
+      const body = new DigitalBaconUI.Body({
+        justifyContent: 'spaceBetween',
+        width: 1.5,
+      });
       const row1 = new DigitalBaconUI.Span({
         backgroundVisibility: 'visible',
         borderTopLeftRadius: 0.05,

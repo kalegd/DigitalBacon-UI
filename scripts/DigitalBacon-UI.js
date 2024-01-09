@@ -16,6 +16,7 @@ import GripInteractableHandler from '/scripts/handlers/GripInteractableHandler.j
 import PointerInteractableHandler from '/scripts/handlers/PointerInteractableHandler.js';
 import TouchInteractableHandler from '/scripts/handlers/TouchInteractableHandler.js';
 import InputHandler from '/scripts/handlers/InputHandler.js';
+import UpdateHandler from '/scripts/handlers/UpdateHandler.js';
 import * as utils from '/scripts/utils.js';
 import * as TroikaThreeText from '/node_modules/troika-three-text/dist/troika-three-text.esm.js';
 import * as ThreeMeshBVH from '/node_modules/three-mesh-bvh/build/index.module.js';
@@ -78,6 +79,7 @@ const init = async (container, renderer, scene, camera, _deviceType, orbitTarget
             deviceType = 'POINTER';
         }
     }
+    renderer.localClippingEnabled = true;
     InputHandler.init(container, renderer, deviceType);
     PointerInteractableHandler.init(deviceType, renderer, scene, camera,
         orbitTarget);
@@ -92,6 +94,7 @@ const update = (frame) => {
         TouchInteractableHandler.update();
     }
     PointerInteractableHandler.update();
+    UpdateHandler.update();
 };
 
 export { Body };

@@ -21,7 +21,7 @@ class Style {
     }
 
     removeUpdateListener(id) {
-        delete this._lisreners[id];
+        delete this._listeners[id];
     }
 
     _genericGet(param, value) {
@@ -61,6 +61,7 @@ class Style {
     get justifyContent() { return this._genericGet('justifyContent'); }
     get material() { return this._genericGet('material'); }
     get materialColor() { return this._genericGet('materialColor'); }
+    get overflow() { return this._genericGet('overflow'); }
     get width() { return this._genericGet('width'); }
 
     set alignItems(v) { this._genericSet('alignItems', v); }
@@ -83,6 +84,7 @@ class Style {
     set justifyContent(v) { this._genericSet('justifyContent', v); }
     set material(v) { this._genericSet('material', v); }
     set materialColor(v) { this._genericSet('materialColor', v); }
+    set overflow(v) { this._genericSet('overflow', v); }
     set width(v) { this._genericSet('width', v); }
 
     static PROPERTIES = [
@@ -102,6 +104,7 @@ class Style {
         'justifyContent',
         'material',
         'materialColor',
+        'overflow',
         'width'
     ];
 }

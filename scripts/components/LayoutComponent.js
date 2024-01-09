@@ -5,6 +5,7 @@
  */
 
 import UIComponent from '/scripts/components/UIComponent.js';
+import UpdateHandler from '/scripts/handlers/UpdateHandler.js';
 import { capitalizeFirstLetter, numberOr } from '/scripts/utils.js';
 import * as THREE from 'three';
 
@@ -34,12 +35,14 @@ class LayoutComponent extends UIComponent {
         this._defaults['borderWidth'] = 0;
         this._defaults['material'] = DEFAULT_MATERIAL.clone();
         this._defaults['height'] = 'auto';
+        this._defaults['overflow'] = 'visible';
         this._defaults['width'] = 'auto';
         this.computedHeight = 0;
         this.computedWidth = 0;
         this._materialOffset = 0;
         this._content = new THREE.Object3D();
         this.add(this._content);
+        if(this.overflow != 'visible') this._createClippingPlanes();
     }
 
     _handleStyleUpdateForHeight() {
@@ -54,6 +57,14 @@ class LayoutComponent extends UIComponent {
         let materialColor = this.materialColor;
         if(materialColor == null) materialColor = '#ffffff';
         this.material.color.set(materialColor);
+    }
+
+    _handleStyleUpdateForOverflow() {
+        if(this.overflow != 'visible') {
+            if(!this.clippingPlanes) this._createClippingPlanes();
+        } else if(this.clippingPlanes) {
+            this._clearClippingPlanes();
+        }
     }
 
     _createBackground() {
@@ -99,6 +110,57 @@ class LayoutComponent extends UIComponent {
             let geometry = new THREE.ShapeGeometry(shape);
             this._background = new THREE.Mesh(geometry, this.material);
             this.add(this._background);
+        }
+    }
+
+    _createClippingPlanes() {
+        this.clippingPlanes = [
+            new THREE.Plane(new THREE.Vector3(0, 1, 0)),
+            new THREE.Plane(new THREE.Vector3(0, -1, 0)),
+            new THREE.Plane(new THREE.Vector3(1, 0, 0)),
+            new THREE.Plane(new THREE.Vector3(-1, 0, 0))
+        ];
+        this._updateClippingPlanes();
+        this.updateClippingPlanes(true);
+        this.clippingPlanesUpdateId = UpdateHandler.add(
+            () => this._updateClippingPlanes());
+    }
+
+    _getClippingPlanes() {
+        let clippingPlanes = [];
+        let object = this;
+        while(object instanceof LayoutComponent) {
+            if(object.clippingPlanes)
+                clippingPlanes.push(...object.clippingPlanes);
+            object = object.parentComponent;
+        }
+        return clippingPlanes.length ? clippingPlanes : null;
+    }
+
+    _clearClippingPlanes() {
+        this.clippingPlanes = null;
+        UpdateHandler.remove(this.clippingPlanesUpdateId);
+        this.updateClippingPlanes(true);
+    }
+
+    _updateClippingPlanes() {
+        let x = this.computedWidth / 2;
+        let y = this.computedHeight / 2;
+        this.clippingPlanes[0].constant = y;
+        this.clippingPlanes[1].constant = y;
+        this.clippingPlanes[2].constant = x;
+        this.clippingPlanes[3].constant = x;
+        for(let plane of this.clippingPlanes) {
+            plane.applyMatrix4(this.matrixWorld);
+        }
+    }
+
+    updateClippingPlanes(recursive) {
+        this.material.clippingPlanes = this._getClippingPlanes();
+        if(!recursive) return;
+        for(let child of this._content.children) {
+            if(child instanceof LayoutComponent)
+                child.updateClippingPlanes(true);
         }
     }
 
@@ -176,6 +238,7 @@ class LayoutComponent extends UIComponent {
         this._createBackground();
         if((oldWidth != width || oldHeight != height)
                 && this.parentComponent instanceof LayoutComponent) {
+            if(this.clippingPlanes) this._updateClippingPlanes();
             this.parent.parent.updateLayout();
         }
     }
@@ -264,6 +327,7 @@ class LayoutComponent extends UIComponent {
             this._content.add(object);
             object.updateLayout();
             object._updateMaterialOffset(this._materialOffset);
+            object.updateClippingPlanes(true);
             this.updateLayout();
         } else {
             super.add(object);
