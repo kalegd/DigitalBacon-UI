@@ -347,8 +347,10 @@ class LayoutComponent extends UIComponent {
     _updateMaterialOffset(parentOffset) {
         this._materialOffset = parentOffset + 1;
         let material = this.material;
-        material.polygonOffsetFactor = material.polygonOffsetUnits
-            = -10 * this._materialOffset;
+        let borderMaterial = this.borderMaterial;
+        borderMaterial.polygonOffsetFactor = borderMaterial.polygonOffsetUnits
+            = material.polygonOffsetFactor = material.polygonOffsetUnits
+            = -1 * this._materialOffset;
         this.renderOrder = 100 - this._materialOffset;
         for(let child of this._content.children) {
             if(child instanceof LayoutComponent)

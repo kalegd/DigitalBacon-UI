@@ -43,16 +43,8 @@ class TextComponent extends LayoutComponent {
     }
 
     _updateMaterialOffset(parentOffset) {
-        this._materialOffset = parentOffset + 1;
-        let material = this.material;
-        material.polygonOffsetFactor = material.polygonOffsetUnits
-            = -10 * this._materialOffset;
-        this.renderOrder = 100 - this._materialOffset;
-        this._text.depthOffset = -10 * this._materialOffset - 10;
-        for(let child of this._content.children) {
-            if(child instanceof LayoutComponent)
-                child._updateMaterialOffset(this._materialOffset);
-        }
+        super._updateMaterialOffset(parentOffset);
+        this._text.depthOffset = -1 * this._materialOffset - 1;
     }
 
     get text() { return this._text.text; }
