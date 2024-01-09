@@ -50,6 +50,12 @@ class LayoutComponent extends UIComponent {
         this.updateLayout();
     }
 
+    _handleStyleUpdateForMaterialColor() {
+        let materialColor = this.materialColor;
+        if(materialColor == null) materialColor = '#ffffff';
+        this.material.color.set(materialColor);
+    }
+
     _createBackground() {
         if(this._background) this.remove(this._background);
         if(this._border) this.remove(this._border);
@@ -153,7 +159,7 @@ class LayoutComponent extends UIComponent {
         }
         this._createBackground();
         if((oldWidth != width || oldHeight != height)
-                && this.parent?.parent instanceof LayoutComponent) {
+                && this.parentComponent instanceof LayoutComponent) {
             this.parent.parent.updateLayout();
         }
     }
@@ -227,7 +233,9 @@ class LayoutComponent extends UIComponent {
 
     _updateMaterialOffset(parentOffset) {
         this._materialOffset = parentOffset + 1;
-        this.material.polygonOffsetUnits = -10 * this._materialOffset;
+        let material = this.material;
+        material.polygonOffsetFactor = material.polygonOffsetUnits
+            = -10 * this._materialOffset;
         this.renderOrder = 100 - this._materialOffset;
         for(let child of this._content.children) {
             if(child instanceof LayoutComponent)
@@ -254,12 +262,7 @@ class LayoutComponent extends UIComponent {
         }
     }
 
-    get alignItems() { return this._genericGet('alignItems'); }
-    get justifyContent() { return this._genericGet('justifyContent'); }
     get parentComponent() { return this.parent?.parent; }
-
-    set alignItems(v) { this._genericSet('alignItems', v); }
-    set justifyContent(v) { this._genericSet('justifyContent', v); }
 }
 
 //https://stackoverflow.com/a/65576761/11626958

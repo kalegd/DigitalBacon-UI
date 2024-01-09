@@ -12,17 +12,18 @@ class TextComponent extends LayoutComponent {
     constructor(text, ...styles) {
         super(...styles);
         this._defaults['alignItems'] = 'center';
+        this._defaults['color'] = 0x000000;
         this._defaults['contentDirection'] = 'column';
+        this._defaults['fontSize'] = 0.1;
         this._defaults['justifyContent'] = 'start';
         this._text = new Text();
         this._content.add(this._text);
         this._text.text = text;
-        this._text.fontSize = 0.2;
+        this._text.fontSize = this.fontSize;
+        this._text.color = this.color;
         this._text.anchorX = 'center';
         this._text.anchorY = 'middle';
-        this._text.sync(() => {
-            this.updateLayout();
-        });
+        this._text.sync(() => this.updateLayout());
     }
 
     _computeDimension(dimensionName) {
@@ -41,13 +42,21 @@ class TextComponent extends LayoutComponent {
 
     _updateMaterialOffset(parentOffset) {
         this._materialOffset = parentOffset + 1;
-        this.material.polygonOffsetUnits = -10 * this._materialOffset;
+        let material = this.material;
+        material.polygonOffsetFactor = material.polygonOffsetUnits
+            = -10 * this._materialOffset;
         this.renderOrder = 100 - this._materialOffset;
         this._text.depthOffset = -10 * this._materialOffset - 10;
         for(let child of this._content.children) {
             if(child instanceof LayoutComponent)
                 child._updateMaterialOffset(this._materialOffset);
         }
+    }
+
+    get text() { return this._text.text; }
+    set text(v) {
+        this._text.text = v;
+        this._text.sync(() => this.updateLayout());
     }
 }
 

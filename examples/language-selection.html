@@ -1,6 +1,6 @@
 <html>
   <head>
-    <title>Examples - Basic UI Components</title>
+    <title>Examples - Language Selection</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="theme-color" content="#ffebfd"/>
     <link rel="apple-touch-icon" sizes="180x180" href="/images/favicons/apple-touch-icon.png">
@@ -21,7 +21,7 @@
     </script>
   </head>
   <body>
-    <h1>Basic UI Components</h1>
+    <h1>Language Selection</h1>
     <div id="container"></div>
     <div id="vr-button"></div>
     <div id="ar-button"></div>
@@ -73,6 +73,11 @@
 
       //End Boilerplate
 
+      const hello = {
+        english: 'Hello!',
+        chinese: '你好!',
+        hindi: 'नमस्ते!',
+      };
       await DigitalBaconUI.init(container, renderer, scene, camera);
       DigitalBaconUI.InputHandler.enableXRControllerManagement(scene);
 
@@ -87,11 +92,10 @@
         justifyContent: 'center',
       });
       const row2 = new DigitalBaconUI.Span({
-        backgroundVisibility: 'visible',
         materialColor: '#999999',
-        height: '25%',
-        width: '90%',
-        justifyContent: 'center',
+        height: '20%',
+        width: '100%',
+        justifyContent: 'spaceAround',
       });
       const row3 = new DigitalBaconUI.Span({
         backgroundVisibility: 'visible',
@@ -101,24 +105,59 @@
         height: '12.5%',
         width: '100%',
       });
-      const text1 = new DigitalBaconUI.Text('你好!', {
-        fontSize: 0.2,
+      const helloText = new DigitalBaconUI.Text('Hello!', {
+        fontSize: 0.15,
         color: '#ffffff',
       });
-      const text2 = new DigitalBaconUI.Text('Welcome to DigitalBacon-UI', {
-        fontSize: 0.08,
-        color: '#ffffff',
+      let buttonStyle = new DigitalBaconUI.Style({
+        backgroundVisibility: 'visible',
+        borderRadius: 0.05,
+        justifyContent: 'center',
+        materialColor: '#999999',
+        height: '100%',
+        width: '22%',
       });
+      const englishDiv = new DigitalBaconUI.Div(buttonStyle);
+      const chineseDiv = new DigitalBaconUI.Div(buttonStyle);
+      const hindiDiv = new DigitalBaconUI.Div(buttonStyle);
+      englishDiv.materialColor = '#ff00ff';
+      const english = new DigitalBaconUI.Text('EN', { color: '#ffffff' });
+      const chinese = new DigitalBaconUI.Text('汉语', { color: '#ffffff' });
+      const hindi = new DigitalBaconUI.Text('हिंदी', { color: '#ffffff' });
       body.position.set(0, 1.7, -1);
       scene.add(body);
       body.add(row1);
       body.add(row2);
       body.add(row3);
-      row1.add(text1);
-      row2.add(text2);
-      const interactable = new DigitalBaconUI.PointerInteractable(body);
+      row1.add(helloText);
+      row2.add(englishDiv);
+      row2.add(chineseDiv);
+      row2.add(hindiDiv);
+      englishDiv.add(english);
+      chineseDiv.add(chinese);
+      hindiDiv.add(hindi);
+      let interactable = new DigitalBaconUI.PointerInteractable(englishDiv);
       interactable.addAction(() => {
-        console.log("Nice menu isn't it?");
+        englishDiv.materialColor = '#ff00ff';
+        chineseDiv.materialColor = '#999999';
+        hindiDiv.materialColor = '#999999';
+        helloText.text = hello.english;
+      });
+      DigitalBaconUI.addPointerInteractable(interactable);
+      interactable = new DigitalBaconUI.PointerInteractable(chineseDiv);
+      interactable.addAction(() => {
+        englishDiv.materialColor = '#999999';
+        chineseDiv.materialColor = '#ff00ff';
+        hindiDiv.materialColor = '#999999';
+        helloText.text = hello.chinese;
+      });
+      DigitalBaconUI.addPointerInteractable(interactable);
+      interactable = new DigitalBaconUI.PointerInteractable(hindiDiv);
+      interactable.addAction(() => {
+        englishDiv.materialColor = '#999999';
+        chineseDiv.materialColor = '#999999';
+        hindiDiv.materialColor = '#ff00ff';
+        helloText.text = hello.hindi;
       });
       DigitalBaconUI.addPointerInteractable(interactable);
 
