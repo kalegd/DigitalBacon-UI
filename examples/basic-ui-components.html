@@ -44,6 +44,7 @@
       stats.showPanel(0);
       stats.dom.style.top = '';
       stats.dom.style.left = '';
+      stats.dom.style.position = 'absolute';
       container.appendChild(stats.dom, container.firstChild);
       scene.background = new THREE.CubeTextureLoader()
         .setPath('/images/skyboxes/blue_sky/')

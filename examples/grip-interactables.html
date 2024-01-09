@@ -44,6 +44,7 @@
       stats.showPanel(0);
       stats.dom.style.top = '';
       stats.dom.style.left = '';
+      stats.dom.style.position = 'absolute';
       container.appendChild(stats.dom, container.firstChild);
       
       const renderer = new THREE.WebGLRenderer({ antialias : true });
