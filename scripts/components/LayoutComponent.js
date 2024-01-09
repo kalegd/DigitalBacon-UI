@@ -28,6 +28,7 @@ const DEFAULT_BORDER_MATERIAL = new THREE.MeshBasicMaterial({
 class LayoutComponent extends UIComponent {
     constructor(...styles) {
         super(...styles);
+        this._defaults['backgroundVisibility'] = 'visible';
         this._defaults['borderMaterial'] = DEFAULT_BORDER_MATERIAL.clone();
         this._defaults['borderRadius'] = 0;
         this._defaults['borderWidth'] = 0;
@@ -50,7 +51,9 @@ class LayoutComponent extends UIComponent {
     _createBackground() {
         if(this._background) this.remove(this._background);
         if(this._border) this.remove(this._border);
+        this._background = null;
         this._border = null;
+        if(this.backgroundVisibility == 'hidden') return;
         let material = this.material;
         let materialColor = this.materialColor;
         if(materialColor) material.color.set(materialColor);

@@ -98,6 +98,10 @@ class UIComponent extends THREE.Object3D {
         if(methodName in this) this[methodName]();
     }
 
+    get alignItems() { return this._genericGet('alignItems'); }
+    get backgroundVisibility() {
+        return this._genericGet('backgroundVisibility');
+    }
     get borderMaterial() { return this._genericGet('borderMaterial'); }
     get borderRadius() { return this._genericGet('borderRadius'); }
     get borderBottomLeftRadius() {
@@ -115,10 +119,13 @@ class UIComponent extends THREE.Object3D {
     get borderWidth() { return this._genericGet('borderWidth'); }
     get contentDirection() { return this._genericGet('contentDirection'); }
     get height() { return this._genericGet('height'); }
+    get justifyContent() { return this._genericGet('justifyContent'); }
     get material() { return this._genericGet('material'); }
     get materialColor() { return this._genericGet('materialColor'); }
     get width() { return this._genericGet('width'); }
 
+    set alignItems(v) { this._genericSet('alignItems', v); }
+    set backgroundVisibility(v) { this._genericSet('backgroundVisibility', v); }
     set borderMaterial(v) { return this._genericSet('borderMaterial', v); }
     set borderRadius(v) { this._genericSet('borderRadius', v); }
     set borderBottomLeftRadius(v) {
@@ -132,6 +139,7 @@ class UIComponent extends THREE.Object3D {
     set borderWidth(v) { return this._genericSet('borderWidth', v); }
     set contentDirection(v) { this._genericSet('contentDirection', v); }
     set height(v) { this._genericSet('height', v); }
+    set justifyContent(v) { this._genericSet('justifyContent', v); }
     set material(v) { return this._genericSet('material', v); }
     set materialColor(v) { return this._genericSet('materialColor', v); }
     set width(v) { this._genericSet('width', v); }

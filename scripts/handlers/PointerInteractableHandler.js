@@ -114,7 +114,8 @@ class PointerInteractableHandler extends InteractableHandler {
 
     _getObjectInteractable(object) {
         while(object != null) {
-            if(object.pointerInteractable) return object.pointerInteractable;
+            let interactable = object.pointerInteractable;
+            if(interactable && !interactable.isOnlyGroup()) return interactable;
             object = object.parent;
         }
     }
