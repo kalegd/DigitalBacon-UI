@@ -28,7 +28,7 @@ const DEFAULT_BORDER_MATERIAL = new THREE.MeshBasicMaterial({
 class LayoutComponent extends UIComponent {
     constructor(...styles) {
         super(...styles);
-        this._defaults['backgroundVisibility'] = 'visible';
+        this._defaults['backgroundVisibility'] = 'hidden';
         this._defaults['borderMaterial'] = DEFAULT_BORDER_MATERIAL.clone();
         this._defaults['borderRadius'] = 0;
         this._defaults['borderWidth'] = 0;
