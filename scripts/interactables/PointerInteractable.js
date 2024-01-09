@@ -22,6 +22,9 @@ class PointerInteractable extends Interactable {
             }
             this._actions[clickAction.id] = clickAction;
             this._actionsLength = Object.keys(this._actions).length;
+            let maxDistance = clickAction.maxDistance;
+            if(!maxDistance) maxDistance = Infinity;
+            if(maxDistance > this._maxDistance) this._maxDistance = maxDistance;
             return clickAction;
         }
         if(!maxDistance) maxDistance = Infinity;
