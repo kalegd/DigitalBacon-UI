@@ -30,6 +30,7 @@ const DEFAULT_BORDER_MATERIAL = new THREE.MeshBasicMaterial({
 
 const VEC3 = new THREE.Vector3();
 const PLANE = new THREE.Plane();
+const SCROLL_THRESHOLD = 0.1;
 
 class LayoutComponent extends UIComponent {
     constructor(...styles) {
@@ -44,6 +45,7 @@ class LayoutComponent extends UIComponent {
         this._defaults['width'] = 'auto';
         this.computedHeight = 0;
         this.computedWidth = 0;
+        this.scrollAmount = 0;
         this._materialOffset = 0;
         this._scrollBoundsMin = new THREE.Vector2();
         this._scrollBoundsMax = new THREE.Vector2();
@@ -207,6 +209,8 @@ class LayoutComponent extends UIComponent {
         let overflowScroll = this.overflow == 'scroll';
         this._verticallyScrollable = contentHeight > height && overflowScroll;
         this._horizontallyScrollable = contentWidth > width && overflowScroll;
+        this.scrollable = this._verticallyScrollable
+            || this._horizontallyScrollable;
         let contentSize = this._content.children.reduce(
             (sum, child) => sum + (child instanceof LayoutComponent ? 1 : 0),0);
         let contentDirection = this.contentDirection;
@@ -401,12 +405,12 @@ class LayoutComponent extends UIComponent {
     }
 
     _updateInteractables() {
-        let scrollable = this._verticallyScrollable
-            || this._horizontallyScrollable;
-        let active = scrollable || this._onClick != null || this._onDrag !=null;
+        let active = this.scrollable || this._onClick != null
+            || this._onDrag != null;
         let hasAction = this.pointerInteractable.hasAction(
             this._pointerInteractableAction);
-        if(scrollable || this._onDrag) {
+        if(this.scrollable || this._onDrag
+                || (this._onClick && this._getScrollableAncestor())) {
             this._pointerInteractableAction.dragAction = this._dragAction;
         } else {
             delete this._pointerInteractableAction.dragAction;
@@ -421,18 +425,44 @@ class LayoutComponent extends UIComponent {
     }
 
     _onPointerClick(owner, closestPoint) {
-        if(this._scrollStart && owner == this._scrollOwner) {
-            this._scrollOwner = null;
-            this._scrollStart = this._scrollStartPosition = null;
+        this.clearScroll(owner);
+        if(this._scrollAncestor) {
+            let clickEnabled = !this._scrollAncestor.scrollThresholdReached;
+            this._scrollAncestor.clearScroll(owner);
+            this._scrollAncestor = null;
+            if(this._onClick && clickEnabled && closestPoint)
+                this._onClick(owner,closestPoint);
+        } else if(this._onClick) {
+            this._onClick(owner, closestPoint);
         }
-        if(this._onClick) this._onClick(owner, closestPoint);
     }
 
     _onPointerDrag(owner, closestPoint) {
+        if(this._onDrag) {
+            this._onDrag(owner, closestPoint);
+        } else if(this.scrollable){
+            this.handleScroll(owner, closestPoint);
+        } else if(this._scrollAncestor) {
+            this._scrollAncestor.handleScroll(owner, closestPoint);
+        } else {
+            this._scrollAncestor = this._getScrollableAncestor();
+            if(this._scrollAncestor) this._scrollAncestor.handleScroll(owner,
+                closestPoint);
+        }
+    }
+
+    clearScroll(owner) {
+        if(this._scrollStart && owner == this._scrollOwner) {
+            this._scrollOwner = null;
+            this._scrollStart = this._scrollStartPosition = null;
+            this.scrollThresholdReached = null;
+            this.scrollAmount = 0;
+        }
+    }
+
+    handleScroll(owner, closestPoint) {
         if(!this._scrollStart) {
-            let scrollable = this._horizontallyScrollable
-                || this._verticallyScrollable;
-            if(closestPoint && scrollable) {
+            if(closestPoint) {
                 this._scrollStart = this.worldToLocal(closestPoint.clone());
                 this._scrollStartPosition = this._content.position.clone();
                 this._scrollOwner = owner;
@@ -441,26 +471,43 @@ class LayoutComponent extends UIComponent {
             if(!closestPoint) {
                 PLANE.set(VEC3.set(0, 0, 1), 0);
                 PLANE.applyMatrix4(this.matrixWorld);
-                closestPoint = owner.raycaster.ray.intersectPlane(PLANE, VEC3);
+                closestPoint = owner.raycaster.ray.intersectPlane(PLANE, VEC3);     
             } else {
                 closestPoint = VEC3.copy(closestPoint);
             }
             if(closestPoint) {
                 closestPoint = this.worldToLocal(closestPoint);
-                if(this._horizontallyScrollable) this._scroll('x',closestPoint);
+                if(this._horizontallyScrollable) this._scroll('x',closestPoint);    
                 if(this._verticallyScrollable) this._scroll('y', closestPoint);
             }
         }
-        if(this._onDrag) this._onDrag(owner, closestPoint);
+    }
+
+    _getScrollableAncestor() {
+        let object = this.parentComponent;
+        while(object instanceof LayoutComponent) {
+            if(object.scrollable) return object;
+            object = object.parentComponent;
+        }
     }
 
     _scroll(axis, closestPoint) {
+        let currentPosition = this._content.position[axis];
         this._content.position[axis] = this._scrollStartPosition[axis]
             - this._scrollStart[axis] + closestPoint[axis];
         if(this._content.position[axis] < this._scrollBoundsMin[axis]) {
             this._content.position[axis] = this._scrollBoundsMin[axis];
         } else if(this._content.position[axis]>this._scrollBoundsMax[axis]){
             this._content.position[axis] = this._scrollBoundsMax[axis];
+        }
+        if(!this.scrollThresholdReached) {
+            let diff = Math.abs(currentPosition - this._content.position[axis]);
+            this.scrollAmount += diff;
+            let computedParam = (axis == 'x')
+                ? 'computedWidth'
+                : 'computedHeight';
+            if(this.scrollAmount > SCROLL_THRESHOLD * this[computedParam])
+                this.scrollThresholdReached = true;
         }
     }
 
