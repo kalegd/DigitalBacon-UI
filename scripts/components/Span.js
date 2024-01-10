@@ -4,9 +4,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
-import LayoutComponent from '/scripts/components/LayoutComponent.js';
+import ScrollableComponent from '/scripts/components/ScrollableComponent.js';
 
-class Span extends LayoutComponent {
+class Span extends ScrollableComponent {
     constructor(...styles) {
         super(...styles);
         this._defaults['alignItems'] = 'center';

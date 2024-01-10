@@ -4,10 +4,10 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
-import LayoutComponent from '/scripts/components/LayoutComponent.js';
+import ScrollableComponent from '/scripts/components/ScrollableComponent.js';
 import * as THREE from 'three';
 
-class Body extends LayoutComponent {
+class Body extends ScrollableComponent {
     constructor(...styles) {
         super(...styles);
         this._defaults['alignItems'] = 'center';

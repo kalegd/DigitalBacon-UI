@@ -5,8 +5,6 @@
  */
 
 import UIComponent from '/scripts/components/UIComponent.js';
-import PointerInteractable from '/scripts/interactables/PointerInteractable.js';
-import PointerInteractableHandler from '/scripts/handlers/PointerInteractableHandler.js';
 import UpdateHandler from '/scripts/handlers/UpdateHandler.js';
 import { capitalizeFirstLetter, numberOr } from '/scripts/utils.js';
 import * as THREE from 'three';
@@ -28,10 +26,6 @@ const DEFAULT_BORDER_MATERIAL = new THREE.MeshBasicMaterial({
     side: THREE.DoubleSide,
 });
 
-const VEC3 = new THREE.Vector3();
-const PLANE = new THREE.Plane();
-const SCROLL_THRESHOLD = 0.1;
-
 class LayoutComponent extends UIComponent {
     constructor(...styles) {
         super(...styles);
@@ -45,24 +39,10 @@ class LayoutComponent extends UIComponent {
         this._defaults['width'] = 'auto';
         this.computedHeight = 0;
         this.computedWidth = 0;
-        this.scrollAmount = 0;
         this._materialOffset = 0;
-        this._scrollBoundsMin = new THREE.Vector2();
-        this._scrollBoundsMax = new THREE.Vector2();
-        this._scrollOwner;
         this._content = new THREE.Object3D();
         this.add(this._content);
         this.position.z = 0.00000001;
-        this.pointerInteractable = new PointerInteractable(this);
-        this._clickAction = (owner, closestPoint) => this._onPointerClick(owner,
-            closestPoint);
-        this._dragAction = (owner, closestPoint) => this._onPointerDrag(owner,
-            closestPoint);
-        this._pointerInteractableAction = this.pointerInteractable.addAction(
-            this._clickAction, this._dragAction);
-        this.pointerInteractable.removeAction(this._pointerInteractableAction);
-        this.addEventListener('added', () => this._onAdded());
-        this.addEventListener('removed', () => this._onAdded());
         if(this.overflow != 'visible') this._createClippingPlanes();
     }
 
@@ -206,11 +186,6 @@ class LayoutComponent extends UIComponent {
         let width = this._computeDimension('width');
         let contentHeight = this._getContentHeight();
         let contentWidth = this._getContentWidth();
-        let overflowScroll = this.overflow == 'scroll';
-        this._verticallyScrollable = contentHeight > height && overflowScroll;
-        this._horizontallyScrollable = contentWidth > width && overflowScroll;
-        this.scrollable = this._verticallyScrollable
-            || this._horizontallyScrollable;
         let contentSize = this._content.children.reduce(
             (sum, child) => sum + (child instanceof LayoutComponent ? 1 : 0),0);
         let contentDirection = this.contentDirection;
@@ -218,7 +193,7 @@ class LayoutComponent extends UIComponent {
         let justifyContent = this.justifyContent;
         let p, dimension, dimensionName, otherDimension, sign, contentDimension,
             computedDimensionName, otherComputedDimensionName, vec2Param,
-            otherVec2Param, scrollBounds1, scrollBounds2;
+            otherVec2Param;
         let itemGap = 0;
         if(this.contentDirection == 'row') {
             dimension = -width;
@@ -229,8 +204,6 @@ class LayoutComponent extends UIComponent {
             vec2Param = 'x';
             otherVec2Param = 'y';
             sign = 1;
-            scrollBounds1 = this._scrollBoundsMin;
-            scrollBounds2 = this._scrollBoundsMax;
         } else {
             dimension = height;
             contentDimension = contentHeight;
@@ -240,29 +213,18 @@ class LayoutComponent extends UIComponent {
             vec2Param = 'y';
             otherVec2Param = 'x';
             sign = -1;
-            scrollBounds1 = this._scrollBoundsMax;
-            scrollBounds2 = this._scrollBoundsMin;
         }
         if(justifyContent == 'start') {
             p = dimension / 2;
-            scrollBounds1[vec2Param] = contentDimension - dimension;
-            scrollBounds2[vec2Param] = 0;
         } else if(justifyContent == 'end') {
             p = dimension / -2 + contentDimension;
-            scrollBounds1[vec2Param] = 0;
-            scrollBounds2[vec2Param] = -contentDimension + dimension;
         } else if(justifyContent == 'center') {
             p = contentDimension / 2;
-            scrollBounds1[vec2Param] = (contentDimension - dimension) / 2;
-            scrollBounds2[vec2Param] = scrollBounds1[vec2Param] * -1;
         } else if(Math.abs(dimension) - Math.abs(contentDimension) < 0) {
             //spaceBetween, spaceAround, and spaceEvenly act the same when
             //overflowed
             p = contentDimension / 2;
-            scrollBounds1[vec2Param] = (contentDimension - dimension) / 2;
-            scrollBounds2[vec2Param] = scrollBounds1[vec2Param] * -1;
         } else {
-            scrollBounds1[vec2Param] = scrollBounds2[vec2Param] = 0;
             if(justifyContent == 'spaceBetween') {
                 itemGap =  Math.abs(dimension - contentDimension)
                     / (contentSize - 1) * sign;
@@ -301,7 +263,6 @@ class LayoutComponent extends UIComponent {
                 this.parent.parent.updateLayout();
             this._updateChildrensLayout(oldWidth != width, oldHeight != height);
         }
-        this._updateInteractables();
     }
 
     _updateChildrensLayout(widthChanged, heightChanged) {
@@ -404,142 +365,6 @@ class LayoutComponent extends UIComponent {
         }
     }
 
-    _updateInteractables() {
-        let active = this.scrollable || this._onClick != null
-            || this._onDrag != null;
-        let hasAction = this.pointerInteractable.hasAction(
-            this._pointerInteractableAction);
-        if(this.scrollable || this._onDrag
-                || (this._onClick && this._getScrollableAncestor())) {
-            this._pointerInteractableAction.dragAction = this._dragAction;
-        } else {
-            delete this._pointerInteractableAction.dragAction;
-        }
-        if(active == hasAction) return;
-        if(active) {
-            this.pointerInteractable.addAction(this._pointerInteractableAction);
-        } else {
-            this.pointerInteractable.removeAction(
-                this._pointerInteractableAction);
-        }
-    }
-
-    _onPointerClick(owner, closestPoint) {
-        this.clearScroll(owner);
-        if(this._scrollAncestor) {
-            let clickEnabled = !this._scrollAncestor.scrollThresholdReached;
-            this._scrollAncestor.clearScroll(owner);
-            this._scrollAncestor = null;
-            if(this._onClick && clickEnabled && closestPoint)
-                this._onClick(owner,closestPoint);
-        } else if(this._onClick) {
-            this._onClick(owner, closestPoint);
-        }
-    }
-
-    _onPointerDrag(owner, closestPoint) {
-        if(this._onDrag) {
-            this._onDrag(owner, closestPoint);
-        } else if(this.scrollable){
-            this.handleScroll(owner, closestPoint);
-        } else if(this._scrollAncestor) {
-            this._scrollAncestor.handleScroll(owner, closestPoint);
-        } else {
-            this._scrollAncestor = this._getScrollableAncestor();
-            if(this._scrollAncestor) this._scrollAncestor.handleScroll(owner,
-                closestPoint);
-        }
-    }
-
-    clearScroll(owner) {
-        if(this._scrollStart && owner == this._scrollOwner) {
-            this._scrollOwner = null;
-            this._scrollStart = this._scrollStartPosition = null;
-            this.scrollThresholdReached = null;
-            this.scrollAmount = 0;
-        }
-    }
-
-    handleScroll(owner, closestPoint) {
-        if(!this._scrollStart) {
-            if(closestPoint) {
-                this._scrollStart = this.worldToLocal(closestPoint.clone());
-                this._scrollStartPosition = this._content.position.clone();
-                this._scrollOwner = owner;
-            }
-        } else if(owner == this._scrollOwner) {
-            if(!closestPoint) {
-                PLANE.set(VEC3.set(0, 0, 1), 0);
-                PLANE.applyMatrix4(this.matrixWorld);
-                closestPoint = owner.raycaster.ray.intersectPlane(PLANE, VEC3);     
-            } else {
-                closestPoint = VEC3.copy(closestPoint);
-            }
-            if(closestPoint) {
-                closestPoint = this.worldToLocal(closestPoint);
-                if(this._horizontallyScrollable) this._scroll('x',closestPoint);    
-                if(this._verticallyScrollable) this._scroll('y', closestPoint);
-            }
-        }
-    }
-
-    _getScrollableAncestor() {
-        let object = this.parentComponent;
-        while(object instanceof LayoutComponent) {
-            if(object.scrollable) return object;
-            object = object.parentComponent;
-        }
-    }
-
-    _scroll(axis, closestPoint) {
-        let currentPosition = this._content.position[axis];
-        this._content.position[axis] = this._scrollStartPosition[axis]
-            - this._scrollStart[axis] + closestPoint[axis];
-        if(this._content.position[axis] < this._scrollBoundsMin[axis]) {
-            this._content.position[axis] = this._scrollBoundsMin[axis];
-        } else if(this._content.position[axis]>this._scrollBoundsMax[axis]){
-            this._content.position[axis] = this._scrollBoundsMax[axis];
-        }
-        if(!this.scrollThresholdReached) {
-            let diff = Math.abs(currentPosition - this._content.position[axis]);
-            this.scrollAmount += diff;
-            let computedParam = (axis == 'x')
-                ? 'computedWidth'
-                : 'computedHeight';
-            if(this.scrollAmount > SCROLL_THRESHOLD * this[computedParam])
-                this.scrollThresholdReached = true;
-        }
-    }
-
-    _onAdded() {
-        let p = this.parentComponent;
-        if(p instanceof LayoutComponent) {
-            p.pointerInteractable.addChild(this.pointerInteractable);
-        } else {
-            p = this.parent;
-            while(p) {
-                if(p instanceof THREE.Scene) {
-                    PointerInteractableHandler.addInteractable(
-                        this.pointerInteractable);
-                    return;
-                }
-                p = p.parent;
-            }
-            PointerInteractableHandler.removeInteractable(
-                this.pointerInteractable);
-        }
-    }
-
-    _onRemoved() {
-        if(this.pointerInteractable.parent) {
-            this.pointerInteractable.parent.removeChild(
-                this.pointerInteractable);
-        } else {
-            PointerInteractableHandler.removeInteractable(
-                this.pointerInteractable);
-        }
-    }
-
     add(object) {
         if(arguments.length > 1) {
             for(let argument of arguments) {
@@ -570,11 +395,6 @@ class LayoutComponent extends UIComponent {
     }
 
     get parentComponent() { return this.parent?.parent; }
-    get onClick() { return this._onClick; }
-    get onDrag() { return this._onDrag; }
-
-    set onClick(v) { this._onClick = v; this._updateInteractables(); }
-    set onDrag(v) { this._onDrag = v; this._updateInteractables(); }
 }
 
 //https://stackoverflow.com/a/65576761/11626958
