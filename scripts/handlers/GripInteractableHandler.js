@@ -145,7 +145,7 @@ class GripInteractableHandler extends InteractableHandler {
         return;
     }
 
-    _updateForMobile() {
+    _updateForTouchScreen() {
         return;
     }
 

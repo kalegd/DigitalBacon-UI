@@ -74,7 +74,7 @@ const init = async (container, renderer, scene, camera, _deviceType, orbitTarget
         if(await isXR()) {
             deviceType = 'XR';
         } else if(isTouchDevice()) {
-            deviceType = 'TOUCH';
+            deviceType = 'TOUCH_SCREEN';
         } else {
             deviceType = 'POINTER';
         }

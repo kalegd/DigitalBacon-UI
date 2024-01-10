@@ -42,8 +42,8 @@ export default class InteractableHandler {
             this._setupXRSubscription();
         } else if(deviceType == "POINTER") {
             this.update = this._updateForPointer;
-        } else if(deviceType == "TOUCH") {
-            this.update = this._updateForMobile;
+        } else if(deviceType == "TOUCH_SCREEN") {
+            this.update = this._updateForTouchScreen;
         }
     }
 

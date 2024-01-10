@@ -28,7 +28,8 @@ const DEFAULT_BORDER_MATERIAL = new THREE.MeshBasicMaterial({
     side: THREE.DoubleSide,
 });
 
-const vec3 = new THREE.Vector3();
+const VEC3 = new THREE.Vector3();
+const PLANE = new THREE.Plane();
 
 class LayoutComponent extends UIComponent {
     constructor(...styles) {
@@ -405,15 +406,25 @@ class LayoutComponent extends UIComponent {
     }
 
     _onPointerDrag(owner, closestPoint) {
-        if(!this._scrollStart && closestPoint
-                && (this._horizontallyScrollable ||this._verticallyScrollable)){
-            this._scrollStart = this.worldToLocal(closestPoint.clone());
-            this._scrollStartPosition = this._content.position.clone();
-        } else if(this._scrollStart && closestPoint) {
-            closestPoint = this.worldToLocal(vec3.copy(closestPoint));
-            if(this._horizontallyScrollable) {
-                this._content.position.x = this._scrollStartPosition.x
-                    - this._scrollStart.x + closestPoint.x;
+        if(!this._scrollStart) {
+            let scrollable = this._horizontallyScrollable
+                || this._verticallyScrollable;
+            if(closestPoint && scrollable) {
+                this._scrollStart = this.worldToLocal(closestPoint.clone());
+                this._scrollStartPosition = this._content.position.clone();
+            }
+        } else {
+            if(!closestPoint) {
+                PLANE.set(VEC3.set(0, 0, 1), 0);
+                PLANE.applyMatrix4(this.matrixWorld);
+                closestPoint = owner.raycaster.ray.intersectPlane(PLANE, VEC3);
+            }
+            if(closestPoint) {
+                closestPoint = this.worldToLocal(closestPoint);
+                if(this._horizontallyScrollable) {
+                    this._content.position.x = this._scrollStartPosition.x
+                        - this._scrollStart.x + closestPoint.x;
+                }
             }
         }
         if(this._onDrag) this._onDrag(owner, closestPoint);

@@ -124,7 +124,7 @@ class TouchInteractableHandler extends InteractableHandler {
         return;
     }
 
-    _updateForMobile() {
+    _updateForTouchScreen() {
         return;
     }
 

@@ -15,7 +15,7 @@ import { XRHandModelFactory } from '/scripts/three/XRHandModelFactory.js';
 const controllerModelFactory = new XRControllerModelFactory();
 const handModelFactory = new XRHandModelFactory();
 
-//Provides Polling for XR Input Sources, Keyboard, or Mobile Touch Screen inputs
+//Provides Polling for XR Input Sources, Keyboard, or Touch Screen inputs
 class InputHandler {
     init(container, renderer, deviceType) {
         this._container = container;
@@ -76,8 +76,8 @@ class InputHandler {
             this._container.addEventListener('mouseup', () => {
                 this._renderer.domElement.focus();
             });
-        } else if(deviceType == "TOUCH") {
-            //TOUCH Event Listeners
+        } else if(deviceType == "TOUCH_SCREEN") {
+            //TOUCH_SCREEN Event Listeners
             this._renderer.domElement.addEventListener('touchstart', () => {
                 this._screenTouched = true;
                 let rect = event.target.getBoundingClientRect();
