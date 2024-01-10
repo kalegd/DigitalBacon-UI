@@ -425,6 +425,10 @@ class LayoutComponent extends UIComponent {
                     this._content.position.x = this._scrollStartPosition.x
                         - this._scrollStart.x + closestPoint.x;
                 }
+                if(this._verticallyScrollable) {
+                    this._content.position.y = this._scrollStartPosition.y
+                        - this._scrollStart.y + closestPoint.y;
+                }
             }
         }
         if(this._onDrag) this._onDrag(owner, closestPoint);

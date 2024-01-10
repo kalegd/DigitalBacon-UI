@@ -74,11 +74,6 @@
 
       //End Boilerplate
 
-      const hello = {
-        english: 'Hello!',
-        chinese: '你好!',
-        hindi: 'नमस्ते!',
-      };
       await DigitalBaconUI.init(container, renderer, scene, camera);
       DigitalBaconUI.InputHandler.enableXRControllerManagement(scene);
 
@@ -101,9 +96,9 @@
         justifyContent: 'center',
         overflow: 'scroll',
       });
-      const languages = new DigitalBaconUI.Span({
+      const languagesSpan = new DigitalBaconUI.Span({
         height: '100%',
-        width: '150%',
+        width: '110%',
         justifyContent: 'spaceAround',
       });
       const row3 = new DigitalBaconUI.Span({
@@ -118,7 +113,8 @@
         fontSize: 0.15,
         color: '#ffffff',
       });
-      let buttonStyle = new DigitalBaconUI.Style({
+      const languages = {};
+      const buttonStyle = new DigitalBaconUI.Style({
         backgroundVisibility: 'visible',
         borderRadius: 0.05,
         justifyContent: 'center',
@@ -126,40 +122,34 @@
         height: 0.2,
         width: 0.33,
       });
-      const englishDiv = new DigitalBaconUI.Div(buttonStyle);
-      const chineseDiv = new DigitalBaconUI.Div(buttonStyle);
-      const hindiDiv = new DigitalBaconUI.Div(buttonStyle);
-      englishDiv.materialColor = '#ff00ff';
-      const english = new DigitalBaconUI.Text('EN', { color: '#ffffff' });
-      const chinese = new DigitalBaconUI.Text('汉语', { color: '#ffffff' });
-      const hindi = new DigitalBaconUI.Text('हिंदी', { color: '#ffffff' });
+
+      function addLanguage(name, code, text) {
+        let div = new DigitalBaconUI.Div(buttonStyle);
+        let textComponent = new DigitalBaconUI.Text(code, { color: '#ffffff' });
+        div.add(textComponent);
+        languagesSpan.add(div);
+        languages[name] = {
+          div: div,
+          text: text,
+        };
+        div.onClick = () => {
+          for(let id in languages) {
+            let d = languages[id].div;
+            d.materialColor = (d == div) ? '#ff00ff' : '#999999';
+            helloText.text = text;
+          }
+        };
+        return div;
+      }
+      addLanguage('english', 'EN', 'Hello!');
+      addLanguage('chinese', '汉语', '你好!');
+      addLanguage('hindi', 'हिंदी', 'नमस्ते!');
+      languages['english'].div.materialColor = '#ff00ff';
       body.position.set(0, 1.7, -1);
       scene.add(body);
       body.add(row1, row2, row3);
       row1.add(helloText);
-      row2.add(languages);
-      languages.add(englishDiv, chineseDiv, hindiDiv);
-      englishDiv.add(english);
-      chineseDiv.add(chinese);
-      hindiDiv.add(hindi);
-      englishDiv.onClick = () => {
-        englishDiv.materialColor = '#ff00ff';
-        chineseDiv.materialColor = '#999999';
-        hindiDiv.materialColor = '#999999';
-        helloText.text = hello.english;
-      };
-      chineseDiv.onClick = () => {
-        englishDiv.materialColor = '#999999';
-        chineseDiv.materialColor = '#ff00ff';
-        hindiDiv.materialColor = '#999999';
-        helloText.text = hello.chinese;
-      };
-      hindiDiv.onClick = () => {
-        englishDiv.materialColor = '#999999';
-        chineseDiv.materialColor = '#999999';
-        hindiDiv.materialColor = '#ff00ff';
-        helloText.text = hello.hindi;
-      };
+      row2.add(languagesSpan);
 
       renderer.setAnimationLoop((time, frame) => {
         stats.begin();
