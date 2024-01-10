@@ -45,6 +45,8 @@ class LayoutComponent extends UIComponent {
         this.computedHeight = 0;
         this.computedWidth = 0;
         this._materialOffset = 0;
+        this._scrollBoundsMin = new THREE.Vector2();
+        this._scrollBoundsMax = new THREE.Vector2();
         this._content = new THREE.Object3D();
         this.add(this._content);
         this.position.z = 0.00000001;
@@ -211,7 +213,7 @@ class LayoutComponent extends UIComponent {
         let justifyContent = this.justifyContent;
         let p, dimension, dimensionName, otherDimension, sign, contentDimension,
             computedDimensionName, otherComputedDimensionName, vec2Param,
-            otherVec2Param;
+            otherVec2Param, scrollBounds1, scrollBounds2;
         let itemGap = 0;
         if(this.contentDirection == 'row') {
             dimension = -width;
@@ -222,6 +224,8 @@ class LayoutComponent extends UIComponent {
             vec2Param = 'x';
             otherVec2Param = 'y';
             sign = 1;
+            scrollBounds1 = this._scrollBoundsMin;
+            scrollBounds2 = this._scrollBoundsMax;
         } else {
             dimension = height;
             contentDimension = contentHeight;
@@ -231,25 +235,42 @@ class LayoutComponent extends UIComponent {
             vec2Param = 'y';
             otherVec2Param = 'x';
             sign = -1;
+            scrollBounds1 = this._scrollBoundsMax;
+            scrollBounds2 = this._scrollBoundsMin;
         }
-        if(justifyContent == 'spaceBetween') {
-            itemGap = Math.abs(dimension - contentDimension) / (contentSize - 1)
-                * sign;
+        if(justifyContent == 'start') {
             p = dimension / 2;
-        } else if(justifyContent == 'spaceAround') {
-            itemGap = Math.abs(dimension - contentDimension) / contentSize
-                * sign;
-            p = dimension / 2 + itemGap / 2;
-        } else if(justifyContent == 'spaceEvenly') {
-            itemGap = Math.abs(dimension - contentDimension) / (contentSize + 1)
-                * sign;
-            p = dimension / 2 + itemGap;
-        } else if(justifyContent == 'start') {
-            p = dimension / 2;
+            scrollBounds1[vec2Param] = contentDimension - dimension;
+            scrollBounds2[vec2Param] = 0;
         } else if(justifyContent == 'end') {
             p = dimension / -2 + contentDimension;
-        } else {
+            scrollBounds1[vec2Param] = 0;
+            scrollBounds2[vec2Param] = -contentDimension + dimension;
+        } else if(justifyContent == 'center') {
             p = contentDimension / 2;
+            scrollBounds1[vec2Param] = (contentDimension - dimension) / 2;
+            scrollBounds2[vec2Param] = scrollBounds1[vec2Param] * -1;
+        } else if(Math.abs(dimension) - Math.abs(contentDimension) < 0) {
+            //spaceBetween, spaceAround, and spaceEvenly act the same when
+            //overflowed
+            p = contentDimension / 2;
+            scrollBounds1[vec2Param] = (contentDimension - dimension) / 2;
+            scrollBounds2[vec2Param] = scrollBounds1[vec2Param] * -1;
+        } else {
+            scrollBounds1[vec2Param] = scrollBounds2[vec2Param] = 0;
+            if(justifyContent == 'spaceBetween') {
+                itemGap =  Math.abs(dimension - contentDimension)
+                    / (contentSize - 1) * sign;
+                p = dimension / 2;
+            } else if(justifyContent == 'spaceAround') {
+                itemGap = Math.abs(dimension - contentDimension)
+                    / contentSize * sign;
+                p = dimension / 2 + itemGap / 2;
+            } else if(justifyContent == 'spaceEvenly') {
+                itemGap = Math.abs(dimension - contentDimension)
+                    / (contentSize + 1) * sign;
+                p = dimension / 2 + itemGap;
+            }
         }
         for(let child of this._content.children) {
             if(child instanceof LayoutComponent) {
@@ -421,17 +442,21 @@ class LayoutComponent extends UIComponent {
             }
             if(closestPoint) {
                 closestPoint = this.worldToLocal(closestPoint);
-                if(this._horizontallyScrollable) {
-                    this._content.position.x = this._scrollStartPosition.x
-                        - this._scrollStart.x + closestPoint.x;
-                }
-                if(this._verticallyScrollable) {
-                    this._content.position.y = this._scrollStartPosition.y
-                        - this._scrollStart.y + closestPoint.y;
-                }
+                if(this._horizontallyScrollable) this._scroll('x',closestPoint);
+                if(this._verticallyScrollable) this._scroll('y', closestPoint);
             }
         }
         if(this._onDrag) this._onDrag(owner, closestPoint);
+    }
+
+    _scroll(axis, closestPoint) {
+        this._content.position[axis] = this._scrollStartPosition[axis]
+            - this._scrollStart[axis] + closestPoint[axis];
+        if(this._content.position[axis] < this._scrollBoundsMin[axis]) {
+            this._content.position[axis] = this._scrollBoundsMin[axis];
+        } else if(this._content.position[axis]>this._scrollBoundsMax[axis]){
+            this._content.position[axis] = this._scrollBoundsMax[axis];
+        }
     }
 
     _onAdded() {
