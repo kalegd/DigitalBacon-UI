@@ -303,6 +303,8 @@ class PointerInteractableHandler extends InteractableHandler {
                     let targetRay = InputHandler.getXRController(type,
                         handedness, 'targetRay');
                     raycaster = this._getXRRaycaster(targetRay);
+                    if(!xrController.raycaster)
+                        xrController.raycaster = raycaster;
                     isPressed = this._isXRControllerPressed(type, handedness);
                 }
                 let controller = {

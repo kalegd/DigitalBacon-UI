@@ -13,7 +13,7 @@ import * as THREE from 'three';
 
 const DEFAULT_MATERIAL = new THREE.MeshPhysicalMaterial({
     color: 0xffffff,
-    transmission: 1,
+    transmission: 0.99,
     roughness: 0.45,
     side: THREE.DoubleSide,
     polygonOffset: true,

@@ -93,11 +93,12 @@
       const row2 = new DigitalBaconUI.Span({
         height: '37.5%',
         width: '100%',
-        justifyContent: 'center',
+        justifyContent: 'start',
+        overflow: 'scroll',
       });
       const languagesSpan = new DigitalBaconUI.Span({
         height: '100%',
-        width: '100%',
+        width: '150%',
         justifyContent: 'spaceEvenly',
       });
       const row3 = new DigitalBaconUI.Span({
@@ -143,6 +144,8 @@
       addLanguage('english', 'EN', 'Hello!');
       addLanguage('chinese', '汉语', '你好!');
       addLanguage('hindi', 'हिंदी', 'नमस्ते!');
+      addLanguage('spanish', 'ES', 'Hola!');
+      addLanguage('russian', 'RU', 'привет!');
       languages['english'].div.materialColor = '#ff00ff';
       body.position.set(0, 1.7, -1);
       scene.add(body);
