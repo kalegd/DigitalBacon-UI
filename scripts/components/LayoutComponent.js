@@ -47,6 +47,7 @@ class LayoutComponent extends UIComponent {
         this._materialOffset = 0;
         this._scrollBoundsMin = new THREE.Vector2();
         this._scrollBoundsMax = new THREE.Vector2();
+        this._scrollOwner;
         this._content = new THREE.Object3D();
         this.add(this._content);
         this.position.z = 0.00000001;
@@ -420,7 +421,8 @@ class LayoutComponent extends UIComponent {
     }
 
     _onPointerClick(owner, closestPoint) {
-        if(this._scrollStart) {
+        if(this._scrollStart && owner == this._scrollOwner) {
+            this._scrollOwner = null;
             this._scrollStart = this._scrollStartPosition = null;
         }
         if(this._onClick) this._onClick(owner, closestPoint);
@@ -433,12 +435,15 @@ class LayoutComponent extends UIComponent {
             if(closestPoint && scrollable) {
                 this._scrollStart = this.worldToLocal(closestPoint.clone());
                 this._scrollStartPosition = this._content.position.clone();
+                this._scrollOwner = owner;
             }
-        } else {
+        } else if(owner == this._scrollOwner) {
             if(!closestPoint) {
                 PLANE.set(VEC3.set(0, 0, 1), 0);
                 PLANE.applyMatrix4(this.matrixWorld);
                 closestPoint = owner.raycaster.ray.intersectPlane(PLANE, VEC3);
+            } else {
+                closestPoint = VEC3.copy(closestPoint);
             }
             if(closestPoint) {
                 closestPoint = this.worldToLocal(closestPoint);
