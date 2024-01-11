@@ -27,18 +27,32 @@ export const isDescendant = (ancestor, child) => {
     return false;
 };
 
+function containsGeometry(object) {
+    if(object.geometry) return true;
+    for(let child of object.children) {
+        if(containsGeometry(child)) return true;
+    }
+    return false;
+}
+
 export const setupBVHForComplexObject = (object) => {
+    if(!containsGeometry(object)) return false;
     if(object.parent) {
         let p = object.parent;
         p.remove(object);
         object.updateMatrixWorld(true);
         p.add(object);
     }
-    object.staticGeometryGenerator = new StaticGeometryGenerator([object]);
-    object.bvhGeometry = object.staticGeometryGenerator.generate();
+    if(!object.children?.length) {
+        object.bvhGeometry = object.geometry;
+    } else {
+        object.staticGeometryGenerator = new StaticGeometryGenerator([object]);
+        object.bvhGeometry = object.staticGeometryGenerator.generate();
+    }
     object.bvhGeometry.computeBoundsTree();
     if(object.parent) object.updateMatrixWorld(true);
     //addBVHVisualizer(object);
+    return true;
 };
 
 export const updateBVHForComplexObject = (object) => {

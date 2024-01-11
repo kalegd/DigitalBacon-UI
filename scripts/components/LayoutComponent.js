@@ -268,8 +268,8 @@ class LayoutComponent extends UIComponent {
                 }
             }
         }
-        this._createBackground();
         if(oldWidth != width || oldHeight != height) {
+            this._createBackground();
             if(this.clippingPlanes) this._updateClippingPlanes();
             if(this.parentComponent instanceof LayoutComponent)
                 this.parent.parent.updateLayout();

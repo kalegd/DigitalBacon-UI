@@ -69,6 +69,10 @@ class Interactable {
         return this._state;
     }
 
+    setObject(object) {
+        this._object = object;
+    }
+
     setState(newState) {
         if(this._state != newState) {
             this._state = newState;

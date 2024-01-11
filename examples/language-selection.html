@@ -134,7 +134,7 @@
           div: div,
           text: text,
         };
-        div.onClick = () => {
+        div.onTouch = div.onClick = () => {
           for(let id in languages) {
             let d = languages[id].div;
             d.materialColor = (d == div) ? '#2a0275' : '#1c2230';

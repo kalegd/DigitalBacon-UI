@@ -118,8 +118,8 @@ class ScrollableComponent extends InteractableComponent {
                 }
             }
         }
-        this._createBackground();
         if(oldWidth != width || oldHeight != height) {
+            this._createBackground();
             if(this.clippingPlanes) this._updateClippingPlanes();
             if(this.parentComponent instanceof LayoutComponent)
                 this.parent.parent.updateLayout();
@@ -147,9 +147,48 @@ class ScrollableComponent extends InteractableComponent {
                 this._pointerInteractableAction);
         }
     }
+    _updateInteractables() {
+        let clickActive = this.scrollable || this._onClick != null
+            || this._onDrag != null;
+        let touchActive = this.scrollable || this._onTouch != null
+            || this._onTouchDrag != null;
+        let hasClickAction = this.pointerInteractable.hasAction(
+            this._pointerInteractableAction);
+        let hasTouchAction = this.touchInteractable.hasAction(
+            this._touchInteractableAction);
+        let scrollableAncestor = this._getScrollableAncestor();
+        if(this.scrollable || this._onDrag
+                || (this._onClick && scrollableAncestor)) {
+            this._pointerInteractableAction.dragAction = this._dragAction;
+        } else {
+            delete this._pointerInteractableAction.dragAction;
+        }
+        if(this.scrollable || this._onTouchDrag
+                || (this._onTouch && scrollableAncestor)) {
+            this._touchInteractableAction.dragAction = this._touchDragAction;
+        } else {
+            delete this._touchInteractableAction.dragAction;
+        }
+        if(clickActive != hasClickAction) {
+            if(clickActive) {
+                this.pointerInteractable.addAction(
+                    this._pointerInteractableAction);
+            } else {
+                this.pointerInteractable.removeAction(
+                    this._pointerInteractableAction);
+            }
+        }
+        if(touchActive != hasTouchAction) {
+            if(touchActive) {
+                this.touchInteractable.addAction(this._touchInteractableAction);
+            } else {
+                this.touchInteractable.removeAction(
+                    this._touchInteractableAction);
+            }
+        }
+    }
 
-    _onPointerClick(owner, closestPoint) {
-        this.clearScroll(owner);
+    _pointerClick(owner, closestPoint) {
         if(this._scrollAncestor) {
             let clickEnabled = !this._scrollAncestor.scrollThresholdReached;
             this._scrollAncestor.clearScroll(owner);
@@ -159,12 +198,13 @@ class ScrollableComponent extends InteractableComponent {
         } else if(this._onClick) {
             this._onClick(owner, closestPoint);
         }
+        this.clearScroll(owner);
     }
 
-    _onPointerDrag(owner, closestPoint) {
+    _pointerDrag(owner, closestPoint) {
         if(this._onDrag) {
             this._onDrag(owner, closestPoint);
-        } else if(this.scrollable){
+        } else if(this.scrollable) {
             this.handleScroll(owner, closestPoint);
         } else if(this._scrollAncestor) {
             this._scrollAncestor.handleScroll(owner, closestPoint);
@@ -175,10 +215,40 @@ class ScrollableComponent extends InteractableComponent {
         }
     }
 
+    _touch(owner) {
+        if(this._scrollAncestor) {
+            let touchEnabled = !this.scrollThresholdReached;
+            this.scrollThresholdReached = false;
+            this._scrollAncestor = null;
+            if(this._onTouch && touchEnabled)
+                this._onTouch(owner);
+        } else if(this._onTouch) {
+            this._onTouch(owner);
+        }
+        this.clearScroll(owner);
+    }
+
+    _touchDrag(owner) {
+        if(this._onTouchDrag) {
+            this._onTouchDrag(owner);
+        } else if(this.scrollable) {
+            this.handleTouchScroll(owner, this.touchInteractable);
+        } else if(this._scrollAncestor) {
+            if(this._scrollAncestor.scrollThresholdReached
+                    && !this.scrollThresholdReached)
+                this.scrollThresholdReached = true;
+        } else {
+            this._scrollAncestor = this._getScrollableAncestor();
+        }
+
+    }
+
     clearScroll(owner) {
         if(this._scrollStart && owner == this._scrollOwner) {
             this._scrollOwner = null;
-            this._scrollStart = this._scrollStartPosition = null;
+            this._scrollStart = null;
+            this._scrollStartPosition = null;
+            this._scrollType = null;
             this.scrollThresholdReached = null;
             this.scrollAmount = 0;
         }
@@ -190,8 +260,9 @@ class ScrollableComponent extends InteractableComponent {
                 this._scrollStart = this.worldToLocal(closestPoint.clone());
                 this._scrollStartPosition = this._content.position.clone();
                 this._scrollOwner = owner;
+                this._scrollType = 'POINTER';
             }
-        } else if(owner == this._scrollOwner) {
+        } else if(owner == this._scrollOwner && this._scrollType == 'POINTER') {
             if(!closestPoint) {
                 PLANE.set(VEC3.set(0, 0, 1), 0);
                 PLANE.applyMatrix4(this.matrixWorld);
@@ -204,6 +275,31 @@ class ScrollableComponent extends InteractableComponent {
                 if(this._horizontallyScrollable) this._scroll('x',closestPoint);    
                 if(this._verticallyScrollable) this._scroll('y', closestPoint);
             }
+        }
+    }
+
+    handleTouchScroll(owner, interactable) {
+        if(!this._scrollStart) {
+            let details = interactable.getIntersectionPoints(owner);
+            this._scrollController = details[1].object;
+            this._scrollVertex = this._scrollController.bvhGeometry.index.array[
+                details[1].faceIndex * 3];
+            let positionAttribute = this._scrollController.bvhGeometry
+                .getAttribute('position');
+            VEC3.fromBufferAttribute(positionAttribute, this._scrollVertex);
+            this._scrollStart = this._scrollController.localToWorld(VEC3)
+                .clone();
+            this._scrollStartPosition = this._content.position.clone();
+            this._scrollOwner = owner;
+            this._scrollType = 'TOUCH';
+        } else if(owner == this._scrollOwner && this._scrollType == 'TOUCH') {
+            let positionAttribute = this._scrollController.bvhGeometry
+                .getAttribute('position');
+            VEC3.fromBufferAttribute(positionAttribute, this._scrollVertex);
+            this._scrollController.localToWorld(VEC3);
+            this.worldToLocal(VEC3);
+            if(this._horizontallyScrollable) this._scroll('x', VEC3); 
+            if(this._verticallyScrollable) this._scroll('y', VEC3);
         }
     }
 

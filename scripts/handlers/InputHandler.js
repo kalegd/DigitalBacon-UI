@@ -150,9 +150,11 @@ class InputHandler {
                 this._xrInputDevices[type][handedness] = xrInputDevice;
                 if(inputSource.targetRaySpace) {
                     xrInputDevice.controllers.targetRay = new Object3D();
+                    xrInputDevice.controllers.targetRay.xrInputDeviceType =type;
                 }
                 if(inputSource.gripSpace) {
                     xrInputDevice.controllers.grip = new Object3D();
+                    xrInputDevice.controllers.grip.xrInputDeviceType = type;
                 }
             }
             xrInputDevice.inputSource = inputSource;
@@ -174,6 +176,7 @@ class InputHandler {
                     xrInputDevice.controllers.targetRay);
                 this._xrControllerParent.add(xrInputDevice.controllers.grip);
                 xrInputDevice.controllers.grip.add(xrInputDevice.model);
+                xrInputDevice.controllers.grip.model = xrInputDevice.model;
             }
         }
     }

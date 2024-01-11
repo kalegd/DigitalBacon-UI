@@ -17,16 +17,10 @@ class TouchInteractable extends Interactable {
         super(object);
         this._target1 = {};
         this._target2 = {};
-        this._targets[this._target1, this._target2];
+        this._targets = [this._target1, this._target2];
         if(object) {
             object.touchInteractable = this;
-            if(!object.bvhGeometry) {
-                if(object.geometry) {
-                    object.bvhGeometry = object.geometry;
-                } else {
-                    setupBVHForComplexObject(object);
-                }
-            }
+            if(!object.bvhGeometry) setupBVHForComplexObject(object);
         }
         this._createBoundingObject();
     }
@@ -70,7 +64,8 @@ class TouchInteractable extends Interactable {
 
     intersectsObject(object) {
         if(!object?.bvhGeometry?.boundsTree) return;
-        if(!this._object?.bvhGeometry?.boundsTree) return;
+        if(!this._object?.bvhGeometry?.boundsTree
+            && !setupBVHForComplexObject(this._object)) return;
         matrix4.copy(this._object.matrixWorld).invert().multiply(
             object.matrixWorld);
         return this._object.bvhGeometry.boundsTree.intersectsGeometry(
@@ -78,13 +73,17 @@ class TouchInteractable extends Interactable {
     }
 
     getIntersectionPoints(object) {
+        if(object.model) object = object.model;
         if(!object?.bvhGeometry?.boundsTree) return;
         if(!this._object?.bvhGeometry?.boundsTree) return;
         matrix4.copy(this._object.matrixWorld).invert().multiply(
             object.matrixWorld);
         let found = this._object.bvhGeometry.boundsTree.closestPointToGeometry(
             object.bvhGeometry, matrix4, this._target1, this._target2);
-        if(found) return this._targets;
+        if(found) {
+            this._target2.object = object;
+            return this._targets;
+        }
     }
 
     addSelectedBy(owner) {
