@@ -36,8 +36,8 @@ class Style {
     }
 
     get alignItems() { return this._genericGet('alignItems'); }
-    get backgroundVisibility() {
-        return this._genericGet('backgroundVisibility');
+    get backgroundVisible() {
+        return this._genericGet('backgroundVisible');
     }
     get borderMaterial() { return this._genericGet('borderMaterial'); }
     get borderRadius() { return this._genericGet('borderRadius'); }
@@ -66,7 +66,7 @@ class Style {
     get width() { return this._genericGet('width'); }
 
     set alignItems(v) { this._genericSet('alignItems', v); }
-    set backgroundVisibility(v) { this._genericSet('backgroundVisibility', v); }
+    set backgroundVisible(v) { this._genericSet('backgroundVisible', v); }
     set borderMaterial(v) { this._genericSet('borderMaterial', v); }
     set borderRadius(v) { this._genericSet('borderRadius', v); }
     set borderBottomLeftRadius(v) {
@@ -91,7 +91,7 @@ class Style {
 
     static PROPERTIES = [
         'alignItems',
-        'backgroundVisibility',
+        'backgroundVisible',
         'borderMaterial',
         'borderRadius',
         'borderBottomLeftRadius',

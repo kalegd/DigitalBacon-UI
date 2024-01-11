@@ -99,8 +99,8 @@ class UIComponent extends THREE.Object3D {
     }
 
     get alignItems() { return this._genericGet('alignItems'); }
-    get backgroundVisibility() {
-        return this._genericGet('backgroundVisibility');
+    get backgroundVisible() {
+        return this._genericGet('backgroundVisible');
     }
     get borderMaterial() { return this._genericGet('borderMaterial'); }
     get borderRadius() { return this._genericGet('borderRadius'); }
@@ -129,7 +129,7 @@ class UIComponent extends THREE.Object3D {
     get width() { return this._genericGet('width'); }
 
     set alignItems(v) { this._genericSet('alignItems', v); }
-    set backgroundVisibility(v) { this._genericSet('backgroundVisibility', v); }
+    set backgroundVisible(v) { this._genericSet('backgroundVisible', v); }
     set borderMaterial(v) { return this._genericSet('borderMaterial', v); }
     set borderRadius(v) { this._genericSet('borderRadius', v); }
     set borderBottomLeftRadius(v) {

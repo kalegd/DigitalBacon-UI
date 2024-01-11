@@ -11,7 +11,7 @@ class Body extends ScrollableComponent {
     constructor(...styles) {
         super(...styles);
         this._defaults['alignItems'] = 'center';
-        this._defaults['backgroundVisibility'] = 'visible';
+        this._defaults['backgroundVisible'] = true;
         this._defaults['borderRadius'] = 0.05;
         this._defaults['borderWidth'] = 0.001;
         this._defaults['contentDirection'] = 'column';

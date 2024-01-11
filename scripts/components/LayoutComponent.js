@@ -38,7 +38,7 @@ const DEFAULT_BORDER_MATERIAL = new THREE.MeshBasicMaterial({
 class LayoutComponent extends UIComponent {
     constructor(...styles) {
         super(...styles);
-        this._defaults['backgroundVisibility'] = 'hidden';
+        this._defaults['backgroundVisible'] = false;
         this._defaults['borderMaterial'] = DEFAULT_BORDER_MATERIAL.clone();
         this._defaults['borderRadius'] = 0;
         this._defaults['borderWidth'] = 0;
@@ -59,9 +59,7 @@ class LayoutComponent extends UIComponent {
 
     _handleStyleUpdateForBackgroundVisibility() {
         if(!this._background) return;
-        this._background.visible = (this.backgroundVisibility == 'visible')
-            ? true
-            : false;
+        this._background.visible = this.backgroundVisible || false;
     }
 
     _handleStyleUpdateForHeight() {
@@ -132,7 +130,7 @@ class LayoutComponent extends UIComponent {
             this.add(this._background);
         }
         this._background.renderOrder = renderOrder;
-        if(this.backgroundVisibility != 'visible')
+        if(!this.backgroundVisible)
             this._background.visible = false;
     }
 
