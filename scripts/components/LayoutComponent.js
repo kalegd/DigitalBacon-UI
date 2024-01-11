@@ -9,7 +9,16 @@ import UpdateHandler from '/scripts/handlers/UpdateHandler.js';
 import { capitalizeFirstLetter, numberOr } from '/scripts/utils.js';
 import * as THREE from 'three';
 
-const DEFAULT_MATERIAL = new THREE.MeshPhysicalMaterial({
+const DEFAULT_MATERIAL = new THREE.MeshBasicMaterial({
+    color: 0xffffff,
+    side: THREE.DoubleSide,
+    transparent: true,
+    polygonOffset: true,
+    polygonOffsetFactor: 1,
+    polygonOffsetUnits: 1,
+});
+
+const DEFAULT_GLASSMORPHISM_MATERIAL = new THREE.MeshPhysicalMaterial({
     color: 0xffffff,
     transmission: 0.99,
     roughness: 0.45,
@@ -33,7 +42,9 @@ class LayoutComponent extends UIComponent {
         this._defaults['borderMaterial'] = DEFAULT_BORDER_MATERIAL.clone();
         this._defaults['borderRadius'] = 0;
         this._defaults['borderWidth'] = 0;
-        this._defaults['material'] = DEFAULT_MATERIAL.clone();
+        this._defaults['material'] = this.glassmorphism
+            ? DEFAULT_GLASSMORPHISM_MATERIAL.clone()
+            : DEFAULT_MATERIAL.clone();
         this._defaults['height'] = 'auto';
         this._defaults['overflow'] = 'visible';
         this._defaults['width'] = 'auto';
@@ -93,6 +104,7 @@ class LayoutComponent extends UIComponent {
             borderRadius);
         let height = this.computedHeight;
         let width = this.computedWidth;
+        let renderOrder = 100 + this._materialOffset;
         if(borderWidth) {
             let borderShape = createShape(width, height, topLeftRadius,
                 topRightRadius, bottomLeftRadius, bottomRightRadius);
@@ -111,6 +123,7 @@ class LayoutComponent extends UIComponent {
             geometry = new THREE.ShapeGeometry(borderShape);
             this._border = new THREE.Mesh(geometry, this.borderMaterial);
             this.add(this._border);
+            this._border.renderOrder = renderOrder;
         } else {
             let shape = createShape(width, height, topLeftRadius,
                 topRightRadius, bottomLeftRadius, bottomRightRadius);
@@ -118,6 +131,7 @@ class LayoutComponent extends UIComponent {
             this._background = new THREE.Mesh(geometry, this.material);
             this.add(this._background);
         }
+        this._background.renderOrder = renderOrder;
         if(this.backgroundVisibility != 'visible')
             this._background.visible = false;
     }
@@ -358,11 +372,13 @@ class LayoutComponent extends UIComponent {
         borderMaterial.polygonOffsetFactor = borderMaterial.polygonOffsetUnits
             = material.polygonOffsetFactor = material.polygonOffsetUnits
             = -1 * this._materialOffset;
-        this.renderOrder = 100 - this._materialOffset;
         for(let child of this._content.children) {
             if(child instanceof LayoutComponent)
                 child._updateMaterialOffset(this._materialOffset);
         }
+        let order = 100 + this._materialOffset;
+        if(this._background) this._background.renderOrder = order;
+        if(this._border) this._border.renderOrder = order;
     }
 
     add(object) {

@@ -120,6 +120,7 @@ class UIComponent extends THREE.Object3D {
     get color() { return this._genericGet('color'); }
     get contentDirection() { return this._genericGet('contentDirection'); }
     get fontSize() { return this._genericGet('fontSize'); }
+    get glassmorphism() { return this._genericGet('glassmorphism'); }
     get height() { return this._genericGet('height'); }
     get justifyContent() { return this._genericGet('justifyContent'); }
     get material() { return this._genericGet('material'); }
@@ -143,6 +144,7 @@ class UIComponent extends THREE.Object3D {
     set color(v) { this._genericSet('color', v); }
     set contentDirection(v) { this._genericSet('contentDirection', v); }
     set fontSize(v) { this._genericSet('fontSize', v); }
+    set glassmorphism(v) { this._genericSet('glassmorphism', v); }
     set height(v) { this._genericSet('height', v); }
     set justifyContent(v) { this._genericSet('justifyContent', v); }
     set material(v) { return this._genericSet('material', v); }
