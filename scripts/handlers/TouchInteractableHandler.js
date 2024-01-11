@@ -11,20 +11,25 @@ import InteractableHandler from '/scripts/handlers/InteractableHandler.js';
 import { isDescendant } from '/scripts/utils.js';
 import * as THREE from 'three';
 
+const FRAMES_TO_SKIP = 5;
+
 class TouchInteractableHandler extends InteractableHandler {
     constructor() {
         super();
+        this._skipIntersectsCheck = new Map;
+        this._sphere = new THREE.Sphere();
+        this._box3 = new THREE.Box3();
     }
 
     init(deviceType, scene) {
         super.init(deviceType);
         this._scene = scene;
-        this._sphere = new THREE.Sphere();
-        this._box3 = new THREE.Box3();
     }
 
     _getBoundingSphere(object) {
         if(!object) return null;
+        if(!this._skipIntersectsCheck.get(object))
+            this._skipIntersectsCheck.set(object, new Map());
         this._box3.setFromObject(object).getBoundingSphere(this._sphere);
         return this._sphere;
     }
@@ -41,6 +46,7 @@ class TouchInteractableHandler extends InteractableHandler {
 
     _scopeInteractables(controller, interactables) {
         let boundingSphere = controller['boundingSphere'];
+        let skipIntersectsCheck = controller['skipIntersectsCheck'];
         if(boundingSphere == null) return;
         for(let interactable of interactables) {
             if(interactable.children.size != 0)
@@ -50,8 +56,18 @@ class TouchInteractableHandler extends InteractableHandler {
             let intersects = interactable.intersectsSphere(boundingSphere);
             if(intersects) {
                 let controllerObject = controller.model || controller.option;
-                if(interactable.intersectsObject(controllerObject)) {
-                    controller['touchedInteractables'].add(interactable);
+                let frames = skipIntersectsCheck.get(interactable);
+                if(!frames) {
+                    if(interactable.intersectsObject(controllerObject)) {
+                        controller['touchedInteractables'].add(interactable);
+                    }
+                    skipIntersectsCheck.set(interactable, FRAMES_TO_SKIP);
+                } else {
+                    if(this._selectedInteractables.get(controller.option)
+                            .has(interactable)) {
+                        controller['touchedInteractables'].add(interactable);
+                    }
+                    skipIntersectsCheck.set(interactable, frames - 1);
                 }
             }
         }
@@ -98,18 +114,20 @@ class TouchInteractableHandler extends InteractableHandler {
                         active = false;
                     }
                 }
-                let boundingSphere;
+                let boundingSphere, skipIntersectsCheck;
                 if(active) {
-                    let isChild = isDescendant(xrController, xrControllerModel);
-                    boundingSphere = (isChild)
-                        ? this._getBoundingSphere(xrControllerModel)
-                        : this._getBoundingSphere(xrController);
+                    let object = (isDescendant(xrController, xrControllerModel))
+                        ? xrControllerModel
+                        : xrController;
+                    boundingSphere = this._getBoundingSphere(object);
+                    skipIntersectsCheck = this._skipIntersectsCheck.get(object);
                 }
                 let controller = {
                     option: xrController,
                     model: xrControllerModel,
                     boundingSphere: boundingSphere,
                     touchedInteractables: new Set(),
+                    skipIntersectsCheck: skipIntersectsCheck,
                 };
                 let skipUpdate = false;
                 if(this._toolHandlers[this._tool]) {
