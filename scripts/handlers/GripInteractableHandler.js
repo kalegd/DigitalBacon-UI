@@ -32,7 +32,7 @@ class GripInteractableHandler extends InteractableHandler {
     _isXRControllerPressed(type, handedness) {
         if(type == XRInputDeviceTypes.HAND) {
             let model = InputHandler.getXRControllerModel(type, handedness);
-            return model?.motionController?.isGrabbing != null;
+            return model?.motionController?.isGrabbing == true;
         } else {
             let gamepad = InputHandler.getXRGamepad(handedness);
             return gamepad?.buttons != null && gamepad.buttons[1].pressed;
@@ -103,8 +103,8 @@ class GripInteractableHandler extends InteractableHandler {
     _updateForXR() {
         for(let handedness in Handedness) {
             let controllerExists = false;
-            for(let type of [XRInputDeviceTypes.HAND,
-                             XRInputDeviceTypes.CONTROLLER]) {
+            for(let type of [XRInputDeviceTypes.CONTROLLER,
+                             XRInputDeviceTypes.HAND]) {
                 let xrController = InputHandler.getXRController(type,
                     handedness, 'grip');
                 let xrControllerModel = InputHandler.getXRControllerModel(type,

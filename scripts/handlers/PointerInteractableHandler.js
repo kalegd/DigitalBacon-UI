@@ -97,7 +97,7 @@ class PointerInteractableHandler extends InteractableHandler {
     _isXRControllerPressed(type, handedness) {
         if(type == XRInputDeviceTypes.HAND) {
             let model = InputHandler.getXRControllerModel(type, handedness);
-            return model?.motionController?.isPinching != null;
+            return model?.motionController?.isPinching == true;
         } else {
             let gamepad = InputHandler.getXRGamepad(handedness);
             return gamepad?.buttons != null && gamepad.buttons[0].pressed;
