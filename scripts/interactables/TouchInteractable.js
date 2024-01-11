@@ -4,6 +4,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
+import { setupBVHForComplexObject } from '/scripts/utils.js';
 import States from '/scripts/enums/InteractableStates.js';
 import InteractionTool from '/scripts/handlers/InteractionTool.js';
 import Interactable from '/scripts/interactables/Interactable.js';
@@ -14,10 +15,18 @@ const matrix4 = new THREE.Matrix4();
 class TouchInteractable extends Interactable {
     constructor(object) {
         super(object);
+        this._target1 = {};
+        this._target2 = {};
+        this._targets[this._target1, this._target2];
         if(object) {
             object.touchInteractable = this;
-            if(object.geometry && !object.bvhGeometry)
-                object.bvhGeometry = object.geometry;
+            if(!object.bvhGeometry) {
+                if(object.geometry) {
+                    object.bvhGeometry = object.geometry;
+                } else {
+                    setupBVHForComplexObject(object);
+                }
+            }
         }
         this._createBoundingObject();
     }
@@ -68,9 +77,14 @@ class TouchInteractable extends Interactable {
             object.bvhGeometry, matrix4);
     }
 
-    getIntersectionCenter(owner) {
-        //TODO
-        console.log("TODO");
+    getIntersectionPoints(object) {
+        if(!object?.bvhGeometry?.boundsTree) return;
+        if(!this._object?.bvhGeometry?.boundsTree) return;
+        matrix4.copy(this._object.matrixWorld).invert().multiply(
+            object.matrixWorld);
+        let found = this._object.bvhGeometry.boundsTree.closestPointToGeometry(
+            object.bvhGeometry, matrix4, this._target1, this._target2);
+        if(found) return this._targets;
     }
 
     addSelectedBy(owner) {
