@@ -11,16 +11,15 @@ import { Text } from '/node_modules/troika-three-text/dist/troika-three-text.esm
 class TextComponent extends LayoutComponent {
     constructor(text, ...styles) {
         super(...styles);
-        this._defaults['alignItems'] = 'center';
         this._defaults['color'] = 0x000000;
-        this._defaults['contentDirection'] = 'column';
         this._defaults['fontSize'] = 0.1;
-        this._defaults['justifyContent'] = 'start';
+        this._defaults['textAlign'] = 'left';
         this._text = new Text();
         this._content.add(this._text);
         this._text.text = text;
-        this._text.fontSize = this.fontSize;
         this._text.color = this.color;
+        this._text.fontSize = this.fontSize;
+        this._text.textAlign = this.textAlign;
         this._text.anchorX = 'center';
         this._text.anchorY = 'middle';
         this._text.sync(() => this.updateLayout());
@@ -30,7 +29,7 @@ class TextComponent extends LayoutComponent {
 
     _computeDimension(dimensionName) {
         let dimension = this[dimensionName];
-        if(dimension != 'auto') return super._computeDimension(dimension);
+        if(dimension != 'auto') return super._computeDimension(dimensionName);
         let computedParam = 'computed' + capitalizeFirstLetter(dimensionName);
         let textRenderInfo = this._text.textRenderInfo;
         if(textRenderInfo) {

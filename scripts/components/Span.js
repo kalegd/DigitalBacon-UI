@@ -9,9 +9,7 @@ import ScrollableComponent from '/scripts/components/ScrollableComponent.js';
 class Span extends ScrollableComponent {
     constructor(...styles) {
         super(...styles);
-        this._defaults['alignItems'] = 'center';
         this._defaults['contentDirection'] = 'row';
-        this._defaults['justifyContent'] = 'start';
         this.updateLayout();
     }
 }

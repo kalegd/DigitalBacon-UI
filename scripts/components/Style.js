@@ -63,6 +63,7 @@ class Style {
     get material() { return this._genericGet('material'); }
     get materialColor() { return this._genericGet('materialColor'); }
     get overflow() { return this._genericGet('overflow'); }
+    get textAlign() { return this._genericGet('textAlign'); }
     get width() { return this._genericGet('width'); }
 
     set alignItems(v) { this._genericSet('alignItems', v); }
@@ -87,6 +88,7 @@ class Style {
     set material(v) { this._genericSet('material', v); }
     set materialColor(v) { this._genericSet('materialColor', v); }
     set overflow(v) { this._genericSet('overflow', v); }
+    set textAlign(v) { this._genericSet('textAlign', v); }
     set width(v) { this._genericSet('width', v); }
 
     static PROPERTIES = [
@@ -108,6 +110,7 @@ class Style {
         'material',
         'materialColor',
         'overflow',
+        'textAlign',
         'width'
     ];
 }

@@ -38,10 +38,13 @@ const DEFAULT_BORDER_MATERIAL = new THREE.MeshBasicMaterial({
 class LayoutComponent extends UIComponent {
     constructor(...styles) {
         super(...styles);
+        this._defaults['alignItems'] = 'center';
         this._defaults['backgroundVisible'] = false;
         this._defaults['borderMaterial'] = DEFAULT_BORDER_MATERIAL.clone();
         this._defaults['borderRadius'] = 0;
         this._defaults['borderWidth'] = 0;
+        this._defaults['contentDirection'] = 'column';
+        this._defaults['justifyContent'] = 'start';
         this._defaults['material'] = this.glassmorphism
             ? DEFAULT_GLASSMORPHISM_MATERIAL.clone()
             : DEFAULT_MATERIAL.clone();
@@ -68,6 +71,14 @@ class LayoutComponent extends UIComponent {
 
     _handleStyleUpdateForWidth() {
         this.updateLayout();
+    }
+
+    _handleStyleUpdateForMaterial() {
+        let material = this.material;
+        material.polygonOffset = true;
+        material.polygonOffsetFactor = material.polygonOffsetUnits
+            = -1 * this._materialOffset;
+        this._background.material = material;
     }
 
     _handleStyleUpdateForMaterialColor() {

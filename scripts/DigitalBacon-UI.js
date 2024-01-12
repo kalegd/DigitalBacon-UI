@@ -6,6 +6,7 @@
 
 import Body from '/scripts/components/Body.js';
 import Div from '/scripts/components/Div.js';
+import Image from '/scripts/components/Image.js';
 import Span from '/scripts/components/Span.js';
 import Style from '/scripts/components/Style.js';
 import Text from '/scripts/components/Text.js';
@@ -99,6 +100,7 @@ const update = (frame) => {
 
 export { Body };
 export { Div };
+export { Image };
 export { Span };
 export { Style };
 export { Text };
