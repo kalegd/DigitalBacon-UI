@@ -287,8 +287,8 @@ class ScrollableComponent extends InteractableComponent {
             let positionAttribute = this._scrollController.bvhGeometry
                 .getAttribute('position');
             VEC3.fromBufferAttribute(positionAttribute, this._scrollVertex);
-            this._scrollStart = this._scrollController.localToWorld(VEC3)
-                .clone();
+            this._scrollController.localToWorld(VEC3);
+            this._scrollStart = this.worldToLocal(VEC3).clone();
             this._scrollStartPosition = this._content.position.clone();
             this._scrollOwner = owner;
             this._scrollType = 'TOUCH';
