@@ -12,6 +12,7 @@ import { isDescendant } from '/scripts/utils.js';
 import * as THREE from 'three';
 
 const FRAMES_TO_SKIP = 5;
+const VEC3 = new THREE.Vector3();
 
 class TouchInteractableHandler extends InteractableHandler {
     constructor() {
@@ -54,7 +55,7 @@ class TouchInteractableHandler extends InteractableHandler {
             let object = interactable.getObject();
             if(object == null || interactable.isOnlyGroup()) continue;
             let intersects = interactable.intersectsSphere(boundingSphere);
-            if(intersects) {
+            if(intersects && !this._checkClipped(object)) {
                 let controllerObject = controller.model || controller.option;
                 let frames = skipIntersectsCheck.get(interactable);
                 if(!frames) {
@@ -71,6 +72,17 @@ class TouchInteractableHandler extends InteractableHandler {
                 }
             }
         }
+    }
+
+    _checkClipped(object) {
+        let clippingPlanes = object?.material?.clippingPlanes;
+        if(clippingPlanes && clippingPlanes.length > 0) {
+            object.getWorldPosition(VEC3);
+            for(let plane of clippingPlanes) {
+                if(plane.distanceToPoint(VEC3) < 0) return true;
+            }
+        }
+        return false;
     }
 
     _updateInteractables(controller) {
