@@ -12,6 +12,7 @@ import * as THREE from 'three';
 
 const VEC3 = new THREE.Vector3();
 const PLANE = new THREE.Plane();
+const SCROLL_START_THRESHOLD = 0.02;
 const SCROLL_THRESHOLD = 0.1;
 
 class ScrollableComponent extends InteractableComponent {
@@ -249,6 +250,7 @@ class ScrollableComponent extends InteractableComponent {
             this._scrollStart = null;
             this._scrollStartPosition = null;
             this._scrollType = null;
+            this._scrollStartThresholdReached = null;
             this.scrollThresholdReached = null;
             this.scrollAmount = 0;
         }
@@ -323,11 +325,19 @@ class ScrollableComponent extends InteractableComponent {
         if(!this.scrollThresholdReached) {
             let diff = Math.abs(currentPosition - this._content.position[axis]);
             this.scrollAmount += diff;
-            let computedParam = (axis == 'x')
-                ? 'computedWidth'
-                : 'computedHeight';
-            if(this.scrollAmount > SCROLL_THRESHOLD * this[computedParam])
+            let computed = (axis == 'x')
+                ? this.computedWidth
+                : this.computedHeight;
+            if(!this._scrollStartThresholdReached) {
+                this._content.position[axis] = currentPosition;
+                this._scrollStart[axis] = closestPoint[axis];
+                if(this.scrollAmount >= SCROLL_START_THRESHOLD * computed) {
+                    this._scrollStartThresholdReached = true;
+                    this.scrollAmount = 0;
+                }
+            } else if(this.scrollAmount > SCROLL_THRESHOLD * computed) {
                 this.scrollThresholdReached = true;
+            }
         }
     }
 }
