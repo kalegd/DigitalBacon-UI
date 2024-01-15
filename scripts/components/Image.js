@@ -44,6 +44,8 @@ class Image extends InteractableComponent {
             this[computedParam] = (this['_image' + capitalized] * factor) || 0;
             
         }
+        this._computeUnpaddedAndMarginedDimensions(dimensionName,
+            this[computedParam]);
         return this[computedParam];
     }
 

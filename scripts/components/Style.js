@@ -60,9 +60,19 @@ class Style {
     get glassmorphism() { return this._genericGet('glassmorphism'); }
     get height() { return this._genericGet('height'); }
     get justifyContent() { return this._genericGet('justifyContent'); }
+    get margin() { return this._genericGet('margin'); }
+    get marginBottom() { return this._genericGet('marginBottom'); }
+    get marginLeft() { return this._genericGet('marginLeft'); }
+    get marginRight() { return this._genericGet('marginRight'); }
+    get marginTop() { return this._genericGet('marginTop'); }
     get material() { return this._genericGet('material'); }
     get materialColor() { return this._genericGet('materialColor'); }
     get overflow() { return this._genericGet('overflow'); }
+    get padding() { return this._genericGet('padding'); }
+    get paddingBottom() { return this._genericGet('paddingBottom'); }
+    get paddingLeft() { return this._genericGet('paddingLeft'); }
+    get paddingRight() { return this._genericGet('paddingRight'); }
+    get paddingTop() { return this._genericGet('paddingTop'); }
     get textAlign() { return this._genericGet('textAlign'); }
     get textureFit() { return this._genericGet('textureFit'); }
     get width() { return this._genericGet('width'); }
@@ -86,9 +96,19 @@ class Style {
     set glassmorphism(v) { this._genericSet('glassmorphism', v); }
     set height(v) { this._genericSet('height', v); }
     set justifyContent(v) { this._genericSet('justifyContent', v); }
+    set margin(v) { this._genericSet('margin', v); }
+    set marginBottom(v) { this._genericSet('marginBottom', v); }
+    set marginLeft(v) { this._genericSet('marginLeft', v); }
+    set marginRight(v) { this._genericSet('marginRight', v); }
+    set marginTop(v) { this._genericSet('marginTop', v); }
     set material(v) { this._genericSet('material', v); }
     set materialColor(v) { this._genericSet('materialColor', v); }
     set overflow(v) { this._genericSet('overflow', v); }
+    set padding(v) { this._genericSet('padding', v); }
+    set paddingBottom(v) { this._genericSet('paddingBottom', v); }
+    set paddingLeft(v) { this._genericSet('paddingLeft', v); }
+    set paddingRight(v) { this._genericSet('paddingRight', v); }
+    set paddingTop(v) { this._genericSet('paddingTop', v); }
     set textAlign(v) { this._genericSet('textAlign', v); }
     set textureFit(v) { this._genericSet('textureFit', v); }
     set width(v) { this._genericSet('width', v); }
@@ -109,8 +129,18 @@ class Style {
         'glassmorphism',
         'height',
         'justifyContent',
+        'margin',
+        'marginBottom',
+        'marginLeft',
+        'marginRight',
+        'marginTop',
         'material',
         'materialColor',
+        'padding',
+        'paddingBottom',
+        'paddingLeft',
+        'paddingRight',
+        'paddingTop',
         'overflow',
         'textAlign',
         'textureFit',

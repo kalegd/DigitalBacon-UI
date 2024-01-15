@@ -8,6 +8,7 @@ import InteractableComponent from '/scripts/components/InteractableComponent.js'
 import LayoutComponent from '/scripts/components/LayoutComponent.js';
 import PointerInteractable from '/scripts/interactables/PointerInteractable.js';
 import PointerInteractableHandler from '/scripts/handlers/PointerInteractableHandler.js';
+import { numberOr } from '/scripts/utils.js';
 import * as THREE from 'three';
 
 const VEC3 = new THREE.Vector3();
@@ -27,6 +28,8 @@ class ScrollableComponent extends InteractableComponent {
     updateLayout() {
         let oldHeight = this.computedHeight;
         let oldWidth = this.computedWidth;
+        let oldMarginedHeight = this.marginedHeight;
+        let oldMarginedWidth = this.marginedWidth;
         let height = this._computeDimension('height');
         let width = this._computeDimension('width');
         let contentHeight = this._getContentHeight();
@@ -42,26 +45,35 @@ class ScrollableComponent extends InteractableComponent {
         let alignItems = this.alignItems;
         let justifyContent = this.justifyContent;
         let p, dimension, dimensionName, otherDimension, sign, contentDimension,
-            computedDimensionName, otherComputedDimensionName, vec2Param,
-            otherVec2Param, scrollBounds1, scrollBounds2;
+            computedDimensionName, otherComputedDimensionName, marginPriorName,
+            marginAfterName, otherMarginPriorName, otherMarginAfterName,
+            vec2Param, otherVec2Param, scrollBounds1, scrollBounds2;
         let itemGap = 0;
         if(this.contentDirection == 'row') {
-            dimension = -width;
+            dimension = -this.unpaddedWidth;
             contentDimension = -contentWidth;
-            otherDimension = height;
+            otherDimension = this.unpaddedHeight;
             computedDimensionName = 'computedWidth';
             otherComputedDimensionName = 'computedHeight';
+            marginPriorName = 'marginLeft';
+            marginAfterName = 'marginRight';
+            otherMarginPriorName = 'marginTop';
+            otherMarginAfterName = 'marginBottom';
             vec2Param = 'x';
             otherVec2Param = 'y';
             sign = 1;
             scrollBounds1 = this._scrollBoundsMin;
             scrollBounds2 = this._scrollBoundsMax;
         } else {
-            dimension = height;
+            dimension = this.unpaddedHeight;
             contentDimension = contentHeight;
-            otherDimension = -width;
+            otherDimension = -this.unpaddedWidth;
             computedDimensionName = 'computedHeight';
             otherComputedDimensionName = 'computedWidth';
+            marginPriorName = 'marginTop';
+            marginAfterName = 'marginBottom';
+            otherMarginPriorName = 'marginLeft';
+            otherMarginAfterName = 'marginRight';
             vec2Param = 'y';
             otherVec2Param = 'x';
             sign = -1;
@@ -104,16 +116,27 @@ class ScrollableComponent extends InteractableComponent {
         }
         for(let child of this._content.children) {
             if(child instanceof LayoutComponent) {
+                let margin = child.margin || 0;
+                let marginPrior = numberOr(child[marginPriorName], margin);
+                let marginAfter = numberOr(child[marginAfterName], margin);
+                let otherMarginPrior = numberOr(child[otherMarginPriorName],
+                    margin);
+                let otherMarginAfter = numberOr(child[otherMarginAfterName],
+                    margin);
+                p += marginPrior * sign;
                 child.position[vec2Param] = p + child[computedDimensionName]
                     / 2 * sign;
                 p += child[computedDimensionName] * sign;
+                p += marginAfter * sign;
                 p += itemGap;
                 if(alignItems == 'start') {
                     child.position[otherVec2Param] = otherDimension / 2
-                        - child[otherComputedDimensionName] / 2 * sign;
+                        - child[otherComputedDimensionName] / 2 * sign
+                        - otherMarginPrior * sign;
                 } else if(alignItems == 'end') {
                     child.position[otherVec2Param] = -otherDimension / 2
-                        + child[otherComputedDimensionName] / 2 * sign;
+                        + child[otherComputedDimensionName] / 2 * sign
+                        + otherMarginAfter * sign;
                 } else {
                     child.position[otherVec2Param] = 0;
                 }
@@ -125,29 +148,15 @@ class ScrollableComponent extends InteractableComponent {
             if(this.parentComponent instanceof LayoutComponent)
                 this.parent.parent.updateLayout();
             this._updateChildrensLayout(oldWidth != width, oldHeight != height);
+        } else if(oldMarginedHeight != this.marginedHeight
+                || oldMarginedWidth != this.marginedWidth) {
+            if(this.clippingPlanes) this._updateClippingPlanes();
+            if(this.parentComponent instanceof LayoutComponent)
+                this.parent.parent.updateLayout();
         }
         this._updateInteractables();
     }
 
-    _updateInteractables() {
-        let active = this.scrollable || this._onClick != null
-            || this._onDrag != null;
-        let hasAction = this.pointerInteractable.hasAction(
-            this._pointerInteractableAction);
-        if(this.scrollable || this._onDrag
-                || (this._onClick && this._getScrollableAncestor())) {
-            this._pointerInteractableAction.dragAction = this._dragAction;
-        } else {
-            delete this._pointerInteractableAction.dragAction;
-        }
-        if(active == hasAction) return;
-        if(active) {
-            this.pointerInteractable.addAction(this._pointerInteractableAction);
-        } else {
-            this.pointerInteractable.removeAction(
-                this._pointerInteractableAction);
-        }
-    }
     _updateInteractables() {
         let clickActive = this.scrollable || this._onClick != null
             || this._onDrag != null;

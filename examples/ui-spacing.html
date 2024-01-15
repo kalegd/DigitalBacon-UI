@@ -1,0 +1,179 @@
+<html>
+  <head>
+    <title>Examples - UI Spacing</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#ffebfd"/>
+    <link rel="apple-touch-icon" sizes="180x180" href="/images/favicons/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/images/favicons/favicon-16x16.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/images/favicons/favicon-32x32.png">
+    <link rel="stylesheet" href="/css/examples.css">
+    <script type="importmap">
+      {
+        "imports": {
+          "DigitalBacon-UI": "/scripts/DigitalBacon-UI.js",
+          "three": "/node_modules/three/build/three.module.js",
+          "troika-worker-utils": "/node_modules/troika-worker-utils/dist/troika-worker-utils.esm.js",
+          "webgl-sdf-generator": "/node_modules/webgl-sdf-generator/dist/webgl-sdf-generator.mjs",
+          "bidi-js": "/node_modules/bidi-js/dist/bidi.mjs",
+          "troika-three-utils": "/node_modules/troika-three-utils/dist/troika-three-utils.esm.js"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <h1>UI Spacing</h1>
+    <div id="container"></div>
+    <div id="vr-button"></div>
+    <div id="ar-button"></div>
+    <script type="module">
+      import * as DigitalBaconUI from 'DigitalBacon-UI';
+      import * as THREE from 'three';
+      import Stats from '/node_modules/three/examples/jsm/libs/stats.module.js';
+      import { VRButton } from 'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/webxr/VRButton.js';
+      import { ARButton } from 'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/webxr/ARButton.js';
+
+      //Begin Boilerplate
+
+      const container = document.getElementById('container');
+      const vrButtonDiv = document.getElementById('vr-button');
+      const arButtonDiv = document.getElementById('ar-button');
+      const scene = new THREE.Scene();
+      const camera = new THREE.PerspectiveCamera(90, window.innerWidth / window.innerHeight, 0.1, 1000);
+      const clock = new THREE.Clock();
+      const stats = new Stats();
+      stats.showPanel(0);
+      stats.dom.style.top = '';
+      stats.dom.style.left = '';
+      stats.dom.style.position = 'absolute';
+      container.appendChild(stats.dom, container.firstChild);
+      scene.background = new THREE.CubeTextureLoader()
+        .setPath('/images/skyboxes/blue_sky/')
+        .load(['skybox_right.jpg', 'skybox_left.jpg', 'skybox_up.jpg', 'skybox_down.jpg', 'skybox_front.jpg', 'skybox_back.jpg']);
+      
+      const renderer = new THREE.WebGLRenderer({ antialias : true });
+      renderer.setSize(container.clientWidth, container.clientHeight);
+      container.appendChild(renderer.domElement);
+      if('xr' in navigator && (await navigator.xr.isSessionSupported('immersive-vr') || await navigator.xr.isSessionSupported('immersive-ar'))) {
+        let features = ['local-floor', 'bounded-floor', 'hand-tracking',
+                        'layers', 'anchors', 'plane-detection'];
+        let vrButton = VRButton.createButton(renderer);
+        let arButton = ARButton.createButton(renderer,
+          { optionalFeatures: features });
+        vrButtonDiv.appendChild(vrButton);
+        arButtonDiv.appendChild(arButton);
+        renderer.xr.enabled = true;
+      }
+
+      const ambientLight = new THREE.AmbientLight(0x404040, 1);
+      const pointLight = new THREE.PointLight(0xffffff, 100);
+      pointLight.position.set(2.5, 5, 5);
+      camera.position.y = 1.7;
+      scene.add(camera);
+      scene.add(ambientLight);
+      scene.add(pointLight);
+
+      //End Boilerplate
+
+      await DigitalBaconUI.init(container, renderer, scene, camera);
+      DigitalBaconUI.InputHandler.enableXRControllerManagement(scene);
+
+      const body = new DigitalBaconUI.Body({
+        glassmorphism: true,
+        justifyContent: 'spaceBetween',
+        width: 1.5,
+      });
+      const row1 = new DigitalBaconUI.Span({
+        backgroundVisible: true,
+        borderTopLeftRadius: 0.05,
+        borderTopRightRadius: 0.05,
+        glassmorphism: true,
+        materialColor: '#dddddd',
+        height: 1/3,
+        width: '100%',
+        justifyContent: 'center',
+      });
+      const row2 = new DigitalBaconUI.Span({
+        glassmorphism: true,
+        justifyContent: 'center',
+        materialColor: '#999999',
+        height: 1/3,
+        width: '100%',
+      });
+      const row3 = new DigitalBaconUI.Span({
+        alignItems: 'start',
+        backgroundVisible: true,
+        borderBottomLeftRadius: 0.05,
+        borderBottomRightRadius: 0.05,
+        justifyContent: 'center',
+        materialColor: '#000000',
+        height: 1/3,
+        width: '100%',
+      });
+      const text1 = new DigitalBaconUI.Text('Padding and Margins', {
+        fontSize: 0.1,
+        color: '#ffffff',
+      });
+      function paddedDiv(padding, color) {
+        let div = new DigitalBaconUI.Div({
+          alignItems: 'start',
+          backgroundVisible: true,
+          materialColor: color,
+          padding: padding,
+          height: '50%',
+          width: '11%',
+        });
+        div.add(new DigitalBaconUI.Div({
+          backgroundVisible: true,
+          materialColor: '#000',
+          height: '50%',
+          width: '50%',
+        }));
+        return div;
+      }
+      function marginDiv(margin, color) {
+        return new DigitalBaconUI.Div({
+          backgroundVisible: true,
+          materialColor: color,
+          margin: margin,
+          height: '50%',
+          width: '11%',
+        });
+      }
+      let padded1 = paddedDiv(0.02, '#ff0000');
+      let padded2 = paddedDiv(0.02, '#00ff00');
+      let padded3 = paddedDiv(0.02, '#0000ff');
+      let margin1 = marginDiv(0.05, '#ff0000');
+      let margin2 = marginDiv(0.05, '#00ff00');
+      let margin3 = marginDiv(0.05, '#0000ff');
+      body.position.set(0, 1.7, -1);
+      scene.add(body);
+      body.add(row1);
+      body.add(row2);
+      body.add(row3);
+      row1.add(text1);
+      row2.add(padded1);
+      row2.add(padded2);
+      row2.add(padded3);
+      row3.add(margin1);
+      row3.add(margin2);
+      row3.add(margin3);
+      body.onClick = () => console.log("Nice menu isn't it?");
+
+      let t = 0;
+      renderer.setAnimationLoop((time, frame) => {
+        stats.begin();
+        let timeDelta = clock.getDelta();
+        t += timeDelta;
+        padded1.padding = (Math.sin(t) + 1) / 24;
+        padded2.padding = (Math.sin(t + 0.5) + 1) / 24;
+        padded3.padding = (Math.sin(t + 1) + 1) / 24;
+        margin1.margin = (Math.sin(t) + 1) / 24;
+        margin2.margin = (Math.sin(t) + 1) / 24;
+        margin3.margin = (Math.sin(t) + 1) / 24;
+        DigitalBaconUI.update(frame);
+        renderer.render(scene, camera);
+        stats.end();
+      });
+    </script>
+  </body>
+</html>

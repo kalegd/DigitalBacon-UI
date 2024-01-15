@@ -52,7 +52,11 @@ class LayoutComponent extends UIComponent {
         this._defaults['overflow'] = 'visible';
         this._defaults['width'] = 'auto';
         this.computedHeight = 0;
+        this.marginedHeight = 0;
+        this.unpaddedHeight = 0;
         this.computedWidth = 0;
+        this.marginedWidth = 0;
+        this.unpaddedWidth = 0;
         this._materialOffset = 0;
         this._content = new THREE.Object3D();
         this.add(this._content);
@@ -63,6 +67,14 @@ class LayoutComponent extends UIComponent {
     _handleStyleUpdateForBackgroundVisibility() {
         if(!this._background) return;
         this._background.visible = this.backgroundVisible || false;
+    }
+
+    _handleStyleUpdateForMargin() {
+        this.updateLayout();
+    }
+
+    _handleStyleUpdateForPadding() {
+        this.updateLayout();
     }
 
     _handleStyleUpdateForHeight() {
@@ -205,6 +217,8 @@ class LayoutComponent extends UIComponent {
     updateLayout() {
         let oldHeight = this.computedHeight;
         let oldWidth = this.computedWidth;
+        let oldMarginedHeight = this.marginedHeight;
+        let oldMarginedWidth = this.marginedWidth;
         let height = this._computeDimension('height');
         let width = this._computeDimension('width');
         let contentHeight = this._getContentHeight();
@@ -215,24 +229,33 @@ class LayoutComponent extends UIComponent {
         let alignItems = this.alignItems;
         let justifyContent = this.justifyContent;
         let p, dimension, dimensionName, otherDimension, sign, contentDimension,
-            computedDimensionName, otherComputedDimensionName, vec2Param,
-            otherVec2Param;
+            computedDimensionName, otherComputedDimensionName, marginPriorName,
+            marginAfterName, otherMarginPriorName, otherMarginAfterName,
+            vec2Param, otherVec2Param;
         let itemGap = 0;
         if(this.contentDirection == 'row') {
-            dimension = -width;
+            dimension = -this.unpaddedWidth;
             contentDimension = -contentWidth;
-            otherDimension = height;
+            otherDimension = this.unpaddedHeight;
             computedDimensionName = 'computedWidth';
             otherComputedDimensionName = 'computedHeight';
+            marginPriorName = 'marginLeft';
+            marginAfterName = 'marginRight';
+            otherMarginPriorName = 'marginTop';
+            otherMarginAfterName = 'marginBottom';
             vec2Param = 'x';
             otherVec2Param = 'y';
             sign = 1;
         } else {
-            dimension = height;
+            dimension = this.unpaddedHeight;
             contentDimension = contentHeight;
-            otherDimension = -width;
+            otherDimension = -this.unpaddedWidth;
             computedDimensionName = 'computedHeight';
             otherComputedDimensionName = 'computedWidth';
+            marginPriorName = 'marginTop';
+            marginAfterName = 'marginBottom';
+            otherMarginPriorName = 'marginLeft';
+            otherMarginAfterName = 'marginRight';
             vec2Param = 'y';
             otherVec2Param = 'x';
             sign = -1;
@@ -264,20 +287,38 @@ class LayoutComponent extends UIComponent {
         }
         for(let child of this._content.children) {
             if(child instanceof LayoutComponent) {
+                let margin = child.margin || 0;
+                let marginPrior = numberOr(child[marginPriorName], margin);
+                let marginAfter = numberOr(child[marginAfterName], margin);
+                let otherMarginPrior = numberOr(child[otherMarginPriorName],
+                    margin);
+                let otherMarginAfter = numberOr(child[otherMarginAfterName],
+                    margin);
+                p += marginPrior * sign;
                 child.position[vec2Param] = p + child[computedDimensionName]
                     / 2 * sign;
                 p += child[computedDimensionName] * sign;
+                p += marginAfter * sign;
                 p += itemGap;
                 if(alignItems == 'start') {
                     child.position[otherVec2Param] = otherDimension / 2
-                        - child[otherComputedDimensionName] / 2 * sign;
+                        - child[otherComputedDimensionName] / 2 * sign
+                        - otherMarginPrior * sign;
                 } else if(alignItems == 'end') {
                     child.position[otherVec2Param] = -otherDimension / 2
-                        + child[otherComputedDimensionName] / 2 * sign;
+                        + child[otherComputedDimensionName] / 2 * sign
+                        + otherMarginAfter * sign;
                 } else {
                     child.position[otherVec2Param] = 0;
                 }
             }
+        }
+        if(oldWidth != width || oldHeight != height || oldMarginedHeight != this.marginedHeight || oldMarginedWidth != this.marginedWidth) {
+            this._createBackground();
+            if(this.clippingPlanes) this._updateClippingPlanes();
+            if(this.parentComponent instanceof LayoutComponent)
+                this.parent.parent.updateLayout();
+            this._updateChildrensLayout(oldWidth != width, oldHeight != height);
         }
         if(oldWidth != width || oldHeight != height) {
             this._createBackground();
@@ -285,6 +326,11 @@ class LayoutComponent extends UIComponent {
             if(this.parentComponent instanceof LayoutComponent)
                 this.parent.parent.updateLayout();
             this._updateChildrensLayout(oldWidth != width, oldHeight != height);
+        } else if(oldMarginedHeight != this.marginedHeight
+                || oldMarginedWidth != this.marginedWidth) {
+            if(this.clippingPlanes) this._updateClippingPlanes();
+            if(this.parentComponent instanceof LayoutComponent)
+                this.parent.parent.updateLayout();
         }
     }
 
@@ -335,7 +381,24 @@ class LayoutComponent extends UIComponent {
                 this[computedParam] = parentComponent[computedParam] * percent;
             }
         }
+        this._computeUnpaddedAndMarginedDimensions(dimensionName,
+            this[computedParam]);
         return this[computedParam];
+    }
+
+    _computeUnpaddedAndMarginedDimensions(dimensionName, computed) {
+        let marginedParam = 'margined' + capitalizeFirstLetter(dimensionName);
+        let unpaddedParam = 'unpadded' + capitalizeFirstLetter(dimensionName);
+        let direction = (dimensionName == 'height') ? 'Vertical' : 'Horizontal';
+        this[unpaddedParam] = computed - this['padding' + direction];
+        this[marginedParam] = computed + this['margin' + direction];
+        if(dimensionName == 'height') {
+            this.unpaddedHeight = Math.max(computed - this.paddingVertical, 0);
+            this.marginedHeight = computed + this.marginVertical;
+        } else {
+            this.unpaddedWidth = Math.max(computed - this.paddingHorizontal, 0);
+            this.marginedWidth = computed + this.marginHorizontal;
+        }
     }
 
     _getContentHeight() {
@@ -343,14 +406,14 @@ class LayoutComponent extends UIComponent {
             let sum = 0;
             for(let child of this._content.children) {
                 if(child instanceof LayoutComponent)
-                    sum += child.computedHeight;
+                    sum += child.marginedHeight;
             }
             return sum;
         } else {
             let max = 0;
             for(let child of this._content.children) {
                 if(child instanceof LayoutComponent)
-                    max = Math.max(max, child.computedHeight);
+                    max = Math.max(max, child.marginedHeight);
             }
             return max;
         }
@@ -361,14 +424,14 @@ class LayoutComponent extends UIComponent {
             let sum = 0;
             for(let child of this._content.children) {
                 if(child instanceof LayoutComponent)
-                    sum += child.computedWidth;
+                    sum += child.marginedWidth;
             }
             return sum;
         } else {
             let max = 0;
             for(let child of this._content.children) {
                 if(child instanceof LayoutComponent)
-                    max = Math.max(max, child.computedWidth);
+                    max = Math.max(max, child.marginedWidth);
             }
             return max;
         }
@@ -419,6 +482,30 @@ class LayoutComponent extends UIComponent {
         }
     }
 
+    get marginHorizontal() {
+        let margin = this.margin || 0;
+        let marginLeft = numberOr(this.marginLeft, margin);
+        let marginRight = numberOr(this.marginRight, margin);
+        return marginLeft + marginRight;
+    }
+    get marginVertical() {
+        let margin = this.margin || 0;
+        let marginTop = numberOr(this.marginTop, margin);
+        let marginBottom = numberOr(this.marginBottom, margin);
+        return marginTop + marginBottom;
+    }
+    get paddingHorizontal() {
+        let padding = this.padding || 0;
+        let paddingLeft = numberOr(this.paddingLeft, padding);
+        let paddingRight = numberOr(this.paddingRight, padding);
+        return paddingLeft + paddingRight;
+    }
+    get paddingVertical() {
+        let padding = this.padding || 0;
+        let paddingTop = numberOr(this.paddingTop, padding);
+        let paddingBottom = numberOr(this.paddingBottom, padding);
+        return paddingTop + paddingBottom;
+    }
     get parentComponent() { return this.parent?.parent; }
 }
 

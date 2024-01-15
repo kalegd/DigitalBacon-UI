@@ -38,6 +38,8 @@ class TextComponent extends LayoutComponent {
                 ? Math.abs(bounds[0] - bounds[2])
                 : Math.abs(bounds[1] - bounds[3]);
         }
+        this._computeUnpaddedAndMarginedDimensions(dimensionName,
+            this[computedParam]);
         return this[computedParam];
     }
 
