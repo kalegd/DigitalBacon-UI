@@ -9,27 +9,20 @@ import { capitalizeFirstLetter } from '/scripts/utils.js';
 import * as THREE from 'three';
 
 const VEC3 = new THREE.Vector3();
-const DEFAULT_MATERIAL = new THREE.MeshBasicMaterial({
-    color: 0xffffff,
-    side: THREE.DoubleSide,
-    transparent: true,
-    polygonOffset: true,
-    polygonOffsetFactor: 1,
-    polygonOffsetUnits: 1,
-});
 
 class Image extends InteractableComponent {
     constructor(url, ...styles) {
         super(...styles);
         this._defaults['backgroundVisible'] = true;
-        if(this._defaults['material'] instanceof THREE.MeshPhysicalMaterial) {
-            this._defaults['material'].dispose();
-            this._defaults['material'] = DEFAULT_MATERIAL.clone();
-        }
+        this._defaults['textureFit'] = 'fill';
         this._imageHeight = 0;
         this._imageWidth = 0;
         this.updateLayout();
         this._createTexture(url);
+    }
+
+    _handleStyleUpdateForTextureFit() {
+        this._updateFit(-1, 1);
     }
 
     _computeDimension(dimensionName) {
@@ -54,6 +47,47 @@ class Image extends InteractableComponent {
         return this[computedParam];
     }
 
+    updateLayout() {
+        let oldHeight = this.computedHeight;
+        let oldWidth = this.computedWidth;
+        super.updateLayout();
+        this._updateFit(oldHeight, oldWidth);
+    }
+
+    _updateFit(oldHeight, oldWidth) {
+        let height = this.computedHeight;
+        let width = this.computedWidth;
+        if((oldHeight == this.computedHeight && oldWidth == this.computedWidth)
+            || !this?._texture?.image) return;
+        let textureFit = this.textureFit;
+        if(textureFit == 'cover') {
+            let aspectRatio = width / height;
+            let oldAspectRatio = oldWidth / oldHeight;
+            if(aspectRatio != oldAspectRatio) {
+                let imageWidth = this._texture.image.width;
+                let imageHeight = this._texture.image.height;
+                let imageAspectRatio = imageWidth / imageHeight;
+                if(aspectRatio < imageAspectRatio) {
+                    this._texture.repeat.x = aspectRatio / imageAspectRatio;
+                    this._texture.repeat.y = 1;
+                    this._texture.offset.x = (aspectRatio -imageAspectRatio)/-2;
+                    this._texture.offset.y = 0;
+                } else {
+                    this._texture.repeat.x = 1;
+                    this._texture.repeat.y = imageAspectRatio / aspectRatio;
+                    this._texture.offset.x = 0;
+                    this._texture.offset.y = (1 / aspectRatio
+                        - 1 / imageAspectRatio) / -2;
+                }
+            }
+        } else {
+            this._texture.repeat.x = 1;
+            this._texture.repeat.y = 1;
+            this._texture.offset.x = 0;
+            this._texture.offset.y = 0;
+        }
+    }
+
     _createTexture(url) {
         new THREE.TextureLoader().load(url, (texture) => {
             texture.colorSpace = THREE.SRGBColorSpace;
@@ -63,6 +97,7 @@ class Image extends InteractableComponent {
             this.material.map = texture;
             this.material.needsUpdate = true;
             this.updateLayout();
+            this._updateFit(-1, 1);
         }, () => {}, () => {
             console.error("Couldn't load image :(");
         });

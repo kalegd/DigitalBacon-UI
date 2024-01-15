@@ -127,6 +127,7 @@ class UIComponent extends THREE.Object3D {
     get materialColor() { return this._genericGet('materialColor'); }
     get overflow() { return this._genericGet('overflow'); }
     get textAlign() { return this._genericGet('textAlign'); }
+    get textureFit() { return this._genericGet('textureFit'); }
     get width() { return this._genericGet('width'); }
 
     set alignItems(v) { this._genericSet('alignItems', v); }
@@ -152,6 +153,7 @@ class UIComponent extends THREE.Object3D {
     set materialColor(v) { return this._genericSet('materialColor', v); }
     set overflow(v) { this._genericSet('overflow', v); }
     set textAlign(v) { this._genericSet('textAlign', v); }
+    set textureFit(v) { this._genericSet('textureFit', v); }
     set width(v) { this._genericSet('width', v); }
 }
 
