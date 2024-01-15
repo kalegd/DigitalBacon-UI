@@ -45,11 +45,13 @@ class LayoutComponent extends UIComponent {
         this._defaults['borderWidth'] = 0;
         this._defaults['contentDirection'] = 'column';
         this._defaults['justifyContent'] = 'start';
+        this._defaults['margin'] = 0;
         this._defaults['material'] = this.glassmorphism
             ? DEFAULT_GLASSMORPHISM_MATERIAL.clone()
             : DEFAULT_MATERIAL.clone();
         this._defaults['height'] = 'auto';
         this._defaults['overflow'] = 'visible';
+        this._defaults['padding'] = 0;
         this._defaults['width'] = 'auto';
         this.computedHeight = 0;
         this.marginedHeight = 0;
@@ -227,17 +229,22 @@ class LayoutComponent extends UIComponent {
             (sum, child) => sum + (child instanceof LayoutComponent ? 1 : 0),0);
         let alignItems = this.alignItems;
         let justifyContent = this.justifyContent;
-        let p, dimension, dimensionName, otherDimension, sign, contentDimension,
-            computedDimensionName, otherComputedDimensionName, marginPriorName,
-            marginAfterName, otherMarginPriorName, otherMarginAfterName,
-            vec2Param, otherVec2Param;
+        let p, dimension, dimensionName, unpaddedDimension, sign, paddingPrior,
+            otherPaddingPrior, otherPaddingAfter, otherDimension,
+            contentDimension, computedDimensionName, otherComputedDimensionName,
+            marginPriorName, marginAfterName, otherMarginPriorName,
+            otherMarginAfterName, vec2Param, otherVec2Param;
         let itemGap = 0;
         if(this.contentDirection == 'row') {
-            dimension = -this.unpaddedWidth;
+            dimension = -width;
+            otherDimension = height;
             contentDimension = -contentWidth;
-            otherDimension = this.unpaddedHeight;
+            unpaddedDimension = -this.unpaddedWidth;
             computedDimensionName = 'computedWidth';
             otherComputedDimensionName = 'computedHeight';
+            paddingPrior = this.paddingLeft || this.padding;
+            otherPaddingPrior = this.paddingTop || this.padding;
+            otherPaddingAfter = this.paddingBottom || this.padding;
             marginPriorName = 'marginLeft';
             marginAfterName = 'marginRight';
             otherMarginPriorName = 'marginTop';
@@ -246,11 +253,15 @@ class LayoutComponent extends UIComponent {
             otherVec2Param = 'y';
             sign = 1;
         } else {
-            dimension = this.unpaddedHeight;
+            dimension = height;
+            otherDimension = -width;
             contentDimension = contentHeight;
-            otherDimension = -this.unpaddedWidth;
+            unpaddedDimension = this.unpaddedHeight;
             computedDimensionName = 'computedHeight';
             otherComputedDimensionName = 'computedWidth';
+            paddingPrior = this.paddingTop || this.padding;
+            otherPaddingPrior = this.paddingLeft || this.padding;
+            otherPaddingAfter = this.paddingRight || this.padding;
             marginPriorName = 'marginTop';
             marginAfterName = 'marginBottom';
             otherMarginPriorName = 'marginLeft';
@@ -261,28 +272,31 @@ class LayoutComponent extends UIComponent {
         }
         if(justifyContent == 'start') {
             p = dimension / 2;
+            p += paddingPrior * sign;
         } else if(justifyContent == 'end') {
             p = dimension / -2 + contentDimension;
+            p += paddingPrior * sign;
         } else if(justifyContent == 'center') {
             p = contentDimension / 2;
-        } else if(Math.abs(dimension) - Math.abs(contentDimension) < 0) {
+        } else if(Math.abs(unpaddedDimension) - Math.abs(contentDimension) < 0){
             //spaceBetween, spaceAround, and spaceEvenly act the same when
             //overflowed
             p = contentDimension / 2;
         } else {
             if(justifyContent == 'spaceBetween') {
-                itemGap =  Math.abs(dimension - contentDimension)
+                itemGap =  Math.abs(unpaddedDimension - contentDimension)
                     / (contentSize - 1) * sign;
                 p = dimension / 2;
             } else if(justifyContent == 'spaceAround') {
-                itemGap = Math.abs(dimension - contentDimension)
+                itemGap = Math.abs(unpaddedDimension - contentDimension)
                     / contentSize * sign;
                 p = dimension / 2 + itemGap / 2;
             } else if(justifyContent == 'spaceEvenly') {
-                itemGap = Math.abs(dimension - contentDimension)
+                itemGap = Math.abs(unpaddedDimension - contentDimension)
                     / (contentSize + 1) * sign;
                 p = dimension / 2 + itemGap;
             }
+            p += paddingPrior * sign;
         }
         for(let child of this._content.children) {
             if(child instanceof LayoutComponent) {
@@ -302,10 +316,12 @@ class LayoutComponent extends UIComponent {
                 if(alignItems == 'start') {
                     child.position[otherVec2Param] = otherDimension / 2
                         - child[otherComputedDimensionName] / 2 * sign
+                        - otherPaddingPrior * sign
                         - otherMarginPrior * sign;
                 } else if(alignItems == 'end') {
                     child.position[otherVec2Param] = -otherDimension / 2
                         + child[otherComputedDimensionName] / 2 * sign
+                        + otherPaddingAfter * sign
                         + otherMarginAfter * sign;
                 } else {
                     child.position[otherVec2Param] = 0;
