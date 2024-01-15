@@ -225,7 +225,6 @@ class LayoutComponent extends UIComponent {
         let contentWidth = this._getContentWidth();
         let contentSize = this._content.children.reduce(
             (sum, child) => sum + (child instanceof LayoutComponent ? 1 : 0),0);
-        let contentDirection = this.contentDirection;
         let alignItems = this.alignItems;
         let justifyContent = this.justifyContent;
         let p, dimension, dimensionName, otherDimension, sign, contentDimension,
@@ -356,6 +355,7 @@ class LayoutComponent extends UIComponent {
     _computeDimension(dimensionName) {
         let dimension = this[dimensionName];
         let computedParam = 'computed' + capitalizeFirstLetter(dimensionName);
+        let marginedParam = 'margined' + capitalizeFirstLetter(dimensionName);
         if(typeof dimension == 'number') {
             this[computedParam] = dimension;
         } else if(dimension == 'auto') {
@@ -363,14 +363,14 @@ class LayoutComponent extends UIComponent {
                 let sum = 0;
                 for(let child of this._content.children) {
                     if(child instanceof LayoutComponent)
-                        sum += child[computedParam];
+                        sum += child[marginedParam];
                 }
                 this[computedParam] = sum;
             } else {
                 let max = 0;
                 for(let child of this._content.children) {
                     if(child instanceof LayoutComponent)
-                        max = Math.max(max, child[computedParam]);
+                        max = Math.max(max, child[marginedParam]);
                 }
                 this[computedParam] = max;
             }

@@ -25,13 +25,9 @@ class ScrollableComponent extends InteractableComponent {
         this._scrollOwner;
     }
 
-    updateLayout() {
-        let oldHeight = this.computedHeight;
-        let oldWidth = this.computedWidth;
-        let oldMarginedHeight = this.marginedHeight;
-        let oldMarginedWidth = this.marginedWidth;
-        let height = this._computeDimension('height');
-        let width = this._computeDimension('width');
+    _updateScrollable() {
+        let height = this.computedHeight;
+        let width = this.computedWidth;
         let contentHeight = this._getContentHeight();
         let contentWidth = this._getContentWidth();
         let overflowScroll = this.overflow == 'scroll';
@@ -39,125 +35,42 @@ class ScrollableComponent extends InteractableComponent {
         this._horizontallyScrollable = contentWidth > width && overflowScroll;
         this.scrollable = this._verticallyScrollable
             || this._horizontallyScrollable;
-        let contentSize = this._content.children.reduce(
-            (sum, child) => sum + (child instanceof LayoutComponent ? 1 : 0),0);
-        let contentDirection = this.contentDirection;
-        let alignItems = this.alignItems;
         let justifyContent = this.justifyContent;
-        let p, dimension, dimensionName, otherDimension, sign, contentDimension,
-            computedDimensionName, otherComputedDimensionName, marginPriorName,
-            marginAfterName, otherMarginPriorName, otherMarginAfterName,
-            vec2Param, otherVec2Param, scrollBounds1, scrollBounds2;
-        let itemGap = 0;
+        let dimension, contentDimension, vec2Param, scrollBounds1,scrollBounds2;
         if(this.contentDirection == 'row') {
             dimension = -this.unpaddedWidth;
             contentDimension = -contentWidth;
-            otherDimension = this.unpaddedHeight;
-            computedDimensionName = 'computedWidth';
-            otherComputedDimensionName = 'computedHeight';
-            marginPriorName = 'marginLeft';
-            marginAfterName = 'marginRight';
-            otherMarginPriorName = 'marginTop';
-            otherMarginAfterName = 'marginBottom';
             vec2Param = 'x';
-            otherVec2Param = 'y';
-            sign = 1;
             scrollBounds1 = this._scrollBoundsMin;
             scrollBounds2 = this._scrollBoundsMax;
         } else {
             dimension = this.unpaddedHeight;
             contentDimension = contentHeight;
-            otherDimension = -this.unpaddedWidth;
-            computedDimensionName = 'computedHeight';
-            otherComputedDimensionName = 'computedWidth';
-            marginPriorName = 'marginTop';
-            marginAfterName = 'marginBottom';
-            otherMarginPriorName = 'marginLeft';
-            otherMarginAfterName = 'marginRight';
             vec2Param = 'y';
-            otherVec2Param = 'x';
-            sign = -1;
             scrollBounds1 = this._scrollBoundsMax;
             scrollBounds2 = this._scrollBoundsMin;
         }
         if(justifyContent == 'start') {
-            p = dimension / 2;
             scrollBounds1[vec2Param] = contentDimension - dimension;
             scrollBounds2[vec2Param] = 0;
         } else if(justifyContent == 'end') {
-            p = dimension / -2 + contentDimension;
             scrollBounds1[vec2Param] = 0;
             scrollBounds2[vec2Param] = -contentDimension + dimension;
         } else if(justifyContent == 'center') {
-            p = contentDimension / 2;
             scrollBounds1[vec2Param] = (contentDimension - dimension) / 2;
             scrollBounds2[vec2Param] = scrollBounds1[vec2Param] * -1;
         } else if(Math.abs(dimension) - Math.abs(contentDimension) < 0) {
             //spaceBetween, spaceAround, and spaceEvenly act the same when
             //overflowed
-            p = contentDimension / 2;
             scrollBounds1[vec2Param] = (contentDimension - dimension) / 2;
             scrollBounds2[vec2Param] = scrollBounds1[vec2Param] * -1;
         } else {
             scrollBounds1[vec2Param] = scrollBounds2[vec2Param] = 0;
-            if(justifyContent == 'spaceBetween') {
-                itemGap =  Math.abs(dimension - contentDimension)
-                    / (contentSize - 1) * sign;
-                p = dimension / 2;
-            } else if(justifyContent == 'spaceAround') {
-                itemGap = Math.abs(dimension - contentDimension)
-                    / contentSize * sign;
-                p = dimension / 2 + itemGap / 2;
-            } else if(justifyContent == 'spaceEvenly') {
-                itemGap = Math.abs(dimension - contentDimension)
-                    / (contentSize + 1) * sign;
-                p = dimension / 2 + itemGap;
-            }
         }
-        for(let child of this._content.children) {
-            if(child instanceof LayoutComponent) {
-                let margin = child.margin || 0;
-                let marginPrior = numberOr(child[marginPriorName], margin);
-                let marginAfter = numberOr(child[marginAfterName], margin);
-                let otherMarginPrior = numberOr(child[otherMarginPriorName],
-                    margin);
-                let otherMarginAfter = numberOr(child[otherMarginAfterName],
-                    margin);
-                p += marginPrior * sign;
-                child.position[vec2Param] = p + child[computedDimensionName]
-                    / 2 * sign;
-                p += child[computedDimensionName] * sign;
-                p += marginAfter * sign;
-                p += itemGap;
-                if(alignItems == 'start') {
-                    child.position[otherVec2Param] = otherDimension / 2
-                        - child[otherComputedDimensionName] / 2 * sign
-                        - otherMarginPrior * sign;
-                } else if(alignItems == 'end') {
-                    child.position[otherVec2Param] = -otherDimension / 2
-                        + child[otherComputedDimensionName] / 2 * sign
-                        + otherMarginAfter * sign;
-                } else {
-                    child.position[otherVec2Param] = 0;
-                }
-            }
-        }
-        if(oldWidth != width || oldHeight != height) {
-            this._createBackground();
-            if(this.clippingPlanes) this._updateClippingPlanes();
-            if(this.parentComponent instanceof LayoutComponent)
-                this.parent.parent.updateLayout();
-            this._updateChildrensLayout(oldWidth != width, oldHeight != height);
-        } else if(oldMarginedHeight != this.marginedHeight
-                || oldMarginedWidth != this.marginedWidth) {
-            if(this.clippingPlanes) this._updateClippingPlanes();
-            if(this.parentComponent instanceof LayoutComponent)
-                this.parent.parent.updateLayout();
-        }
-        this._updateInteractables();
     }
 
     _updateInteractables() {
+        this._updateScrollable();
         let clickActive = this.scrollable || this._onClick != null
             || this._onDrag != null;
         let touchActive = this.scrollable || this._onTouch != null
