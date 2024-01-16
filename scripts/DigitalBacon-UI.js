@@ -5,6 +5,7 @@
  */
 
 import Body from '/scripts/components/Body.js';
+import Checkbox from '/scripts/components/Checkbox.js';
 import Div from '/scripts/components/Div.js';
 import Image from '/scripts/components/Image.js';
 import Span from '/scripts/components/Span.js';
@@ -99,6 +100,7 @@ const update = (frame) => {
 };
 
 export { Body };
+export { Checkbox };
 export { Div };
 export { Image };
 export { Span };
