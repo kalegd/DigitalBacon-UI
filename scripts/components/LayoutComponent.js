@@ -129,15 +129,16 @@ class LayoutComponent extends UIComponent {
         let width = this.computedWidth;
         let renderOrder = 100 + this._materialOffset;
         if(borderWidth) {
-            let borderShape = createShape(width, height, topLeftRadius,
-                topRightRadius, bottomLeftRadius, bottomRightRadius);
+            let borderShape = LayoutComponent.createShape(width, height,
+                topLeftRadius, topRightRadius, bottomLeftRadius,
+                bottomRightRadius);
             topLeftRadius = Math.max(topLeftRadius - borderWidth, 0);
             topRightRadius = Math.max(topRightRadius - borderWidth, 0);
             bottomLeftRadius = Math.max(bottomLeftRadius - borderWidth, 0);
             bottomRightRadius = Math.max(bottomRightRadius - borderWidth, 0);
             height -= 2 * borderWidth;
             width -= 2 * borderWidth;
-            let shape = createShape(width, height, topLeftRadius,
+            let shape = LayoutComponent.createShape(width, height,topLeftRadius,
                 topRightRadius, bottomLeftRadius, bottomRightRadius);
             let geometry = new THREE.ShapeGeometry(shape);
             this._background = new THREE.Mesh(geometry, this.material);
@@ -148,7 +149,7 @@ class LayoutComponent extends UIComponent {
             this.add(this._border);
             this._border.renderOrder = renderOrder;
         } else {
-            let shape = createShape(width, height, topLeftRadius,
+            let shape = LayoutComponent.createShape(width, height,topLeftRadius,
                 topRightRadius, bottomLeftRadius, bottomRightRadius);
             let geometry = new THREE.ShapeGeometry(shape);
             this._background = new THREE.Mesh(geometry, this.material);
@@ -523,36 +524,37 @@ class LayoutComponent extends UIComponent {
         return paddingTop + paddingBottom;
     }
     get parentComponent() { return this.parent?.parent; }
-}
 
-//https://stackoverflow.com/a/65576761/11626958
-function createShape(width, height, topLeftRadius, topRightRadius,
-        bottomLeftRadius, bottomRightRadius) {
-    let shape = new THREE.Shape();
-    let halfWidth = width / 2;
-    let halfHeight = height / 2;
-    let negativeHalfWidth = halfWidth * -1;
-    let negativeHalfHeight = halfHeight * -1;
-    shape.moveTo(negativeHalfWidth, negativeHalfHeight + bottomLeftRadius);
-    shape.lineTo(negativeHalfWidth, halfHeight - topLeftRadius);
-    if(topLeftRadius)
-        shape.absarc(negativeHalfWidth + topLeftRadius,
-            halfHeight - topLeftRadius, topLeftRadius, Math.PI, Math.PI/2,true);
-    shape.lineTo(halfWidth - topRightRadius, halfHeight);
-    if(topRightRadius)
-        shape.absarc(halfWidth - topRightRadius, halfHeight - topRightRadius,
-            topRightRadius, Math.PI / 2, 0, true);
-    shape.lineTo(halfWidth, negativeHalfHeight + bottomRightRadius);
-    if(bottomRightRadius)
-        shape.absarc(halfWidth - bottomRightRadius,
-            negativeHalfHeight + bottomRightRadius, bottomRightRadius, 0,
-            Math.PI / -2, true);
-    shape.lineTo(negativeHalfWidth + bottomLeftRadius, negativeHalfHeight);
-    if(bottomLeftRadius)
-        shape.absarc(negativeHalfWidth + bottomLeftRadius,
-            negativeHalfHeight + bottomLeftRadius, bottomLeftRadius,
-            Math.PI / -2, -Math.PI, true);
-    return shape;
+    //https://stackoverflow.com/a/65576761/11626958
+    static createShape(width, height, topLeftRadius, topRightRadius,
+            bottomLeftRadius, bottomRightRadius) {
+        let shape = new THREE.Shape();
+        let halfWidth = width / 2;
+        let halfHeight = height / 2;
+        let negativeHalfWidth = halfWidth * -1;
+        let negativeHalfHeight = halfHeight * -1;
+        shape.moveTo(negativeHalfWidth, negativeHalfHeight + bottomLeftRadius);
+        shape.lineTo(negativeHalfWidth, halfHeight - topLeftRadius);
+        if(topLeftRadius)
+            shape.absarc(negativeHalfWidth + topLeftRadius,
+                halfHeight - topLeftRadius, topLeftRadius, Math.PI, Math.PI/2,
+                true);
+        shape.lineTo(halfWidth - topRightRadius, halfHeight);
+        if(topRightRadius)
+            shape.absarc(halfWidth - topRightRadius, halfHeight -topRightRadius,
+                topRightRadius, Math.PI / 2, 0, true);
+        shape.lineTo(halfWidth, negativeHalfHeight + bottomRightRadius);
+        if(bottomRightRadius)
+            shape.absarc(halfWidth - bottomRightRadius,
+                negativeHalfHeight + bottomRightRadius, bottomRightRadius, 0,
+                Math.PI / -2, true);
+        shape.lineTo(negativeHalfWidth + bottomLeftRadius, negativeHalfHeight);
+        if(bottomLeftRadius)
+            shape.absarc(negativeHalfWidth + bottomLeftRadius,
+                negativeHalfHeight + bottomLeftRadius, bottomLeftRadius,
+                Math.PI / -2, -Math.PI, true);
+        return shape;
+    }
 }
 
 export default LayoutComponent;

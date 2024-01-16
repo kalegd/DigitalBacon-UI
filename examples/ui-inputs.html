@@ -92,31 +92,26 @@
       });
       const row2 = new DigitalBaconUI.Span({
         height: 1/2,
-        width: '100%',
+        width: '90%',
+        glassmorphism: true,
         justifyContent: 'center',
         backgroundVisible: true,
-        materialColor: '#111111',
+        materialColor: '#aaaaaa',
       });
       const row3 = new DigitalBaconUI.Span({
-        backgroundVisible: true,
         borderBottomLeftRadius: 0.05,
         borderBottomRightRadius: 0.05,
-        materialColor: '#000000',
         padding: 0.05,
-        height: 3/12,
+        height: 1/4,
         width: '100%',
       });
       const section1 = new DigitalBaconUI.Div({
         alignItems: 'start',
-        backgroundVisible: true,
-        materialColor: '#aa07f0',
         padding: 0.05,
         height: '100%',
         width: '50%',
       });
       const section2 = new DigitalBaconUI.Div({
-        backgroundVisible: true,
-        materialColor: '#07f0aa',
         padding: 0.05,
         height: '100%',
         width: '50%',
@@ -130,10 +125,18 @@
         fontSize: 0.07,
         marginLeft: 0.02,
       });
-      const checkbox = new DigitalBaconUI.Checkbox({ borderRadius: 0.01 });
-      const checkboxSpan = new DigitalBaconUI.Span();
-      const checkboxLabel = new DigitalBaconUI.Text('Checkbox', labelStyle);
-      const toggle = new DigitalBaconUI.Text('Toggle Here', labelStyle);
+      const toggle1 = new DigitalBaconUI.Toggle();
+      const toggle1Span = new DigitalBaconUI.Span();
+      const toggle1Label = new DigitalBaconUI.Text('Toggle', labelStyle);
+      const toggle2 = new DigitalBaconUI.Toggle({ borderRadius: 0.04 });
+      const toggle2Span = new DigitalBaconUI.Span();
+      const toggle2Label = new DigitalBaconUI.Text('Toggle', labelStyle);
+      const checkbox1 = new DigitalBaconUI.Checkbox();
+      const checkbox1Span = new DigitalBaconUI.Span();
+      const checkbox1Label = new DigitalBaconUI.Text('Checkbox', labelStyle);
+      const checkbox2 = new DigitalBaconUI.Checkbox({ borderRadius: 0.04 });
+      const checkbox2Span = new DigitalBaconUI.Span();
+      const checkbox2Label = new DigitalBaconUI.Text('Checkbox', labelStyle);
       const radio1 = new DigitalBaconUI.Text('Radio Button Here', labelStyle);
       const radio2 = new DigitalBaconUI.Text('Radio Button Here', labelStyle);
       const range = new DigitalBaconUI.Text('Range Here', labelStyle);
@@ -145,12 +148,20 @@
       row1.add(text1);
       row2.add(section1);
       row2.add(section2);
-      section1.add(toggle);
-      section1.add(checkboxSpan);
+      section1.add(toggle1Span);
+      section1.add(toggle2Span);
+      section1.add(checkbox1Span);
+      section1.add(checkbox2Span);
       section2.add(radio1);
       section2.add(radio2);
-      checkboxSpan.add(checkbox);
-      checkboxSpan.add(checkboxLabel);
+      toggle1Span.add(toggle1);
+      toggle1Span.add(toggle1Label);
+      toggle2Span.add(toggle2);
+      toggle2Span.add(toggle2Label);
+      checkbox1Span.add(checkbox1);
+      checkbox1Span.add(checkbox1Label);
+      checkbox2Span.add(checkbox2);
+      checkbox2Span.add(checkbox2Label);
       row3.add(range);
 
       renderer.setAnimationLoop((time, frame) => {

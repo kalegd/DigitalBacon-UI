@@ -5,7 +5,6 @@
  */
 
 import InteractableComponent from '/scripts/components/InteractableComponent.js';
-import { capitalizeFirstLetter } from '/scripts/utils.js';
 import { Text } from '/node_modules/troika-three-text/dist/troika-three-text.esm.js';
 import * as THREE from 'three';
 
@@ -19,15 +18,15 @@ const DEFAULT_BORDER_MATERIAL = new THREE.MeshBasicMaterial({
     polygonOffsetUnits: 1,
 });
 
-class CheckboxComponent extends InteractableComponent {
+class Checkbox extends InteractableComponent {
     constructor(...styles) {
         super(...styles);
         this._defaults['backgroundVisible'] = true;
-        this._defaults['borderMaterial'] = DEFAULT_BORDER_MATERIAL;
+        this._defaults['borderMaterial'] = DEFAULT_BORDER_MATERIAL.clone();
         this._defaults['borderWidth'] = 0.001;
         this._defaults['color'] = 0xffffff;
-        this._defaults['height'] = 0.075;
-        this._defaults['width'] = 0.075;
+        this._defaults['height'] = 0.08;
+        this._defaults['width'] = 0.08;
         this._text = new Text();
         this._content.add(this._text);
         this._text.text = ' ';
@@ -79,4 +78,4 @@ class CheckboxComponent extends InteractableComponent {
     set onChange(onChange) { this._onChange = onChange; }
 }
 
-export default CheckboxComponent;
+export default Checkbox;
