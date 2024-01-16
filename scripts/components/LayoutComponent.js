@@ -33,6 +33,7 @@ const DEFAULT_BORDER_MATERIAL = new THREE.MeshBasicMaterial({
     transparent: true,
     opacity: 0.5,
     side: THREE.DoubleSide,
+    polygonOffset: true,
 });
 
 class LayoutComponent extends UIComponent {

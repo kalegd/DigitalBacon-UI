@@ -137,9 +137,16 @@
       const checkbox2 = new DigitalBaconUI.Checkbox({ borderRadius: 0.04 });
       const checkbox2Span = new DigitalBaconUI.Span();
       const checkbox2Label = new DigitalBaconUI.Text('Checkbox', labelStyle);
-      const radio1 = new DigitalBaconUI.Text('Radio Button Here', labelStyle);
-      const radio2 = new DigitalBaconUI.Text('Radio Button Here', labelStyle);
-      const range = new DigitalBaconUI.Text('Range Here', labelStyle);
+      const radio1 = new DigitalBaconUI.Radio('radioName');
+      const radio1Span = new DigitalBaconUI.Span();
+      const radio1Label = new DigitalBaconUI.Text('Radio', labelStyle);
+      const radio2 = new DigitalBaconUI.Radio('radioName');
+      const radio2Span = new DigitalBaconUI.Span();
+      const radio2Label = new DigitalBaconUI.Text('Radio', labelStyle);
+      const radio3 = new DigitalBaconUI.Radio('radioName');
+      const radio3Span = new DigitalBaconUI.Span();
+      const radio3Label = new DigitalBaconUI.Text('Radio', labelStyle);
+      const range = new DigitalBaconUI.Text('TODO: Range', labelStyle);
       body.position.set(0, 1.7, -1);
       scene.add(body);
       body.add(row1);
@@ -152,8 +159,9 @@
       section1.add(toggle2Span);
       section1.add(checkbox1Span);
       section1.add(checkbox2Span);
-      section2.add(radio1);
-      section2.add(radio2);
+      section2.add(radio1Span);
+      section2.add(radio2Span);
+      section2.add(radio3Span);
       toggle1Span.add(toggle1);
       toggle1Span.add(toggle1Label);
       toggle2Span.add(toggle2);
@@ -162,6 +170,12 @@
       checkbox1Span.add(checkbox1Label);
       checkbox2Span.add(checkbox2);
       checkbox2Span.add(checkbox2Label);
+      radio1Span.add(radio1);
+      radio1Span.add(radio1Label);
+      radio2Span.add(radio2);
+      radio2Span.add(radio2Label);
+      radio3Span.add(radio3);
+      radio3Span.add(radio3Label);
       row3.add(range);
 
       renderer.setAnimationLoop((time, frame) => {

@@ -76,14 +76,13 @@ class Toggle extends InteractableComponent {
     _change() {
         this._checked = !this._checked;
         if(this._checked) {
-            //this._text.text = '✔';
             this.material.color.set(0x0030ff);
             this._toggleChild.position.setX(this._toggleOffset);
         } else {
-            //this._text.text = '';
             this.material.color.set(0xcccccc);
             this._toggleChild.position.setX(-this._toggleOffset);
         }
+        if(this._onChange) this._onChange(this._checked);
     }
 
     get checked() { return this._checked; }
@@ -96,10 +95,9 @@ class Toggle extends InteractableComponent {
             this.material.color.set(0x0030ff);
             this._toggleChild.position.setX(this._toggleOffset);
         } else {
-            this.material.color.set(0xffffff);
+            this.material.color.set(0xcccccc);
             this._toggleChild.position.setX(-this._toggleOffset);
         }
-        this._text.sync();
     }
     set onChange(onChange) { this._onChange = onChange; }
 }

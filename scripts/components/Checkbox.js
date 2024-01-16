@@ -9,7 +9,7 @@ import { Text } from '/node_modules/troika-three-text/dist/troika-three-text.esm
 import * as THREE from 'three';
 
 const DEFAULT_BORDER_MATERIAL = new THREE.MeshBasicMaterial({
-    color: 0x222222,
+    color: 0x4f4f4f,
     side: THREE.DoubleSide,
     opacity: 0.9,
     transparent: true,
@@ -23,7 +23,7 @@ class Checkbox extends InteractableComponent {
         super(...styles);
         this._defaults['backgroundVisible'] = true;
         this._defaults['borderMaterial'] = DEFAULT_BORDER_MATERIAL.clone();
-        this._defaults['borderWidth'] = 0.001;
+        this._defaults['borderWidth'] = 0.002;
         this._defaults['color'] = 0xffffff;
         this._defaults['height'] = 0.08;
         this._defaults['width'] = 0.08;
@@ -58,6 +58,7 @@ class Checkbox extends InteractableComponent {
             this._text.text = '';
             this.material.color.set(0xffffff);
         }
+        if(this._onChange) this._onChange(this._checked);
     }
 
     get checked() { return this._checked; }
