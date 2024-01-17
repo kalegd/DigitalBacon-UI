@@ -80,7 +80,6 @@
       const body = new DigitalBaconUI.Body({
         glassmorphism: true,
         justifyContent: 'spaceBetween',
-        materialColor: '#eeeeee',
         width: 1.5,
       });
       const row1 = new DigitalBaconUI.Span({
@@ -98,10 +97,10 @@
         backgroundVisible: true,
         materialColor: '#aaaaaa',
       });
-      const row3 = new DigitalBaconUI.Span({
+      const row3 = new DigitalBaconUI.Div({
         borderBottomLeftRadius: 0.05,
         borderBottomRightRadius: 0.05,
-        padding: 0.05,
+        justifyContent: 'center',
         height: 1/4,
         width: '100%',
       });
@@ -146,7 +145,11 @@
       const radio3 = new DigitalBaconUI.Radio('radioName');
       const radio3Span = new DigitalBaconUI.Span();
       const radio3Label = new DigitalBaconUI.Text('Radio', labelStyle);
-      const range = new DigitalBaconUI.Text('TODO: Range', labelStyle);
+      const range = new DigitalBaconUI.Range({ width: 1 });
+      const rangeLabel = new DigitalBaconUI.Text('Range', {
+        color: '#ffffff',
+        fontSize: 0.07,
+      });
       body.position.set(0, 1.7, -1);
       scene.add(body);
       body.add(row1);
@@ -176,7 +179,13 @@
       radio2Span.add(radio2Label);
       radio3Span.add(radio3);
       radio3Span.add(radio3Label);
+      row3.add(rangeLabel);
       row3.add(range);
+
+      range.onChange = (value) => {
+        row2.material.color.setHSL(0, 0, 1 - value);
+      };
+      range.value = 0.5;
 
       renderer.setAnimationLoop((time, frame) => {
         stats.begin();
