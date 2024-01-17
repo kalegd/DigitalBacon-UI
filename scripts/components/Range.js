@@ -23,10 +23,8 @@ class Range extends InteractableComponent {
         super(...styles);
         this._defaults['backgroundVisible'] = true;
         this._defaults['borderMaterial'].color.set(0x4f4f4f);
-        this._defaults['borderMaterial'].opacity = 1;
         this._defaults['borderWidth'] = 0.002;
         this._defaults['height'] = 0.02;
-        this._defaults['margin'] = this.height * 2;
         this._defaults['materialColor'] = 0xffffff;
         this._defaults['width'] = 0.4;
         this._value = 0;
@@ -39,19 +37,15 @@ class Range extends InteractableComponent {
         this.updateLayout();
     }
 
-    _handleStyleUpdateForHeight() {
-        this._defaults['margin'] = this.height * 2;
-        super._handleStyleUpdateForHeight();
-    }
-
     _createBackground() {
-        this._defaults['borderRadius'] = Math.min(this.height, this.width) / 2;
+        this._defaults['borderRadius'] = Math.min(this.computedHeight,
+            this.computedWidth) / 2;
         super._createBackground();
         if(this._scrubberChild?.parent)
             this._scrubberChild.parent.remove(this._scrubberChild);
         if(this._scrubberValue?.parent)
             this._scrubberValue.parent.remove(this._scrubberValue);
-        let geometry = new THREE.CircleGeometry(this.height * 1.5);
+        let geometry = new THREE.CircleGeometry(this.computedHeight * 1.5);
         this._scrubberChild = new THREE.Mesh(geometry, this._scrubberMaterial);
         this._scrubberValue = new THREE.Mesh(this._background.geometry,
             this._scrubberMaterial);

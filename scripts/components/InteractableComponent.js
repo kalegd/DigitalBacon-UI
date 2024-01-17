@@ -29,7 +29,7 @@ class InteractableComponent extends LayoutComponent {
         this.pointerInteractable.removeAction(this._pointerInteractableAction);
         this.touchInteractable.removeAction(this._touchInteractableAction);
         this.addEventListener('added', () => this._onAdded());
-        this.addEventListener('removed', () => this._onAdded());
+        this.addEventListener('removed', () => this._onRemoved());
     }
 
     _createBackground() {

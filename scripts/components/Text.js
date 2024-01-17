@@ -16,7 +16,7 @@ class TextComponent extends LayoutComponent {
         this._defaults['textAlign'] = 'left';
         this._text = new Text();
         this._content.add(this._text);
-        this._text.text = text;
+        this._text.text = text || '';
         this._text.color = this.color;
         this._text.fontSize = this.fontSize;
         this._text.textAlign = this.textAlign;
@@ -25,6 +25,11 @@ class TextComponent extends LayoutComponent {
         this._text.sync(() => this.updateLayout());
         if(this.overflow != 'visible')
             this._text.material.clippingPlanes = this._getClippingPlanes();
+    }
+
+    _handleStyleUpdateForFontSize() {
+        this._text.fontSize = this.fontSize;
+        if(this.width == 'auto' || this.height == 'auto') this.updateLayout();
     }
 
     _computeDimension(dimensionName) {

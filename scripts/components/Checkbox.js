@@ -8,21 +8,12 @@ import InteractableComponent from '/scripts/components/InteractableComponent.js'
 import { Text } from '/node_modules/troika-three-text/dist/troika-three-text.esm.js';
 import * as THREE from 'three';
 
-const DEFAULT_BORDER_MATERIAL = new THREE.MeshBasicMaterial({
-    color: 0x4f4f4f,
-    side: THREE.DoubleSide,
-    opacity: 0.9,
-    transparent: true,
-    polygonOffset: true,
-    polygonOffsetFactor: 1,
-    polygonOffsetUnits: 1,
-});
-
 class Checkbox extends InteractableComponent {
     constructor(...styles) {
         super(...styles);
         this._defaults['backgroundVisible'] = true;
-        this._defaults['borderMaterial'] = DEFAULT_BORDER_MATERIAL.clone();
+        this._defaults['borderMaterial'].color.set(0x4f4f4f);
+        this._defaults['borderMaterial'].opacity = 0.9;
         this._defaults['borderWidth'] = 0.002;
         this._defaults['color'] = 0xffffff;
         this._defaults['height'] = 0.08;
@@ -31,7 +22,6 @@ class Checkbox extends InteractableComponent {
         this._content.add(this._text);
         this._text.text = ' ';
         this._text.color = this.color;
-        this._text.fontSize = Math.min(this.height, this.width) * 0.65;
         this._text.lineHeight = 1;
         this._text.textAlign = 'center';
         this._text.anchorX = 'center';
@@ -40,6 +30,12 @@ class Checkbox extends InteractableComponent {
         if(this.overflow != 'visible')
             this._text.material.clippingPlanes = this._getClippingPlanes();
         this.updateLayout();
+    }
+
+    updateLayout() {
+        super.updateLayout();
+        this._text.fontSize = Math.min(this.computedHeight, this.computedWidth)
+            * 0.65;
     }
 
     _updateMaterialOffset(parentOffset) {

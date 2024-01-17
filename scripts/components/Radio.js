@@ -24,7 +24,6 @@ class Radio extends InteractableComponent {
         super(...styles);
         this._defaults['backgroundVisible'] = true;
         this._defaults['borderMaterial'].color.set(0x4f4f4f);
-        this._defaults['borderMaterial'].opacity = 1;
         this._defaults['borderWidth'] = 0.002;
         this._defaults['height'] = 0.08;
         this._defaults['materialColor'] = 0xffffff;
@@ -38,7 +37,8 @@ class Radio extends InteractableComponent {
     }
 
     _createBackground() {
-        this._defaults['borderRadius'] = Math.min(this.height, this.width) / 2;
+        this._defaults['borderRadius'] = Math.min(this.computedHeight,
+            this.computedHeight) / 2;
         super._createBackground();
         if(this._toggleChild?.parent)
             this._toggleChild.parent.remove(this._toggleChild);

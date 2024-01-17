@@ -38,6 +38,10 @@ class PointerInteractableHandler extends InteractableHandler {
         return id;
     }
 
+    removeEmptyClickListener(id) {
+        delete this._emptyClickListeners[id];
+    }
+
     _getXRCursor(hand) {
         if(this._cursors[hand]) return this._cursors[hand];
         let canvas = document.createElement('canvas');

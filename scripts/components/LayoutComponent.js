@@ -31,7 +31,6 @@ const DEFAULT_GLASSMORPHISM_MATERIAL = new THREE.MeshPhysicalMaterial({
 const DEFAULT_BORDER_MATERIAL = new THREE.MeshBasicMaterial({
     color: 0xffffff,
     transparent: true,
-    opacity: 0.5,
     side: THREE.DoubleSide,
     polygonOffset: true,
 });
@@ -383,14 +382,20 @@ class LayoutComponent extends UIComponent {
                     if(child instanceof LayoutComponent)
                         sum += child[marginedParam];
                 }
-                this[computedParam] = sum;
+                let padding = (dimensionName == 'height')
+                    ? this.paddingVertical
+                    : this.paddingHorizontal;
+                this[computedParam] = sum + padding;
             } else {
                 let max = 0;
                 for(let child of this._content.children) {
                     if(child instanceof LayoutComponent)
                         max = Math.max(max, child[marginedParam]);
                 }
-                this[computedParam] = max;
+                let padding = (dimensionName == 'height')
+                    ? this.paddingVertical
+                    : this.paddingHorizontal;
+                this[computedParam] = max + padding;
             }
         } else {
             let parentComponent = this.parentComponent;
