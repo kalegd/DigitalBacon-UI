@@ -101,6 +101,7 @@
         color: '#ffffff',
       });
       const select = new DigitalBaconUI.Select();
+      select.maxDisplayOptions = 5.5;
       select.addOptions('black', 'blue', 'green', 'orange', 'purple', 'red', 'white', 'yellow');
       select.onChange = (value) => text._text.color = value;
       body.position.set(0, 1.7, -1);

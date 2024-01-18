@@ -75,6 +75,14 @@ class LayoutComponent extends UIComponent {
         this.updateLayout();
     }
 
+    _handleStyleUpdateForMaxHeight() {
+        this.updateLayout();
+    }
+
+    _handleStyleUpdateForMaxWidth() {
+        this.updateLayout();
+    }
+
     _handleStyleUpdateForPadding() {
         this.updateLayout();
     }
@@ -369,10 +377,13 @@ class LayoutComponent extends UIComponent {
         }
     }
 
-    _computeDimension(dimensionName) {
-        let dimension = this[dimensionName];
-        let computedParam = 'computed' + capitalizeFirstLetter(dimensionName);
-        let marginedParam = 'margined' + capitalizeFirstLetter(dimensionName);
+    _computeDimension(dimensionName, isMax) {
+        let capitalizedDimensionName = capitalizeFirstLetter(dimensionName);
+        let computedParam = 'computed' + capitalizedDimensionName;
+        let marginedParam = 'margined' + capitalizedDimensionName;
+        let unpaddedParam = 'unpadded' + capitalizedDimensionName;
+        let maxParam = 'max' + capitalizedDimensionName;
+        let dimension = this[(isMax) ? maxParam : dimensionName];
         if(typeof dimension == 'number') {
             this[computedParam] = dimension;
         } else if(dimension == 'auto') {
@@ -401,8 +412,16 @@ class LayoutComponent extends UIComponent {
             let parentComponent = this.parentComponent;
             if(parentComponent instanceof LayoutComponent) {
                 let percent = Number(dimension.replace('%', '')) / 100;
-                this[computedParam] = parentComponent[computedParam] * percent;
+                this[computedParam] = parentComponent[unpaddedParam] * percent;
             }
+        }
+        if(isMax) {
+            return this[computedParam];
+        } else if(this[maxParam] != null) {
+            let currentComputedValue = this[computedParam];
+            this._computeDimension(dimensionName, true);
+            if(currentComputedValue < this[computedParam])
+                this[computedParam] = currentComputedValue;
         }
         this._computeUnpaddedAndMarginedDimensions(dimensionName,
             this[computedParam]);

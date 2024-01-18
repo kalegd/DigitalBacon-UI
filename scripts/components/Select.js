@@ -20,13 +20,14 @@ class Select extends ScrollableComponent {
         this._defaults['borderWidth'] = 0.002;
         this._defaults['height'] = 0.1;
         this._defaults['width'] = 0.4;
-        this._optionsDiv = new Div({
+        this._optionsDivStyle = new Style({
             backgroundVisible: this.backgroundVisible,
             borderMaterial: this.borderMaterial,
             borderWidth: this.borderWidth,
             overflow: 'scroll',
             width: '100%',
         });
+        this._optionsDiv = new Div(this._optionsDivStyle);
         this._optionsStyle = new Style({
             backgroundVisible: this.backgroundVisible,
             width: '90%'
@@ -102,9 +103,18 @@ class Select extends ScrollableComponent {
         }
     }
 
+    getMaxDisplayOptions() { return this._maxDisplayOptions; }
     get onChange() { return this._onChange; }
     get value() { return this._value; }
 
+    set maxDisplayOptions(maxDisplayOptions) {
+        this._maxDisplayOptions = maxDisplayOptions;
+        if(maxDisplayOptions == null) {
+            this._optionsDivStyle.maxHeight = null;
+        } else {
+            this._optionsDivStyle.maxHeight = this._maxDisplayOptions * 100+'%';
+        }
+    }
     set onChange(onChange) { this._onChange = onChange; }
     set value(value) {
         this._value = value;

@@ -67,6 +67,8 @@ class Style {
     get marginTop() { return this._genericGet('marginTop'); }
     get material() { return this._genericGet('material'); }
     get materialColor() { return this._genericGet('materialColor'); }
+    get maxHeight() { return this._genericGet('maxHeight'); }
+    get maxWidth() { return this._genericGet('maxWidth'); }
     get overflow() { return this._genericGet('overflow'); }
     get padding() { return this._genericGet('padding'); }
     get paddingBottom() { return this._genericGet('paddingBottom'); }
@@ -103,6 +105,8 @@ class Style {
     set marginTop(v) { this._genericSet('marginTop', v); }
     set material(v) { this._genericSet('material', v); }
     set materialColor(v) { this._genericSet('materialColor', v); }
+    set maxHeight(v) { this._genericSet('maxHeight', v); }
+    set maxWidth(v) { this._genericSet('maxWidth', v); }
     set overflow(v) { this._genericSet('overflow', v); }
     set padding(v) { this._genericSet('padding', v); }
     set paddingBottom(v) { this._genericSet('paddingBottom', v); }
@@ -136,6 +140,8 @@ class Style {
         'marginTop',
         'material',
         'materialColor',
+        'maxHeight',
+        'maxWidth',
         'padding',
         'paddingBottom',
         'paddingLeft',
