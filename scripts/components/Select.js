@@ -119,7 +119,6 @@ class Select extends ScrollableComponent {
     set value(value) {
         this._value = value;
         this._text.text = value;
-        if(this._onChange) this._onChange(this._value);
     }
 }
 

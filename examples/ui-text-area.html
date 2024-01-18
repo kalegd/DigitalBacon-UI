@@ -1,6 +1,6 @@
 <html>
   <head>
-    <title>Examples - UI Inputs</title>
+    <title>Examples - Text Area</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="theme-color" content="#ffebfd"/>
     <link rel="apple-touch-icon" sizes="180x180" href="/images/favicons/apple-touch-icon.png">
@@ -21,7 +21,7 @@
     </script>
   </head>
   <body>
-    <h1>UI Inputs</h1>
+    <h1>Text Area</h1>
     <div id="container"></div>
     <div id="vr-button"></div>
     <div id="ar-button"></div>
@@ -78,115 +78,35 @@
       DigitalBaconUI.InputHandler.enableXRControllerManagement(scene);
 
       const body = new DigitalBaconUI.Body({
+        backgroundVisible: true,
         glassmorphism: true,
-        justifyContent: 'spaceBetween',
+        justifyContent: 'start',
+        materialColor: '#dddddd',
         width: 1.5,
       });
       const row1 = new DigitalBaconUI.Span({
         borderTopLeftRadius: 0.05,
         borderTopRightRadius: 0.05,
-        height: 1/4,
+        padding: 0.1,
+        height: 0.4,
+        width: '100%',
+      });
+      const row2 = new DigitalBaconUI.Div({
+        height: '25%',
         width: '100%',
         justifyContent: 'center',
       });
-      const row2 = new DigitalBaconUI.Span({
-        height: 1/2,
-        width: '90%',
-        glassmorphism: true,
-        justifyContent: 'center',
-        backgroundVisible: true,
-        materialColor: '#aaaaaa',
-      });
-      const row3 = new DigitalBaconUI.Div({
-        borderBottomLeftRadius: 0.05,
-        borderBottomRightRadius: 0.05,
-        justifyContent: 'center',
-        height: 1/4,
-        width: '100%',
-      });
-      const section1 = new DigitalBaconUI.Div({
-        alignItems: 'start',
-        padding: 0.05,
-        height: '100%',
-        width: '50%',
-      });
-      const section2 = new DigitalBaconUI.Div({
-        padding: 0.05,
-        height: '100%',
-        width: '50%',
-      });
-      const text1 = new DigitalBaconUI.Text('UI Inputs', {
-        fontSize: 0.1,
-        color: '#ffffff',
-      });
-      const labelStyle = new DigitalBaconUI.Style({
-        color: '#ffffff',
+      const text = new DigitalBaconUI.Text('Text Area components enable user\nkeyboard input', {
         fontSize: 0.07,
-        marginLeft: 0.02,
-      });
-      const toggle1 = new DigitalBaconUI.Toggle();
-      const toggle1Span = new DigitalBaconUI.Span();
-      const toggle1Label = new DigitalBaconUI.Text('Toggle', labelStyle);
-      const toggle2 = new DigitalBaconUI.Toggle({ borderRadius: 0.04 });
-      const toggle2Span = new DigitalBaconUI.Span();
-      const toggle2Label = new DigitalBaconUI.Text('Toggle', labelStyle);
-      const checkbox1 = new DigitalBaconUI.Checkbox();
-      const checkbox1Span = new DigitalBaconUI.Span();
-      const checkbox1Label = new DigitalBaconUI.Text('Checkbox', labelStyle);
-      const checkbox2 = new DigitalBaconUI.Checkbox({ borderRadius: 0.04 });
-      const checkbox2Span = new DigitalBaconUI.Span();
-      const checkbox2Label = new DigitalBaconUI.Text('Checkbox', labelStyle);
-      const radio1 = new DigitalBaconUI.Radio('radioName');
-      const radio1Span = new DigitalBaconUI.Span();
-      const radio1Label = new DigitalBaconUI.Text('Radio', labelStyle);
-      const radio2 = new DigitalBaconUI.Radio('radioName');
-      const radio2Span = new DigitalBaconUI.Span();
-      const radio2Label = new DigitalBaconUI.Text('Radio', labelStyle);
-      const radio3 = new DigitalBaconUI.Radio('radioName');
-      const radio3Span = new DigitalBaconUI.Span();
-      const radio3Label = new DigitalBaconUI.Text('Radio', labelStyle);
-      const range = new DigitalBaconUI.Range({ width: 1 });
-      const rangeLabel = new DigitalBaconUI.Text('Range', {
         color: '#ffffff',
-        fontSize: 0.07,
       });
+      const textArea = new DigitalBaconUI.TextArea();
       body.position.set(0, 1.7, -1);
       scene.add(body);
       body.add(row1);
       body.add(row2);
-      body.add(row3);
-      row1.add(text1);
-      row2.add(section1);
-      row2.add(section2);
-      section1.add(toggle1Span);
-      section1.add(toggle2Span);
-      section1.add(checkbox1Span);
-      section1.add(checkbox2Span);
-      section2.add(radio1Span);
-      section2.add(radio2Span);
-      section2.add(radio3Span);
-      toggle1Span.add(toggle1);
-      toggle1Span.add(toggle1Label);
-      toggle2Span.add(toggle2);
-      toggle2Span.add(toggle2Label);
-      checkbox1Span.add(checkbox1);
-      checkbox1Span.add(checkbox1Label);
-      checkbox2Span.add(checkbox2);
-      checkbox2Span.add(checkbox2Label);
-      radio1Span.add(radio1);
-      radio1Span.add(radio1Label);
-      radio2Span.add(radio2);
-      radio2Span.add(radio2Label);
-      radio3Span.add(radio3);
-      radio3Span.add(radio3Label);
-      row3.add(rangeLabel);
-      row3.add(range);
-
-      range.onChange = (value) => {
-        row2.material.color.setHSL(0, 0, 1 - value);
-      };
-      range.value = 0.5;
-      row2.material.color.setHSL(0, 0, 0.5);
+      row1.add(text);
+      row2.add(textArea);
 
       renderer.setAnimationLoop((time, frame) => {
         stats.begin();

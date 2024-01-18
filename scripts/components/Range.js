@@ -107,7 +107,6 @@ class Range extends InteractableComponent {
     set value(value) {
         this._value = Math.max(0, Math.min(value, 1));
         this._updateScrubber();
-        if(this._onChange) this._onChange(this._value, false);
     }
 }
 
