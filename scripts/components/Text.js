@@ -22,6 +22,8 @@ class TextComponent extends LayoutComponent {
         this._text.textAlign = this.textAlign;
         this._text.anchorX = 'center';
         this._text.anchorY = 'middle';
+        this._text.overflowWrap = 'break-word';
+        if(this.maxWidth != null) this._text.maxWidth = this.maxWidth;
         this._text.sync(() => this.updateLayout());
         if(this.overflow != 'visible')
             this._text.material.clippingPlanes = this._getClippingPlanes();
@@ -30,6 +32,15 @@ class TextComponent extends LayoutComponent {
     _handleStyleUpdateForFontSize() {
         this._text.fontSize = this.fontSize;
         if(this.width == 'auto' || this.height == 'auto') this.updateLayout();
+    }
+
+    _handleStyleUpdateForMaxWidth() {
+        if(this.maxWidth != null) {
+            this._text.maxWidth = this.maxWidth;
+        } else {
+            this._text.maxWidth = null;
+        }
+        super._handleStyleUpdateForMaxWidth();
     }
 
     _computeDimension(dimensionName) {

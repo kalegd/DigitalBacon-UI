@@ -35,26 +35,27 @@ class TextArea extends ScrollableComponent {
         this._defaults['backgroundVisible'] = true;
         this._defaults['borderMaterial'].color.set(0x4f4f4f);
         this._defaults['borderWidth'] = 0.002;
-        this._defaults['contentDirection'] = 'row';
         this._defaults['justifyContent'] = 'start';
         this._defaults['fontSize'] = 0.06;
         this._defaults['overflow'] = 'scroll';
-        this._defaults['padding'] = '0.00';
+        this._defaults['paddingLeft'] = 0.01;
         this._defaults['height'] = 0.1;
         this._defaults['width'] = 0.4;
+        this._latestValue['overflow'] = null;
         this._value = '';
         this._textStyle = new Style({
             fontSize: this.fontSize,
             textAlign: 'left',
             maxWidth: 0,
         });
-        this._div = new Div();
         this._text = new Text('', this._textStyle);
         this._content.add(this._text);
         this.onClick = this.onTouch =
             (owner, closestPoint) => this._select(owner, closestPoint);
         this._keyListener = (event) => { this._handleKey(event.key); };
         this.updateLayout();
+        if(this.overflow != 'visible' && !this.clippingPlanes)
+            this._createClippingPlanes();
     }
 
     _handleStyleUpdateForFontSize() {
@@ -84,7 +85,6 @@ class TextArea extends ScrollableComponent {
         } else {
             this._caretActive = true;
             this._caretIndex = caret.charIndex;
-            document.addEventListener("keydown", this._keyListener);
         }
         text = text.slice(0, this._caretIndex) + '|'
             + text.slice(this._caretIndex);
@@ -92,6 +92,7 @@ class TextArea extends ScrollableComponent {
         if(!this._emptyClickId) {
             this._emptyClickId = PointerInteractableHandler
                 .addEmptyClickListener(() => this.blur());
+            document.addEventListener("keydown", this._keyListener);
         }
     }
 
@@ -107,10 +108,11 @@ class TextArea extends ScrollableComponent {
 
     _deleteChar() {
         let text = this._text.text;
-        text = text.slice(0, this._caretIndex - 1)
+        let newCaretIndex = Math.max(0, this._caretIndex - 1);
+        text = text.slice(0, newCaretIndex)
             + text.slice(this._caretIndex);
         this._text.text = text;
-        this._caretIndex--;
+        this._caretIndex = newCaretIndex;
         this._value = text.slice(0, this._caretIndex)
             + text.slice(this._caretIndex);
         if(this._onChange) this._onChange(this._value);
@@ -123,12 +125,12 @@ class TextArea extends ScrollableComponent {
                 + text.slice(this._caretIndex + 1);
             this._text.text = text;
             this._caretActive = false;
-            document.removeEventListener("keydown", this._keyListener);
         }
         if(this._emptyClickId) {
             PointerInteractableHandler.removeEmptyClickListener(
                 this._emptyClickId);
             this._emptyClickId = null;
+            document.removeEventListener("keydown", this._keyListener);
         }
         if(this._onBlur) this._onBlur(this._value);
     }
