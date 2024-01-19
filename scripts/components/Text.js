@@ -24,7 +24,8 @@ class TextComponent extends LayoutComponent {
         this._text.anchorY = 'middle';
         this._text.overflowWrap = 'break-word';
         if(this.maxWidth != null) this._text.maxWidth = this.maxWidth;
-        this._text.sync(() => this.updateLayout());
+        this._text.addEventListener('synccomplete', () => this.updateLayout());
+        this._text.sync();
         if(this.overflow != 'visible')
             this._text.material.clippingPlanes = this._getClippingPlanes();
     }
@@ -43,10 +44,13 @@ class TextComponent extends LayoutComponent {
         super._handleStyleUpdateForMaxWidth();
     }
 
-    _computeDimension(dimensionName) {
+    _computeDimension(dimensionName, overrideParam) {
         let dimension = this[dimensionName];
-        if(dimension != 'auto') return super._computeDimension(dimensionName);
-        let computedParam = 'computed' + capitalizeFirstLetter(dimensionName);
+        if(dimension != 'auto') return super._computeDimension(dimensionName,
+            overrideParam);
+        let capitalizedDimensionName = capitalizeFirstLetter(dimensionName);
+        let computedParam = 'computed' + capitalizedDimensionName;
+        let minParam = 'min' + capitalizedDimensionName;
         let textRenderInfo = this._text.textRenderInfo;
         if(textRenderInfo) {
             let bounds = textRenderInfo.blockBounds;
@@ -56,6 +60,9 @@ class TextComponent extends LayoutComponent {
         }
         this._computeUnpaddedAndMarginedDimensions(dimensionName,
             this[computedParam]);
+        if(this[computedParam] == 0 && this[minParam] != null) {
+            return super._computeDimension(dimensionName, minParam);
+        }
         return this[computedParam];
     }
 
@@ -68,7 +75,7 @@ class TextComponent extends LayoutComponent {
     get text() { return this._text.text; }
     set text(v) {
         this._text.text = v;
-        this._text.sync(() => this.updateLayout());
+        this._text.sync();
     }
 }
 

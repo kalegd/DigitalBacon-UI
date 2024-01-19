@@ -83,6 +83,14 @@ class LayoutComponent extends UIComponent {
         this.updateLayout();
     }
 
+    _handleStyleUpdateForMinHeight() {
+        this.updateLayout();
+    }
+
+    _handleStyleUpdateForMinWidth() {
+        this.updateLayout();
+    }
+
     _handleStyleUpdateForPadding() {
         this.updateLayout();
     }
@@ -377,13 +385,14 @@ class LayoutComponent extends UIComponent {
         }
     }
 
-    _computeDimension(dimensionName, isMax) {
+    _computeDimension(dimensionName, overrideParam) {
         let capitalizedDimensionName = capitalizeFirstLetter(dimensionName);
         let computedParam = 'computed' + capitalizedDimensionName;
         let marginedParam = 'margined' + capitalizedDimensionName;
         let unpaddedParam = 'unpadded' + capitalizedDimensionName;
         let maxParam = 'max' + capitalizedDimensionName;
-        let dimension = this[(isMax) ? maxParam : dimensionName];
+        let minParam = 'min' + capitalizedDimensionName;
+        let dimension = this[(overrideParam) ? overrideParam : dimensionName];
         if(typeof dimension == 'number') {
             this[computedParam] = dimension;
         } else if(dimension == 'auto') {
@@ -415,13 +424,25 @@ class LayoutComponent extends UIComponent {
                 this[computedParam] = parentComponent[unpaddedParam] * percent;
             }
         }
-        if(isMax) {
+        if(overrideParam) {
             return this[computedParam];
-        } else if(this[maxParam] != null) {
-            let currentComputedValue = this[computedParam];
-            this._computeDimension(dimensionName, true);
-            if(currentComputedValue < this[computedParam])
-                this[computedParam] = currentComputedValue;
+        } else {
+            let skipMin = false;
+            if(this[maxParam] != null) {
+                let currentComputedValue = this[computedParam];
+                this._computeDimension(dimensionName, maxParam);
+                if(currentComputedValue < this[computedParam]) {
+                    this[computedParam] = currentComputedValue;
+                } else {
+                    skipMin = true;
+                }
+            }
+            if(this[minParam] != null && !skipMin) {
+                let currentComputedValue = this[computedParam];
+                this._computeDimension(dimensionName, minParam);
+                if(currentComputedValue > this[computedParam])
+                    this[computedParam] = currentComputedValue;
+            }
         }
         this._computeUnpaddedAndMarginedDimensions(dimensionName,
             this[computedParam]);
