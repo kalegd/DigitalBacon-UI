@@ -54,8 +54,9 @@ class TextArea extends ScrollableComponent {
         this._content.add(this._text);
         this.onClick = this.onTouch =
             (owner, closestPoint) => this._select(owner, closestPoint);
-        this._keyListener = (event) => { this._handleKey(event.key); };
-        this._pasteListener = (event) => { this._handlePaste(event); };
+        this._keyListener = (event) => this._handleKey(event.key);
+        this._pasteListener = (event) => this._handlePaste(event);
+        this._syncCompleteListener = () => this._checkForCaretScroll(true);
         this.updateLayout();
         if(this.overflow != 'visible' && !this.clippingPlanes)
             this._createClippingPlanes();
@@ -84,6 +85,8 @@ class TextArea extends ScrollableComponent {
                 .addEmptyClickListener(() => this.blur());
             document.addEventListener("keydown", this._keyListener);
             document.addEventListener("paste", this._pasteListener);
+            this._text._text.addEventListener('synccomplete',
+                this._syncCompleteListener);
         }
     }
 
@@ -151,6 +154,7 @@ class TextArea extends ScrollableComponent {
                 y + (sign * height));
             this._placeCaret(caret.charIndex);
         }
+        this._checkForCaretScroll();
     }
 
     _setCaret() {
@@ -171,6 +175,39 @@ class TextArea extends ScrollableComponent {
         if(this._onChange) this._onChange(this._value);
     }
 
+    _checkForCaretScroll(isSync) {
+        if(isSync && !this._needsScrollUpdate) return;
+        this._content.updateMatrix();
+        let index = this._caretIndex * 4;
+        let troikaText = this._text._text;
+        let caretPositions = troikaText.textRenderInfo.caretPositions;
+        let y1 = caretPositions[index + 2];
+        let y2 = caretPositions[index + 3];
+        let differences = [];
+        for(let y of [y1, y2]) {
+            VEC3.set(0, y, 0);
+            VEC3.applyMatrix4(this._text._text.matrix)
+                .applyMatrix4(this._text.matrix)
+                .applyMatrix4(this._content.matrix);
+            //this._text.localToWorld(VEC3);
+            //this.worldToLocal(VEC3);
+            //TODO: See if we can just apply this._content.matrix to the VEC3
+            let bounds = this.computedHeight / 2;
+            if(VEC3.y > bounds) {
+                differences.push(bounds - VEC3.y);
+            } else if(VEC3.y < this.computedHeight / -2) {
+                differences.push(-bounds - VEC3.y);
+            }
+        }
+        if(differences.length == 0) return;
+        this._needsScrollUpdate = true;
+        let biggestDiff = 0;
+        for(let difference of differences) {
+            if(Math.abs(difference) > biggestDiff) biggestDiff = difference;
+        }
+        this._content.position.y += biggestDiff;
+    }
+
     blur() {
         if(this._caretActive) {
             let text = this._text.text;
@@ -185,6 +222,8 @@ class TextArea extends ScrollableComponent {
             this._emptyClickId = null;
             document.removeEventListener("keydown", this._keyListener);
             document.removeEventListener("paste", this._pasteListener);
+            this._text._text.removeEventListener('synccomplete',
+                this._syncCompleteListener);
         }
         if(this._onBlur) this._onBlur(this._value);
     }
