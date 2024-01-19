@@ -13,12 +13,13 @@ import { getCaretAtPoint } from '/node_modules/troika-three-text/dist/troika-thr
 import * as THREE from 'three';
 
 const VEC3 = new THREE.Vector3();
+const ARROW_KEYS = new Set();
 const IGNORED_KEYS = new Set();
+ARROW_KEYS.add('ArrowLeft');
+ARROW_KEYS.add('ArrowRight');
+ARROW_KEYS.add('ArrowUp');
+ARROW_KEYS.add('ArrowDown');
 IGNORED_KEYS.add('Alt');
-IGNORED_KEYS.add('ArrowLeft');
-IGNORED_KEYS.add('ArrowRight');
-IGNORED_KEYS.add('ArrowUp');
-IGNORED_KEYS.add('ArrowDown');
 IGNORED_KEYS.add('Backspace');
 IGNORED_KEYS.add('CapsLock');
 IGNORED_KEYS.add('Control');
@@ -75,20 +76,7 @@ class TextArea extends ScrollableComponent {
         let troikaText = this._text._text;
         troikaText.worldToLocal(VEC3.copy(closestPoint));
         let caret = getCaretAtPoint(troikaText.textRenderInfo, VEC3.x, VEC3.y);
-        let text = this._text.text;
-        if(this._caretActive) {
-            text = text.slice(0, this._caretIndex)
-                + text.slice(this._caretIndex + 1);
-            this._caretIndex = (this._caretIndex < caret.charIndex)
-                ? caret.charIndex - 1
-                : caret.charIndex;
-        } else {
-            this._caretActive = true;
-            this._caretIndex = caret.charIndex;
-        }
-        text = text.slice(0, this._caretIndex) + '|'
-            + text.slice(this._caretIndex);
-        this._text.text = text;
+        this._placeCaret(caret.charIndex);
         if(!this._emptyClickId) {
             this._emptyClickId = PointerInteractableHandler
                 .addEmptyClickListener(() => this.blur());
@@ -96,14 +84,65 @@ class TextArea extends ScrollableComponent {
         }
     }
 
+    _placeCaret(charIndex) {
+        let text = this._text.text;
+        if(this._caretActive) {
+            text = text.slice(0, this._caretIndex)
+                + text.slice(this._caretIndex + 1);
+            this._caretIndex = (this._caretIndex < charIndex)
+                ? charIndex - 1
+                : charIndex;
+        } else {
+            this._caretActive = true;
+            this._caretIndex = charIndex;
+        }
+        text = text.slice(0, this._caretIndex) + '|'
+            + text.slice(this._caretIndex);
+        this._text.text = text;
+    }
+
     _handleKey(key) {
         if(key == "Backspace") {
             this._deleteChar();
         } else if(key == "Enter") {
             (this._submitOnEnter) ? this.blur() : this.insertContent('\n');
+        } else if(ARROW_KEYS.has(key)) {
+            this._moveCaret(key);
         } else if(!IGNORED_KEYS.has(key)) {
             this.insertContent(key);
         }
+    }
+    
+    _moveCaret(key) {
+        if(key == 'ArrowLeft') {
+            if(this._caretIndex > 0) {
+                this._caretIndex--;
+                this._setCaret();
+            }
+        } else if(key == 'ArrowRight') {
+            if(this._caretIndex < this._text.text.length - 1) {
+                this._caretIndex++;
+                this._setCaret();
+            }
+        } else {
+            let sign = (key == 'ArrowUp') ? 1 : -1;
+            let index = this._caretIndex * 4;
+            let troikaText = this._text._text;
+            let caretPositions = troikaText.textRenderInfo.caretPositions;
+            let x = caretPositions[index];
+            let y = (caretPositions[index + 2] + caretPositions[index + 3]) / 2;
+            let height = Math.abs(caretPositions[index + 2]
+                - caretPositions[index + 3]);
+            let caret = getCaretAtPoint(troikaText.textRenderInfo, x,
+                y + (sign * height));
+            this._placeCaret(caret.charIndex);
+        }
+    }
+
+    _setCaret() {
+        let text = this._value;
+        this._text.text = this._value.slice(0, this._caretIndex) + '|'
+            + this._value.slice(this._caretIndex);
     }
 
     _deleteChar() {
@@ -112,9 +151,9 @@ class TextArea extends ScrollableComponent {
         text = text.slice(0, newCaretIndex)
             + text.slice(this._caretIndex);
         this._text.text = text;
+        this._value = this._value.slice(0, newCaretIndex)
+            + this._value.slice(this._caretIndex);
         this._caretIndex = newCaretIndex;
-        this._value = text.slice(0, this._caretIndex)
-            + text.slice(this._caretIndex);
         if(this._onChange) this._onChange(this._value);
     }
 
@@ -140,9 +179,9 @@ class TextArea extends ScrollableComponent {
         text = text.slice(0, this._caretIndex) + content
             + text.slice(this._caretIndex);
         this._text.text = text;
+        this._value = this._value.slice(0, this._caretIndex) + content
+            + this._value.slice(this._caretIndex);
         this._caretIndex++;
-        this._value = text.slice(0, this._caretIndex)
-            + text.slice(this._caretIndex);
         if(this._onChange) this._onChange(this._value);
     }
 
