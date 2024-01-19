@@ -8,6 +8,7 @@ import Div from '/scripts/components/Div.js';
 import ScrollableComponent from '/scripts/components/ScrollableComponent.js';
 import Style from '/scripts/components/Style.js';
 import Text from '/scripts/components/Text.js';
+import InputHandler from '/scripts/handlers/InputHandler.js';
 import PointerInteractableHandler from '/scripts/handlers/PointerInteractableHandler.js';
 import { getCaretAtPoint } from '/node_modules/troika-three-text/dist/troika-three-text.esm.js';
 import * as THREE from 'three';
@@ -54,6 +55,7 @@ class TextArea extends ScrollableComponent {
         this.onClick = this.onTouch =
             (owner, closestPoint) => this._select(owner, closestPoint);
         this._keyListener = (event) => { this._handleKey(event.key); };
+        this._pasteListener = (event) => { this._handlePaste(event); };
         this.updateLayout();
         if(this.overflow != 'visible' && !this.clippingPlanes)
             this._createClippingPlanes();
@@ -81,6 +83,7 @@ class TextArea extends ScrollableComponent {
             this._emptyClickId = PointerInteractableHandler
                 .addEmptyClickListener(() => this.blur());
             document.addEventListener("keydown", this._keyListener);
+            document.addEventListener("paste", this._pasteListener);
         }
     }
 
@@ -102,7 +105,11 @@ class TextArea extends ScrollableComponent {
     }
 
     _handleKey(key) {
-        if(key == "Backspace") {
+        if(InputHandler.isKeyPressed("Control")) {
+            return;
+        } else if(InputHandler.isKeyPressed("Meta")) {
+            return;
+        } else if(key == "Backspace") {
             this._deleteChar();
         } else if(key == "Enter") {
             (this._submitOnEnter) ? this.blur() : this.insertContent('\n');
@@ -111,6 +118,13 @@ class TextArea extends ScrollableComponent {
         } else if(!IGNORED_KEYS.has(key)) {
             this.insertContent(key);
         }
+    }
+
+    _handlePaste(e) {
+        if(e.clipboardData.types.indexOf('text/plain') < 0) return;
+        let data = e.clipboardData.getData('text/plain');
+        this.insertContent(data);
+        e.preventDefault();
     }
     
     _moveCaret(key) {
@@ -170,6 +184,7 @@ class TextArea extends ScrollableComponent {
                 this._emptyClickId);
             this._emptyClickId = null;
             document.removeEventListener("keydown", this._keyListener);
+            document.removeEventListener("paste", this._pasteListener);
         }
         if(this._onBlur) this._onBlur(this._value);
     }
@@ -181,7 +196,7 @@ class TextArea extends ScrollableComponent {
         this._text.text = text;
         this._value = this._value.slice(0, this._caretIndex) + content
             + this._value.slice(this._caretIndex);
-        this._caretIndex++;
+        this._caretIndex += content.length;
         if(this._onChange) this._onChange(this._value);
     }
 
