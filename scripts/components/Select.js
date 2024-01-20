@@ -37,13 +37,16 @@ class Select extends ScrollableComponent {
         this._value;
         this._options = [];
         this._textSpan = new Span({
+            alignItems: 'start',
             justifyContent: 'spaceBetween',
             height: '100%',
+            overflow: 'hidden',
             width: '90%',
         });
-        this._text = new Text(' ', this._optionsTextStyle);
+        this._text = new Text(' ', this._optionsTextStyle, { maxWidth: '85%' });
+        this._text._text.lineHeight = 1 / 0.55;
         this._caret = new Text('⌄');
-        this._caret._text.anchorY = '65%';
+        this._caret._text.anchorY = '85%';
         this._content.add(this._textSpan);
         this._textSpan.add(this._text);
         this._textSpan.add(this._caret);
@@ -53,10 +56,12 @@ class Select extends ScrollableComponent {
 
     updateLayout() {
         super.updateLayout();
-        if(this._optionsStyle.height != this.computedHeight)
-            this._optionsStyle.height = this.computedHeight;
-        if(this._optionsTextStyle.fontSize != this.computedHeight * 0.6)
-            this._optionsTextStyle.fontSize = this.computedHeight * 0.6;
+        if(this._optionsStyle.minHeight != this.computedHeight)
+            this._optionsStyle.minHeight = this.computedHeight;
+        if(this._optionsTextStyle.fontSize != this.unpaddedHeight * 0.55) {
+            this._optionsTextStyle.fontSize = this.unpaddedHeight * 0.55;
+            this._caret.fontSize = this.unpaddedHeight * 0.8;
+        }
     }
 
     _select() {

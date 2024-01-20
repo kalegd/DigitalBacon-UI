@@ -23,7 +23,7 @@ class TextComponent extends LayoutComponent {
         this._text.anchorX = 'center';
         this._text.anchorY = 'middle';
         this._text.overflowWrap = 'break-word';
-        if(this.maxWidth != null) this._text.maxWidth = this.maxWidth;
+        if(typeof this.maxWidth == Number) this._text.maxWidth = this.maxWidth;
         this._text.addEventListener('synccomplete', () => this.updateLayout());
         this._text.sync();
         if(this.overflow != 'visible')
@@ -45,11 +45,12 @@ class TextComponent extends LayoutComponent {
     }
 
     _computeDimension(dimensionName, overrideParam) {
-        let dimension = this[dimensionName];
+        let dimension = this[(overrideParam) ? overrideParam : dimensionName];
         if(dimension != 'auto') return super._computeDimension(dimensionName,
             overrideParam);
         let capitalizedDimensionName = capitalizeFirstLetter(dimensionName);
         let computedParam = 'computed' + capitalizedDimensionName;
+        let maxParam = 'max' + capitalizedDimensionName;
         let minParam = 'min' + capitalizedDimensionName;
         let textRenderInfo = this._text.textRenderInfo;
         if(textRenderInfo) {
@@ -58,11 +59,19 @@ class TextComponent extends LayoutComponent {
                 ? Math.abs(bounds[0] - bounds[2])
                 : Math.abs(bounds[1] - bounds[3]);
         }
+        if(overrideParam) {
+            return this[computedParam];
+        } else if(this[computedParam] == 0 && this[minParam] != null) {
+            this._computeDimension(dimensionName, minParam);
+        } else if(dimensionName == 'width' && this[maxParam]) {
+            let currentComputedValue = this[computedParam];
+            this._computeDimension(dimensionName, maxParam);
+            this._text.maxWidth = this[computedParam];
+            if(currentComputedValue < this[computedParam])
+                this[computedParam] = currentComputedValue;
+        }
         this._computeUnpaddedAndMarginedDimensions(dimensionName,
             this[computedParam]);
-        if(this[computedParam] == 0 && this[minParam] != null) {
-            return super._computeDimension(dimensionName, minParam);
-        }
         return this[computedParam];
     }
 

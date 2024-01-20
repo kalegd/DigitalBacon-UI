@@ -345,13 +345,6 @@ class LayoutComponent extends UIComponent {
                 }
             }
         }
-        if(oldWidth != width || oldHeight != height || oldMarginedHeight != this.marginedHeight || oldMarginedWidth != this.marginedWidth) {
-            this._createBackground();
-            if(this.clippingPlanes) this._updateClippingPlanes();
-            if(this.parentComponent instanceof LayoutComponent)
-                this.parent.parent.updateLayout();
-            this._updateChildrensLayout(oldWidth != width, oldHeight != height);
-        }
         if(oldWidth != width || oldHeight != height) {
             this._createBackground();
             if(this.clippingPlanes) this._updateClippingPlanes();
