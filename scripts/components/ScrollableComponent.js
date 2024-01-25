@@ -36,17 +36,25 @@ class ScrollableComponent extends InteractableComponent {
         this.scrollable = this._verticallyScrollable
             || this._horizontallyScrollable;
         let justifyContent = this.justifyContent;
-        let dimension, contentDimension, vec2Param, scrollBounds1,scrollBounds2;
+        let alignItems = this.alignItems;
+        let dimension, otherDimension, contentDimension, otherContentDimension,
+            vec2Param, otherVec2Param, scrollBounds1, scrollBounds2;
         if(this.contentDirection == 'row') {
             dimension = -this.unpaddedWidth;
+            otherDimension = this.unpaddedHeight;
             contentDimension = -contentWidth;
+            otherContentDimension = contentHeight;
             vec2Param = 'x';
+            otherVec2Param = 'y';
             scrollBounds1 = this._scrollBoundsMin;
             scrollBounds2 = this._scrollBoundsMax;
         } else {
             dimension = this.unpaddedHeight;
+            otherDimension = -this.unpaddedWidth;
             contentDimension = contentHeight;
+            otherContentDimension = -contentWidth;
             vec2Param = 'y';
+            otherVec2Param = 'x';
             scrollBounds1 = this._scrollBoundsMax;
             scrollBounds2 = this._scrollBoundsMin;
         }
@@ -66,6 +74,19 @@ class ScrollableComponent extends InteractableComponent {
             scrollBounds2[vec2Param] = scrollBounds1[vec2Param] * -1;
         } else {
             scrollBounds1[vec2Param] = scrollBounds2[vec2Param] = 0;
+        }
+        if(alignItems == 'start') {
+            scrollBounds2[otherVec2Param] = otherContentDimension
+                - otherDimension;
+            scrollBounds1[otherVec2Param] = 0;
+        } else if(alignItems == 'end') {
+            scrollBounds2[otherVec2Param] = 0;
+            scrollBounds1[otherVec2Param] = -otherContentDimension
+                + otherDimension;
+        } else {
+            scrollBounds2[otherVec2Param] = (otherContentDimension
+                - otherDimension) / 2;
+            scrollBounds1[otherVec2Param] = scrollBounds2[otherVec2Param] * -1;
         }
     }
 
