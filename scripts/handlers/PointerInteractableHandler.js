@@ -4,6 +4,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
+import DeviceTypes from '/scripts/enums/DeviceTypes.js';
 import Handedness from '/scripts/enums/Handedness.js';
 import XRInputDeviceTypes from '/scripts/enums/XRInputDeviceTypes.js';
 import InputHandler from '/scripts/handlers/InputHandler.js';
@@ -22,14 +23,14 @@ class PointerInteractableHandler extends InteractableHandler {
         this._wasPressed = new Map();
     }
 
-    init(deviceType, renderer, scene, camera, orbitTarget) {
-        super.init(deviceType);
-        this._deviceType = deviceType;
+    init(renderer, scene, camera, orbitTarget) {
+        super.init();
         this._renderer = renderer;
         this._scene = scene;
         this._camera = camera;
         this._cameraFocus = orbitTarget || camera;
-        if(deviceType != 'XR') this._option = { type: deviceType };
+        if(DeviceTypes.active != 'XR')
+            this._option = { type: DeviceTypes.active };
     }
 
     addEmptyClickListener(callback) {
@@ -146,7 +147,7 @@ class PointerInteractableHandler extends InteractableHandler {
             }
             let distance = intersection.distance;
             let userDistance = distance;
-            if(this._deviceType != 'XR') {
+            if(DeviceTypes.active != 'XR') {
                 this._cameraFocus.getWorldPosition(vector3);
                 userDistance = intersection.point
                     .distanceTo(vector3);

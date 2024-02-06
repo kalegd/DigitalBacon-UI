@@ -19,6 +19,7 @@ class UIComponent extends THREE.Object3D {
         this._defaults = {};
         this._listeners = new Map();
         for(let style of styles) {
+            if(!style) continue;
             if(!(style instanceof Style)) style = new Style(style);
             this._styles.push(style);
             this._addStyleListenerFor(style);

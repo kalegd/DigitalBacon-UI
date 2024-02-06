@@ -4,6 +4,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
+import DeviceTypes from '/scripts/enums/DeviceTypes.js';
 import Handedness from '/scripts/enums/Handedness.js';
 import XRInputDeviceTypes from '/scripts/enums/XRInputDeviceTypes.js';
 import { updateBVHForComplexObject } from '/scripts/utils.js';
@@ -17,7 +18,7 @@ const handModelFactory = new XRHandModelFactory();
 
 //Provides Polling for XR Input Sources, Keyboard, or Touch Screen inputs
 class InputHandler {
-    init(container, renderer, deviceType) {
+    init(container, renderer) {
         this._container = container;
         this._renderer = renderer;
         this._renderer.domElement.tabIndex = "1";
@@ -34,11 +35,11 @@ class InputHandler {
         this._joystickDistance = 0;
         this._container.style.position = 'relative';
         this._createExtraControls();
-        this._addEventListeners(deviceType);
+        this._addEventListeners();
     }
 
-    _addEventListeners(deviceType) {
-        if(deviceType == "XR") {
+    _addEventListeners() {
+        if(DeviceTypes.active == "XR") {
             //XR Event Listeners
             this._renderer.xr.addEventListener("sessionstart", () => {
                 this._onXRSessionStart();
@@ -46,7 +47,7 @@ class InputHandler {
             this._renderer.xr.addEventListener("sessionend", () => {
                 this._onXRSessionEnd();
             });
-        } else if (deviceType == "POINTER") {
+        } else if(DeviceTypes.active == "POINTER") {
             //POINTER Event Listeners
             this._renderer.domElement.addEventListener('keydown', (event) => {
                 this._keysPressed.add(event.key);
@@ -76,7 +77,7 @@ class InputHandler {
             this._container.addEventListener('mouseup', () => {
                 this._renderer.domElement.focus();
             });
-        } else if(deviceType == "TOUCH_SCREEN") {
+        } else if(DeviceTypes.active == "TOUCH_SCREEN") {
             //TOUCH_SCREEN Event Listeners
             this._renderer.domElement.addEventListener('touchstart', () => {
                 this._screenTouched = true;

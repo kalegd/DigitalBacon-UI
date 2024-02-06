@@ -5,9 +5,11 @@
  */
 
 import Div from '/scripts/components/Div.js';
+import Keyboard from '/scripts/components/Keyboard.js';
 import ScrollableComponent from '/scripts/components/ScrollableComponent.js';
 import Style from '/scripts/components/Style.js';
 import Text from '/scripts/components/Text.js';
+import DeviceTypes from '/scripts/enums/DeviceTypes.js';
 import InputHandler from '/scripts/handlers/InputHandler.js';
 import PointerInteractableHandler from '/scripts/handlers/PointerInteractableHandler.js';
 import { getCaretAtPoint, Text as TroikaText } from '/node_modules/troika-three-text/dist/troika-three-text.esm.js';
@@ -56,7 +58,7 @@ class TextArea extends ScrollableComponent {
         this._createCaret();
         this.onClick = this.onTouch =
             (owner, closestPoint) => this._select(owner, closestPoint);
-        this._keyListener = (event) => this._handleKey(event.key);
+        this._keyListener = (event) => this.handleKey(event.key);
         this._pasteListener = (event) => this._handlePaste(event);
         this._syncCompleteListener = () => {
             this._updateCaret();
@@ -101,15 +103,41 @@ class TextArea extends ScrollableComponent {
         let caret = getCaretAtPoint(troikaText.textRenderInfo, VEC3.x, VEC3.y);
         this._caretIndex = caret.charIndex || 0;
         this._updateCaret();
-        if(!this._emptyClickId) {
-            this._emptyClickId = PointerInteractableHandler
-                .addEmptyClickListener(() => this.blur());
+        if(!this._emptyClickId) this._addListeners();
+    }
+
+    _addListeners() {
+        this._emptyClickId = PointerInteractableHandler
+            .addEmptyClickListener(() => this.blur());
+        if(DeviceTypes.active == 'POINTER') {
+            Keyboard.register(this);
+        } else if(DeviceTypes.active == 'TOUCH_SCREEN') {
+
+        } else {
             document.addEventListener("keydown", this._keyListener);
             document.addEventListener("paste", this._pasteListener);
-            this._text._text.addEventListener('synccomplete',
-                this._syncCompleteListener);
-            if(this._onFocus) this._onFocus();
         }
+        this._text._text.addEventListener('synccomplete',
+            this._syncCompleteListener);
+        if(this._onFocus) this._onFocus();
+    }
+
+    _removeListeners() {
+        PointerInteractableHandler.removeEmptyClickListener(
+            this._emptyClickId);
+        this._emptyClickId = null;
+        if(DeviceTypes.active == 'POINTER') {
+            Keyboard.unregister(this);
+        } else if(DeviceTypes.active == 'TOUCH_SCREEN') {
+
+        } else {
+            document.removeEventListener("keydown", this._keyListener);
+            document.removeEventListener("paste", this._pasteListener);
+        }
+        this._text._text.removeEventListener('synccomplete',
+            this._syncCompleteListener);
+        this._text._content.remove(this._caretParent);
+        if(this._onBlur) this._onBlur(this._value);
     }
 
     _updateCaret() {
@@ -131,7 +159,7 @@ class TextArea extends ScrollableComponent {
         if(!isNaN(y)) this._caretParent.position.set(x, y, 0);
     }
 
-    _handleKey(key) {
+    handleKey(key) {
         if(InputHandler.isKeyPressed("Control")) {
             return;
         } else if(InputHandler.isKeyPressed("Meta")) {
@@ -219,17 +247,7 @@ class TextArea extends ScrollableComponent {
     }
 
     blur() {
-        if(this._emptyClickId) {
-            PointerInteractableHandler.removeEmptyClickListener(
-                this._emptyClickId);
-            this._emptyClickId = null;
-            document.removeEventListener("keydown", this._keyListener);
-            document.removeEventListener("paste", this._pasteListener);
-            this._text._text.removeEventListener('synccomplete',
-                this._syncCompleteListener);
-            this._text._content.remove(this._caretParent);
-            if(this._onBlur) this._onBlur(this._value);
-        }
+        if(this._emptyClickId) this._removeListeners();
     }
 
     insertContent(content) {

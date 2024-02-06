@@ -4,6 +4,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
+import DeviceTypes from '/scripts/enums/DeviceTypes.js';
 import InteractionTool from '/scripts/handlers/InteractionTool.js';
 
 export default class InteractableHandler {
@@ -36,13 +37,13 @@ export default class InteractableHandler {
         });
     }
 
-    init(deviceType) {
-        if(deviceType == "XR") {
+    init() {
+        if(DeviceTypes.active == "XR") {
             this.update = this._updateForXR;
             this._setupXRSubscription();
-        } else if(deviceType == "POINTER") {
+        } else if(DeviceTypes.active == "POINTER") {
             this.update = this._updateForPointer;
-        } else if(deviceType == "TOUCH_SCREEN") {
+        } else if(DeviceTypes.active == "TOUCH_SCREEN") {
             this.update = this._updateForTouchScreen;
         }
     }

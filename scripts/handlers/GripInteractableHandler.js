@@ -16,8 +16,8 @@ class GripInteractableHandler extends InteractableHandler {
         super();
     }
 
-    init(deviceType, scene) {
-        super.init(deviceType);
+    init(scene) {
+        super.init();
         this._scene = scene;
         this._sphere = new THREE.Sphere();
         this._box3 = new THREE.Box3();

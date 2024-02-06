@@ -1,3 +1,7 @@
+#body {
+    overflow: hidden;
+}
+
 #container {
     height: calc(100vh - 76px);
 }

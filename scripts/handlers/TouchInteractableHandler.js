@@ -22,8 +22,8 @@ class TouchInteractableHandler extends InteractableHandler {
         this._box3 = new THREE.Box3();
     }
 
-    init(deviceType, scene) {
-        super.init(deviceType);
+    init(scene) {
+        super.init();
         this._scene = scene;
     }
 

@@ -515,7 +515,9 @@ class LayoutComponent extends UIComponent {
             for(let argument of arguments) {
                 this.add(argument);
             }
-        } else if(object instanceof UIComponent) {
+        } else if(object instanceof UIComponent
+                && !(object.constructor.name == 'Body')
+                && !(object.constructor.name == 'Keyboard')) {
             this._content.add(object);
             object.updateLayout();
             object._updateMaterialOffset(this._materialOffset);
@@ -532,7 +534,8 @@ class LayoutComponent extends UIComponent {
                 this.add(argument);
             }
         } else if(object instanceof UIComponent
-                && !(object.constructor.name == 'Body')) {
+                && !(object.constructor.name == 'Body')
+                && !(object.constructor.name == 'Keyboard')) {
             this._content.remove(object);
         } else {
             super.remove(object);

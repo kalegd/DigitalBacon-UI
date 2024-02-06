@@ -9,6 +9,7 @@ import Checkbox from '/scripts/components/Checkbox.js';
 import Div from '/scripts/components/Div.js';
 import HSLColor from '/scripts/components/HSLColor.js';
 import Image from '/scripts/components/Image.js';
+import Keyboard from '/scripts/components/Keyboard.js';
 import Radio from '/scripts/components/Radio.js';
 import Range from '/scripts/components/Range.js';
 import Select from '/scripts/components/Select.js';
@@ -17,6 +18,7 @@ import Style from '/scripts/components/Style.js';
 import Text from '/scripts/components/Text.js';
 import TextArea from '/scripts/components/TextArea.js';
 import Toggle from '/scripts/components/Toggle.js';
+import DeviceTypes from '/scripts/enums/DeviceTypes.js';
 import GripInteractable from '/scripts/interactables/GripInteractable.js';
 import PointerInteractable from '/scripts/interactables/PointerInteractable.js';
 import TouchInteractable from '/scripts/interactables/TouchInteractable.js';
@@ -37,7 +39,6 @@ THREE.BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
 THREE.Mesh.prototype.raycast = acceleratedRaycast;
 
 const version = '0.0.1';
-var deviceType;
 
 const addGripInteractable = (interactable) => {
     GripInteractableHandler.addInteractable(interactable);
@@ -76,8 +77,7 @@ function isTouchDevice() {
         (navigator.msMaxTouchPoints > 0));
 }
 
-const init = async (container, renderer, scene, camera, _deviceType, orbitTarget) => {
-    deviceType = _deviceType;
+const init = async (container, renderer, scene, camera, deviceType, orbitTarget) => {
     if(!deviceType) {
         if(await isXR()) {
             deviceType = 'XR';
@@ -87,16 +87,16 @@ const init = async (container, renderer, scene, camera, _deviceType, orbitTarget
             deviceType = 'POINTER';
         }
     }
+    DeviceTypes.active = deviceType;
     renderer.localClippingEnabled = true;
-    InputHandler.init(container, renderer, deviceType);
-    PointerInteractableHandler.init(deviceType, renderer, scene, camera,
-        orbitTarget);
-    GripInteractableHandler.init(deviceType, scene);
-    TouchInteractableHandler.init(deviceType, scene);
+    InputHandler.init(container, renderer);
+    PointerInteractableHandler.init(renderer, scene, camera, orbitTarget);
+    GripInteractableHandler.init(scene);
+    TouchInteractableHandler.init(scene);
 };
 
 const update = (frame) => {
-    if(deviceType == 'XR') {
+    if(DeviceTypes.active == 'XR') {
         InputHandler.update(frame);
         GripInteractableHandler.update();
         TouchInteractableHandler.update();
@@ -110,6 +110,7 @@ export { Checkbox };
 export { Div };
 export { HSLColor };
 export { Image };
+export { Keyboard };
 export { Radio };
 export { Range };
 export { Select };

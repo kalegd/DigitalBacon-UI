@@ -9,7 +9,7 @@ import ScrollableComponent from '/scripts/components/ScrollableComponent.js';
 class Div extends ScrollableComponent {
     constructor(...styles) {
         super(...styles);
-        this._defaults['width'] = '100%';
+        //this._defaults['width'] = '100%';
         this.updateLayout();
     }
 }
