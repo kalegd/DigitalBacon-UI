@@ -18,7 +18,7 @@ class Image extends InteractableComponent {
         this._imageHeight = 0;
         this._imageWidth = 0;
         this.updateLayout();
-        this._createTexture(url);
+        this.updateTexture(url);
     }
 
     _handleStyleUpdateForTextureFit() {
@@ -90,19 +90,27 @@ class Image extends InteractableComponent {
         }
     }
 
-    _createTexture(url) {
-        new THREE.TextureLoader().load(url, (texture) => {
-            texture.colorSpace = THREE.SRGBColorSpace;
-            this._texture = texture;
-            this._imageWidth = texture.image.width;
-            this._imageHeight = texture.image.height;
-            this.material.map = texture;
-            this.material.needsUpdate = true;
-            this.updateLayout();
-            this._updateFit(-1, 1);
-        }, () => {}, () => {
-            console.error("Couldn't load image :(");
-        });
+    updateTexture(url) {
+        if(url instanceof THREE.Texture) {
+            this._updateTexture(url);
+        } else {
+            new THREE.TextureLoader().load(url, (texture) => {
+                texture.colorSpace = THREE.SRGBColorSpace;
+                this._updateTexture(texture);
+            }, () => {}, () => {
+                console.error("Couldn't load image :(");
+            });
+        }
+    }
+
+    _updateTexture(texture) {
+        this._texture = texture;
+        this._imageWidth = texture.image.width;
+        this._imageHeight = texture.image.height;
+        this.material.map = texture;
+        this.material.needsUpdate = true;
+        this.updateLayout();
+        this._updateFit(-1, 1);
     }
 
     _createBackground() {

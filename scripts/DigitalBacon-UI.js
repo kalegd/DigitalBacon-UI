@@ -7,6 +7,7 @@
 import Body from '/scripts/components/Body.js';
 import Checkbox from '/scripts/components/Checkbox.js';
 import Div from '/scripts/components/Div.js';
+import HSLColor from '/scripts/components/HSLColor.js';
 import Image from '/scripts/components/Image.js';
 import Radio from '/scripts/components/Radio.js';
 import Range from '/scripts/components/Range.js';
@@ -107,6 +108,7 @@ const update = (frame) => {
 export { Body };
 export { Checkbox };
 export { Div };
+export { HSLColor };
 export { Image };
 export { Radio };
 export { Range };

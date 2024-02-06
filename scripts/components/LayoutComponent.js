@@ -20,9 +20,10 @@ const DEFAULT_MATERIAL = new THREE.MeshBasicMaterial({
 
 const DEFAULT_GLASSMORPHISM_MATERIAL = new THREE.MeshPhysicalMaterial({
     color: 0xffffff,
-    transmission: 0.99,
     roughness: 0.45,
     side: THREE.DoubleSide,
+    specularIntensity: 0,
+    transmission: 0.99,
     polygonOffset: true,
     polygonOffsetFactor: 1,
     polygonOffsetUnits: 1,

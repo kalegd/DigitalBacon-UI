@@ -27,6 +27,44 @@ export const isDescendant = (ancestor, child) => {
     return false;
 };
 
+export const cartesianToPolar = (x, y) => {
+    let r = Math.sqrt(x*x + y*y);
+    let phi = Math.atan2(y, x);
+    return [r, phi];
+};
+
+export const polarToCartesian = (r, phi) => [r * Math.cos(phi),r*Math.sin(phi)];
+
+export const radiansToDegrees = (r) => ((r + Math.PI) / (2 * Math.PI)) * 360;
+
+//https://stackoverflow.com/questions/36721830/convert-hsl-to-rgb-and-hex/44134328#44134328
+function hueToRGB(p, q, t){
+    if(t < 0) t += 1;
+    if(t > 1) t -= 1;
+    if(t < 1/6) return p + (q - p) * 6 * t;
+    if(t < 1/2) return q;
+    if(t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+    return p;
+}
+
+export const hslToRGB = (h, s, l) => {
+    h /= 360;
+    let r, g, b;
+    if(s == 0) {
+        r = g = b = l; // achromatic
+    } else {
+        let q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+        let p = 2 * l - q;
+        r = hueToRGB(p, q, h + 1/3);
+        g = hueToRGB(p, q, h);
+        b = hueToRGB(p, q, h - 1/3);
+    }
+
+    return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)];
+};
+
+export const rgbToHex = (r, g, b) => r << 16 ^ g << 8 ^ b << 0;
+
 function containsGeometry(object) {
     if(object.geometry) return true;
     for(let child of object.children) {
