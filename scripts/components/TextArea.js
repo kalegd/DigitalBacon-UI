@@ -104,7 +104,7 @@ class TextArea extends ScrollableComponent {
     _addListeners() {
         this._emptyClickId = PointerInteractableHandler
             .addEmptyClickListener(() => this.blur());
-        if(DeviceTypes.active == 'POINTER') {
+        if(DeviceTypes.active == 'XR') {
             Keyboard.register(this);
         } else if(DeviceTypes.active == 'TOUCH_SCREEN') {
 

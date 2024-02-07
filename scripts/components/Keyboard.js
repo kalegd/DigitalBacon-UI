@@ -14,10 +14,12 @@ import LayoutComponent from '/scripts/components/LayoutComponent.js';
 import KeyboardLayouts from '/scripts/enums/KeyboardLayouts.js';
 import * as THREE from 'three';
 
+const HOVERED_Z_OFFSET = 0.01;
 const DEFAULT_KEY_STYLE = {
     backgroundVisible: true,
     borderRadius: 0.01,
     height: 0.1,
+    justifyContent: 'center',
     margin: 0.005,
     paddingLeft: 0.02,
     paddingRight: 0.02,
@@ -37,7 +39,11 @@ class Keyboard extends InteractableComponent {
         super(...styles);
         this._defaults['backgroundVisible'] = true;
         this._defaults['materialColor'] = 0xc0c5ce;
+        this._layouts = {};
         this._keyboardPageLayouts = [];
+        this._createOptionsPanel();
+        this._addLayout(KeyboardLayouts.ENGLISH);
+        this._addLayout(KeyboardLayouts.EMOJIS);
         this._setLayout(KeyboardLayouts.ENGLISH);
         this.updateLayout();
     }
@@ -48,7 +54,51 @@ class Keyboard extends InteractableComponent {
         super._createBackground();
     }
 
+    _createOptionsPanel() {
+        this._optionsPanelParent = new THREE.Object3D();
+        this.add(this._optionsPanelParent);
+        this._optionsPanel = new Div({
+            backgroundVisible: true,
+            borderRadius: 0.06,
+            height: 0.12,
+            justifyContent: 'center',
+            materialColor: 0xc0c5ce,
+            width: 0.12,
+        });
+        let languagesButton = new Div({
+            backgroundVisible: true,
+            borderRadius: 0.05,
+            height: 0.1,
+            justifyContent: 'center',
+            width: 0.1,
+        });
+        let languagesText = new Text('🌐', DEFAULT_FONT_STYLE);
+        this._optionsPanel.add(languagesButton);
+        languagesButton.add(languagesText);
+        languagesButton.pointerInteractable.setHoveredCallback((hovered) => {
+            languagesText.position.z = (hovered)
+                ? HOVERED_Z_OFFSET
+                : 0.00000001;
+        });
+        languagesButton.onClick = () => {
+            this._setLanguagesPage();
+        };
+    }
+
+    _addOptionsPanel() {
+        this._optionsPanelParent.add(this._optionsPanel);
+        this._optionsPanelParent.position.x = this.computedWidth / -2 - 0.1;
+    }
+
+    _addLayout(keyboardLayout) {
+        this._layouts[keyboardLayout.name] = keyboardLayout;
+    }
+
     _setLayout(keyboardLayout) {
+        if(typeof keyboardLayout == 'string') {
+            keyboardLayout = this._layouts[keyboardLayout];
+            if(!keyboardLayout) return;
+        }
         for(let child of this._content.children) {
             if(child instanceof LayoutComponent) this.remove(child);
         }
@@ -67,6 +117,7 @@ class Keyboard extends InteractableComponent {
         this._keyboardPage = page;
         if(this._keyboardPageLayouts[page]) {
             this.add(this._keyboardPageLayouts[page]);
+            this._addOptionsPanel();
             return;
         }
         let div = new Div(this._keyboardLayout.pages[page].style);
@@ -80,7 +131,7 @@ class Keyboard extends InteractableComponent {
                 keyDiv.add(text);
                 span.add(keyDiv);
                 keyDiv.pointerInteractable.setHoveredCallback((hovered) => {
-                    text.position.z = (hovered) ? 0.01 : 0.00000001;
+                    text.position.z = (hovered) ? HOVERED_Z_OFFSET : 0.00000001;
                 });
                 keyDiv.onClick = () => {
                     if(typeof key == 'string') {
@@ -127,6 +178,37 @@ class Keyboard extends InteractableComponent {
         }
         this._keyboardPageLayouts[page] = div;
         this.add(div);
+        this._addOptionsPanel();
+        this._reposition();
+    }
+
+    _setLanguagesPage() {
+        for(let child of this._content.children) {
+            if(child instanceof LayoutComponent) this.remove(child);
+        }
+        let span;
+        let index = 0;
+        let div = new Div({ padding: 0.01 });
+        for(let language in this._layouts) {
+            if(index % 2 == 0) {
+                span = new Span();
+                div.add(span);
+            }
+            index++;
+            let keyDiv = new Div(DEFAULT_KEY_STYLE, { width: 0.3 });
+            let text = new Text(language, DEFAULT_FONT_STYLE);
+            keyDiv.add(text);
+            span.add(keyDiv);
+            keyDiv.pointerInteractable.setHoveredCallback((hovered) => {
+                text.position.z = (hovered) ? HOVERED_Z_OFFSET : 0.00000001;
+            });
+            keyDiv.onClick = () => {
+                this._setLayout(language);
+            };
+        }
+        this.add(div);
+        this._optionsPanelParent.remove(this._optionsPanel);
+        this._reposition();
     }
 
     _shiftCase(page, toUpperCase) {
@@ -141,6 +223,15 @@ class Keyboard extends InteractableComponent {
         }
     }
 
+    _reposition() {
+        if(!this._onPopup && this._registeredComponent) {
+            let body = getComponentBody(this._registeredComponent);
+            if(!body) body = this._registeredComponent;
+            this.position.set(0, (-body.computedHeight - this.computedHeight)
+                / 2 - 0.025, 0);
+        }
+    }
+
     register(component) {
         if(this._registeredComponent) this._registeredComponent.blur();
         this._registeredComponent = component;
@@ -149,7 +240,8 @@ class Keyboard extends InteractableComponent {
             this._onPopup(component, body);
         } else {
             if(!body) body = component;
-            this.position.set(0, (-body.computedHeight - this.computedHeight) / 2, 0);
+            this.position.set(0, (-body.computedHeight - this.computedHeight)
+                / 2 - 0.025, 0);
             body.add(this);
         }
     }
