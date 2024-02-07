@@ -37,6 +37,22 @@ const ENGLISH = {
     }],
 };
 
+const NUMBERS = {
+    name: 'Numbers',
+    pages: [{
+        style: { padding: 0.01 },
+        rows: [{
+            keys: ['1', '2', '3'],
+        }, {
+            keys: ['4', '5', '6'],
+        }, {
+            keys: ['7', '8', '9'],
+        }, {
+            keys: ['.', '0', { text: '⌫', type: 'key', value: 'Backspace' }],
+        }],
+    }]
+};
+
 const RUSSIAN = {
     name: 'русский',
     pages: [{
@@ -127,6 +143,7 @@ const EMOJIS = {
 
 const KeyboardLayouts = {
     ENGLISH: ENGLISH,
+    NUMBERS: NUMBERS,
     RUSSIAN: RUSSIAN,
     EMOJIS: EMOJIS,
 };

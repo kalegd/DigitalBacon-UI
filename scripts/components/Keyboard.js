@@ -213,6 +213,13 @@ class Keyboard extends InteractableComponent {
         this._reposition();
     }
 
+    _setNumberPage() {
+        if(!this._lastKeyboardLayout)
+            this._lastKeyboardLayout = this._keyboardLayout;
+        this._setLayout(KeyboardLayouts.NUMBERS);
+        this._optionsPanelParent.remove(this._optionsPanel);
+    }
+
     _shiftCase(page, toUpperCase) {
         let shiftCaseFunction = (toUpperCase) ? 'toUpperCase' : 'toLowerCase';
         for(let span of this._keyboardPageLayouts[page]._content.children) {
@@ -234,10 +241,13 @@ class Keyboard extends InteractableComponent {
         }
     }
 
-    register(component) {
+    register(component, type) {
         if(this._registeredComponent) this._registeredComponent.blur();
         this._registeredComponent = component;
         let body = getComponentBody(component);
+        if(type == 'Number') {
+            this._setNumberPage();
+        }
         if(this._onPopup) {
             this._onPopup(component, body);
         } else {
@@ -252,6 +262,10 @@ class Keyboard extends InteractableComponent {
         if(this._registeredComponent == component) {
             this._registeredComponent = null;
             if(this.parent) this.parent.remove(this);
+        }
+        if(this._lastKeyboardLayout) {
+            this._setLayout(this._lastKeyboardLayout);
+            this._lastKeyboardLayout = null;
         }
     }
 
