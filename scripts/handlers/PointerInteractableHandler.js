@@ -250,6 +250,7 @@ class PointerInteractableHandler extends InteractableHandler {
                         controller['closestPoint'], userDistance);
                 }
                 selectedInteractable.removeSelectedBy(option);
+                this._selectedInteractables.delete(option);
             } else {
                 if(selectedInteractable == closestInteractable) {
                     selectedInteractable.triggerDragActions(option,
