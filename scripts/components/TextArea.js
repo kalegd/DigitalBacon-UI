@@ -13,6 +13,7 @@ import DeviceTypes from '/scripts/enums/DeviceTypes.js';
 import InputHandler from '/scripts/handlers/InputHandler.js';
 import PointerInteractableHandler from '/scripts/handlers/PointerInteractableHandler.js';
 import { getCaretAtPoint, Text as TroikaText } from '/node_modules/troika-three-text/dist/troika-three-text.esm.js';
+import { runes } from '/node_modules/runes2/dist/index.esm.mjs';
 import * as THREE from 'three';
 
 const VEC3 = new THREE.Vector3();
@@ -46,7 +47,8 @@ class TextArea extends ScrollableComponent {
         this._defaults['height'] = 0.1;
         this._defaults['width'] = 0.4;
         this._latestValue['overflow'] = null;
-        this._value = '';
+        this._value = [];
+        this._runeLengths = [];
         this._textStyle = new Style({
             fontSize: this.fontSize,
             textAlign: 'left',
@@ -67,13 +69,6 @@ class TextArea extends ScrollableComponent {
         this.updateLayout();
         if(this.overflow != 'visible' && !this.clippingPlanes)
             this._createClippingPlanes();
-    }
-
-    _createCaret() {
-        this._caretParent = new THREE.Object3D();
-        this._caret = new Text('|', this._textStyle);
-        this._caret._text.fillOpacity = 0.75;
-        this._caretParent.add(this._caret);
     }
 
     _handleStyleUpdateForFontSize() {
@@ -101,7 +96,7 @@ class TextArea extends ScrollableComponent {
         let troikaText = this._text._text;
         troikaText.worldToLocal(VEC3.copy(closestPoint));
         let caret = getCaretAtPoint(troikaText.textRenderInfo, VEC3.x, VEC3.y);
-        this._caretIndex = caret.charIndex || 0;
+        this._setCaretIndexFromCharIndex(caret.charIndex);
         this._updateCaret();
         if(!this._emptyClickId) this._addListeners();
     }
@@ -140,11 +135,45 @@ class TextArea extends ScrollableComponent {
         if(this._onBlur) this._onBlur(this._value);
     }
 
+    _createCaret() {
+        this._caretParent = new THREE.Object3D();
+        this._caret = new Text('|', this._textStyle);
+        this._caret._text.fillOpacity = 0.75;
+        this._caretParent.add(this._caret);
+    }
+
+    _getCharIndex(caretIndex = this._caretIndex) {
+        let charIndex = 0;
+        for(let i = 0; i < caretIndex; i++) {
+            charIndex += this._runeLengths[i];
+        }
+        return charIndex;
+    }
+
+    _setCaretIndexFromCharIndex(charIndex = 0) {
+        let i;
+        let currentCharIndex = 0;
+        let previousCharIndex = 0;
+        for(i = 0; i < this._runeLengths.length
+                && currentCharIndex < charIndex; i++) {
+            previousCharIndex = currentCharIndex;
+            currentCharIndex += this._runeLengths[i];
+        }
+        let currentDiff = Math.abs(charIndex - currentCharIndex);
+        let previousDiff = Math.abs(charIndex - previousCharIndex);
+        if(currentCharIndex == charIndex || currentDiff < previousDiff) {
+            this._caretIndex = i;
+        } else {
+            this._caretIndex = i - 1;
+        }
+    }
+
     _updateCaret() {
-        let index = this._caretIndex * 4;
+        let charIndex = this._getCharIndex();
+        let index = charIndex * 4;
         let xIndexOffset = 0;
-        if(this._caretIndex == this._text.text.length) {
-            if(this._caretIndex == 0) {
+        if(charIndex == this._text.text.length) {
+            if(charIndex == 0) {
                 this._caretParent.position.set(0, 0, 0);
                 return;
             } else {
@@ -189,14 +218,15 @@ class TextArea extends ScrollableComponent {
                 this._updateCaret();
             }
         } else if(key == 'ArrowRight') {
-            if(this._caretIndex < this._text.text.length) {
+            if(this._caretIndex < this._value.length) {
                 this._caretIndex++;
                 this._updateCaret();
             }
         } else {
+            let charIndex = this._getCharIndex();
             let text = this._text.text;
             let sign = (key == 'ArrowUp') ? 1 : -1;
-            let index = this._caretIndex * 4;
+            let index = charIndex * 4;
             let xIndexOffset = 0;
             if(this._caretIndex == text.length && this._caretIndex != 0) {
                 index -= 4;
@@ -210,22 +240,20 @@ class TextArea extends ScrollableComponent {
                 - caretPositions[index + 3]);
             let caret = getCaretAtPoint(troikaText.textRenderInfo, x,
                 y + (sign * height));
-            this._caretIndex = caret.charIndex;
+            this._setCaretIndexFromCharIndex(caret.charIndex);
             this._updateCaret();
         }
         this._checkForCaretScroll();
     }
 
     _deleteChar() {
-        let text = this._text.text;
-        let newCaretIndex = Math.max(0, this._caretIndex - 1);
-        text = text.slice(0, newCaretIndex)
-            + text.slice(this._caretIndex);
-        this._text.text = text;
-        this._value = this._value.slice(0, newCaretIndex)
-            + this._value.slice(this._caretIndex);
-        this._caretIndex = newCaretIndex;
-        if(this._onChange) this._onChange(this._value);
+        if(this._caretIndex == 0) return;
+        this._value.splice(this._caretIndex - 1, 1);
+        this._runeLengths.splice(this._caretIndex - 1, 1);
+        this._text.text = this._value.join('');
+        this._caretIndex--;
+        this._updateCaret();
+        if(this._onChange) this._onChange(this._text.text);
     }
 
     _checkForCaretScroll(isSync) {
@@ -251,26 +279,26 @@ class TextArea extends ScrollableComponent {
     }
 
     insertContent(content) {
-        let text = this._text.text;
-        text = text.slice(0, this._caretIndex) + content
-            + text.slice(this._caretIndex);
-        this._text.text = text;
-        this._value = this._value.slice(0, this._caretIndex) + content
-            + this._value.slice(this._caretIndex);
-        this._caretIndex += content.length;
-        if(this._onChange) this._onChange(this._value);
+        let newRunes = runes(content);
+        this._value.splice(this._caretIndex, 0, ...newRunes);
+        this._text.text = this._value.join('');
+        for(let i = 0; i < newRunes.length; i++) {
+            this._runeLengths.splice(this._caretIndex, 0, newRunes[i].length);
+            this._caretIndex++;
+        }
+        if(this._onChange) this._onChange(this._text.text);
     }
 
     get onBlur() { return this._onBlur; }
     get onChange() { return this._onChange; }
     get onFocus() { return this._onFocus; }
-    get value() { return this._value; }
+    get value() { return this._text.text; }
 
     set onBlur(onBlur) { this._onBlur = onBlur; }
     set onChange(onChange) { this._onChange = onChange; }
     set onFocus(onFocus) { this._onFocus = onFocus; }
     set value(value) {
-        this._value = value;
+        this._value = runes(value);
         this._text.text = value;
     }
 }

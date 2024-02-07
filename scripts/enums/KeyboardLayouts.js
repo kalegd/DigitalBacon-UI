@@ -37,8 +37,58 @@ const ENGLISH = {
     }],
 };
 
+const EMOJIS = {
+    name: '😀',
+    pages: [{
+        style: { padding: 0.01 },
+        rows: [{
+            keys: ['😀', '😃', '😄', '😁', '😆', '😅', '🤣', '😂', '🙂', '🙃'],
+        }, {
+            keys: ['🫠', '😉', '😊', '😇', '🥰', '😍', '🤩', '😘', '😗', '☺'],
+        }, {
+            keys: ['😚', '😙', '🥲', '😋', '😛', '😜', '🤪', '😝', '🤑', '🤗'],
+        }, {
+            keys: [{ text: '←', type: 'page', page: 3, style: { width: 0.155 }}, { text: '→', type: 'page', page: 1, style: { width: 0.155 }}, { text: 'space', type: 'key', value: ' ', style: { width: 0.429 }}, { text: '⏎', type: 'key', value: 'Enter', style: { width: 0.155 }}, { text: '⌫', type: 'key', value: 'Backspace', style: { width: 0.155 }}],
+        }],
+    }, {
+        style: { padding: 0.01 },
+        rows: [{
+            keys: ['🤭', '🫢', '🫣', '🤫', '🤔', '🫡', '🤐', '🤨', '😐', '😑'],
+        }, {
+            keys: ['😶', '🫥', '😶‍🌫', '😏', '😒', '🙄', '😬', '😮‍💨', '🤥', '😌'],
+        }, { 
+            keys: ['😔', '😪', '🤤', '😴', '😷', '🤒', '🤕', '🤢', '🤮', '🤧'],
+        }, {
+            keys: [{ text: '←', type: 'page', page: 0, style: { width: 0.155 }}, { text: '→', type: 'page', page: 2, style: { width: 0.155 }}, { text: 'space', type: 'key', value: ' ', style: { width: 0.429 }}, { text: '⏎', type: 'key', value: 'Enter', style: { width: 0.155 }}, { text: '⌫', type: 'key', value: 'Backspace', style: { width: 0.155 }}],
+        }],
+    }, {
+        style: { padding: 0.01 },
+        rows: [{
+            keys: ['🥵', '🥶', '🥴', '😵', '😵‍💫', '🤯', '🤠', '🥳', '🥸', '😎'],
+        }, {
+            keys: ['🤓', '🧐', '😕', '🫤', '😟', '🙁', '☹', '😮', '😯', '😲'],
+        }, {
+            keys: ['😳', '🥺', '🥹', '😦', '😧', '😨', '😰', '😥', '😢', '😭'],
+        }, {
+            keys: [{ text: '←', type: 'page', page: 1, style: { width: 0.155 }}, { text: '→', type: 'page', page: 3, style: { width: 0.155 }}, { text: 'space', type: 'key', value: ' ', style: { width: 0.429 }}, { text: '⏎', type: 'key', value: 'Enter', style: { width: 0.155 }}, { text: '⌫', type: 'key', value: 'Backspace', style: { width: 0.155 }}],
+        }],
+    }, { 
+        style: { padding: 0.01 },
+        rows: [{
+            keys: ['😱', '😖', '😣', '😞', '😓', '😩', '😫', '🥱', '😤', '😡'],
+        }, {
+            keys: ['😠', '🤬', '😈', '👿', '💀', '☠', '💩', '', '', ''],
+        }, {
+            keys: ['', '', '', '', '', '', '', '', '', ''],
+        }, {
+            keys: [{ text: '←', type: 'page', page: 2, style: { width: 0.155 }}, { text: '→', type: 'page', page: 0, style: { width: 0.155 }}, { text: 'space', type: 'key', value: ' ', style: { width: 0.429 }}, { text: '⏎', type: 'key', value: 'Enter', style: { width: 0.155 }}, { text: '⌫', type: 'key', value: 'Backspace', style: { width: 0.155 }}],
+        }],
+    }],
+};
+
 const KeyboardLayouts = {
     ENGLISH: ENGLISH,
+    EMOJIS: EMOJIS,
 };
 
 export default KeyboardLayouts;
