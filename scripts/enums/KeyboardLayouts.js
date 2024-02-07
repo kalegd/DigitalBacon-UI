@@ -37,6 +37,45 @@ const ENGLISH = {
     }],
 };
 
+const RUSSIAN = {
+    name: 'русский',
+    pages: [{
+        style: { padding: 0.01 },
+        rows: [{
+            keys: ['й', 'ц', 'у', 'к', 'е', 'н', 'г', 'ш', 'щ', 'з', 'х', 'ъ'],
+        }, {
+            keys: ['ф', 'ы', 'в', 'а', 'п', 'р', 'о', 'л', 'д', 'ж', 'э', 'ë'],
+        }, {
+            keys: [{ text: '⇧', type: 'shift', style: { width: 0.155 }}, 'я', 'ч', 'с', 'м', 'и', 'т', 'ь', 'б', 'ю', { text: '⌫', type: 'key', value: 'Backspace', style: { width: 0.155 } }],
+        }, {
+            keys: [{ text: '123', type: 'page', page: 1, style: { width: 0.155 }}, ',', { text: 'space', type: 'key', value: ' ', style: { width: 0.539 }}, '.', { text: '⏎', type: 'key', value: 'Enter', style: { width: 0.155 } }],
+        }],
+    }, {
+        style: { padding: 0.01, marginLeft: 0.11, marginRight: 0.11 },
+        rows: [{
+            keys: ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'],
+        }, {
+            keys: ['@', '#', ':', ';', '%', '-', '+', '=', '(', ')'],
+        }, {
+            keys: [{ text: '~[<', type: 'page', page: 2, style: { width: 0.155 }}, '.', ',', '?', '!', '"', '\'', '₽', { text: '⌫', type: 'key', value: 'Backspace', style: { width: 0.155 }}],
+        }, {
+            keys: [{ text: 'АБВ', type: 'page', page: 0, style: { width: 0.155 }}, '\\', { text: 'space', type: 'key', value: ' ', style: { width: 0.539 }}, '/', { text: '⏎', type: 'key', value: 'Enter', style: { width: 0.155 } }],
+        }],
+    }, {
+        style: { padding: 0.01, marginLeft: 0.11, marginRight: 0.11 },
+        rows: [{
+            keys: ['[', ']', '{', '}', '`', '^', '*', '&', '«', '»'],
+        }, {
+            keys: ['$', '€', '£', '¥', '•', '_', '|', '~', '<', '>'],
+        }, {
+            style: { justifyContent: 'spaceBetween', width: '100%' },
+            keys: [{ text: '123', type: 'page', page: 1, style: { width: 0.155 }}, '.', ',', '?', '!', '"', '\'', '₽', { text: '⌫', type: 'key', value: 'Backspace', style: { width: 0.155 }}],
+        }, {
+            keys: [{ text: 'АБВ', type: 'page', page: 0, style: { width: 0.155 }}, '\\', { text: 'space', type: 'key', value: ' ', style: { width: 0.539 }}, '/', { text: '⏎', type: 'key', value: 'Enter', style: { width: 0.155 } }],
+        }],
+    }],
+};
+
 const EMOJIS = {
     name: '😀',
     pages: [{
@@ -88,6 +127,7 @@ const EMOJIS = {
 
 const KeyboardLayouts = {
     ENGLISH: ENGLISH,
+    RUSSIAN: RUSSIAN,
     EMOJIS: EMOJIS,
 };
 

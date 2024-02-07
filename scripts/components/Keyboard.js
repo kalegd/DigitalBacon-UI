@@ -43,6 +43,7 @@ class Keyboard extends InteractableComponent {
         this._keyboardPageLayouts = [];
         this._createOptionsPanel();
         this._addLayout(KeyboardLayouts.ENGLISH);
+        this._addLayout(KeyboardLayouts.RUSSIAN);
         this._addLayout(KeyboardLayouts.EMOJIS);
         this._setLayout(KeyboardLayouts.ENGLISH);
         this.updateLayout();
@@ -145,7 +146,8 @@ class Keyboard extends InteractableComponent {
                         }
                     } else {
                         if(key.type == 'key') {
-                            let eventKey = (this._shiftState == 'UNSHIFTED')
+                            let eventKey = (this._shiftState == 'UNSHIFTED'
+                                    || key.value.length > 1)
                                 ? key.value
                                 : key.value.toUpperCase();
                             this._registeredComponent.handleKey(eventKey);
