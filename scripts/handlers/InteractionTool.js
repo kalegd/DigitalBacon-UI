@@ -4,12 +4,10 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
-import { uuidv4 } from '/scripts/utils.js';
-
 class InteractionTool {
     constructor() {
         this._tool = null;
-        this._listeners = {};
+        this._listeners = new Set();
     }
 
     getTool() {
@@ -18,19 +16,17 @@ class InteractionTool {
 
     setTool(tool) {
         this._tool = tool;
-        for(let id in this._listeners) {
-            this._listeners[id](tool);
+        for(let callback of this._listeners) {
+            callback(tool);
         }
     }
 
     addUpdateListener(callback) {
-        let id = uuidv4();
-        this._listeners[id] = callback;
-        return id;
+        this._listeners.add(callback);
     }
 
-    removeUpdateListener(id) {
-        delete this._listeners[id];
+    removeUpdateListener(callback) {
+        this._listeners.delete(callback);
     }
 }
 

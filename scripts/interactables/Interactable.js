@@ -6,7 +6,6 @@
 
 import States from '/scripts/enums/InteractableStates.js';
 import InteractionTool from '/scripts/handlers/InteractionTool.js';
-import { uuidv4 } from '/scripts/utils.js';
 
 class Interactable {
     constructor(object) {
@@ -151,7 +150,6 @@ class Interactable {
             }
         }
         if(newState != this._hoveredCallbackState) {
-            console.log(newState);
             this._hoveredCallbackState = newState;
             this._hoveredCallback(newState);
         }

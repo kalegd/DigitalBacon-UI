@@ -17,12 +17,12 @@ class UIComponent extends THREE.Object3D {
         this._overrideStyle = {};
         this._latestValue = {};
         this._defaults = {};
-        this._listeners = new Map();
+        this._styleListener = (property) => this._onStyleChange(property);
         for(let style of styles) {
             if(!style) continue;
             if(!(style instanceof Style)) style = new Style(style);
             this._styles.push(style);
-            this._addStyleListenerFor(style);
+            style.addUpdateListener(this._styleListener);
         }
     }
 
@@ -38,14 +38,7 @@ class UIComponent extends THREE.Object3D {
         for(let property in Style.PROPERTIES) {
             if(property in style) this._onStyleChange(property);
         }
-        if(!alreadyUsed) this._addStyleListenerFor(style);
-    }
-
-    _addStyleListenerFor(style) {
-        let id = style.addUpdateListener((property) => {
-            this._onStyleChange(property);
-        });
-        this._listeners.set(id, style);
+        if(!alreadyUsed) style.addUpdateListener(this._styleListener);
     }
 
     _onStyleChange(param) {
@@ -66,9 +59,7 @@ class UIComponent extends THREE.Object3D {
             for(let property in Style.PROPERTIES) {
                 if(property in style) this._onStyleChange(property);
             }
-            let listenerId = this._listeners.get(style);
-            if(listenerId) style.removeUpdateListener(listenerId);
-            this._listeners.delete(style);
+            style.removeUpdateListener(this._styleListener);
         }
     }
 

@@ -4,24 +4,20 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
-import { uuidv4 } from '/scripts/utils.js';
-
 class Style {
     constructor(style = {}) {
-        this._listeners = {};
+        this._listeners = new Set();
         for(let property of Style.PROPERTIES) {
             if(property in style) this['_' + property] = style[property];
         }
     }
 
     addUpdateListener(callback) {
-        let id = uuidv4();
-        this._listeners[id] = callback;
-        return id;
+        this._listeners.add(callback);
     }
 
-    removeUpdateListener(id) {
-        delete this._listeners[id];
+    removeUpdateListener(callback) {
+        this._listeners.delete(callback);
     }
 
     _genericGet(param, value) {
@@ -30,8 +26,8 @@ class Style {
 
     _genericSet(param, value) {
         this['_' + param] = value;
-        for(let id in this._listeners) {
-            this._listeners[id](param);
+        for(let callback of this._listeners) {
+            callback(param);
         }
     }
 

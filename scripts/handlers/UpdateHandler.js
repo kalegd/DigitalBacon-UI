@@ -4,26 +4,22 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
-import { uuidv4 } from '/scripts/utils.js';
-
 class UpdateHandler {
     constructor() {
-        this._listeners = {};
+        this._listeners = new Set();
     }
 
     add(callback) {
-        let id = uuidv4();
-        this._listeners[id] = callback;
-        return id;
+        this._listeners.add(callback);
     }
 
-    remove(id) {
-        delete this._listeners[id];
+    remove(callback) {
+        this._listeners.delete(callback);
     }
 
     update() {
-        for(let id in this._listeners) {
-            this._listeners[id]();
+        for(let callback of this._listeners) {
+            callback();
         }
     }
 }

@@ -54,6 +54,7 @@ class LayoutComponent extends UIComponent {
         this._defaults['overflow'] = 'visible';
         this._defaults['padding'] = 0;
         this._defaults['width'] = 'auto';
+        this._updateListener = () => this._updateClippingPlanes();
         this.computedHeight = 0;
         this.marginedHeight = 0;
         this.unpaddedHeight = 0;
@@ -186,8 +187,7 @@ class LayoutComponent extends UIComponent {
         ];
         this._updateClippingPlanes();
         this.updateClippingPlanes(true);
-        this.clippingPlanesUpdateId = UpdateHandler.add(
-            () => this._updateClippingPlanes());
+        UpdateHandler.add(this._updateListener);
     }
 
     _getClippingPlanes() {
@@ -203,7 +203,7 @@ class LayoutComponent extends UIComponent {
 
     _clearClippingPlanes() {
         this.clippingPlanes = null;
-        UpdateHandler.remove(this.clippingPlanesUpdateId);
+        UpdateHandler.remove(this._updateListener);
         this.updateClippingPlanes(true);
     }
 
