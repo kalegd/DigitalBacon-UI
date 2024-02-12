@@ -30,10 +30,10 @@ class Range extends InteractableComponent {
         this._value = 0;
         this._scrubberMaterial = DEFAULT_MATERIAL.clone();
         this._scrubbingOwner;
-        this.onClick = this.onTouch
-            = (owner, closestPoint) => this._select(owner, closestPoint);
-        this.onDrag = this.onTouchDrag
-            = (owner, closestPoint) => this._drag(owner, closestPoint);
+        this.pointerInteractable.addEventListener('down',
+            (e) => this.pointerInteractable.capture(e.owner));
+        this.onClick = this.onTouch = (e) => this._select(e);
+        this.onDrag = this.onTouchDrag = (e) => this._drag(e);
         this.updateLayout();
     }
 
@@ -69,12 +69,14 @@ class Range extends InteractableComponent {
             this._scrubberChild.renderOrder = 100 + this._materialOffset + 1;
     }
 
-    _select(owner, closestPoint) {
+    _select(e) {
+        let { owner, closestPoint } = e;
         this._updateValue(owner, closestPoint);
         if(this._onChange) this._onChange(this._value, false);
     }
 
-    _drag(owner, closestPoint) {
+    _drag(e) {
+        let { owner, closestPoint } = e;
         this._updateValue(owner, closestPoint);
         if(this._onChange) this._onChange(this._value, true);
     }

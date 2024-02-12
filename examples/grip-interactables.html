@@ -80,8 +80,10 @@
       DigitalBaconUI.InputHandler.enableXRControllerManagement(scene);
 
       const interactable = new DigitalBaconUI.GripInteractable(cube);
-      interactable.addAction((controller) => controller.attach(cube),
-        (controller) => { if(cube.parent == controller) scene.attach(cube); });
+      interactable.addEventListener('down', (e) => e.owner.attach(cube));
+      interactable.addEventListener('click', (e) => {
+        if(cube.parent == e.owner) scene.attach(cube);
+      });
       interactable.setHoveredCallback((hovered) => {
         material.color.setHex((hovered) ? 0xff0000 : 0x00ff00);
       });

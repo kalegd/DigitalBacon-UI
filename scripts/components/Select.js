@@ -50,7 +50,8 @@ class Select extends ScrollableComponent {
         this._content.add(this._textSpan);
         this._textSpan.add(this._text);
         this._textSpan.add(this._caret);
-        this.onClick = this.onTouch = (owner) => this._select();
+        this._emptyClickListener = () => this.hideOptions();
+        this.onClick = this.onTouch = () => this._select();
         this.updateLayout();
     }
 
@@ -68,8 +69,9 @@ class Select extends ScrollableComponent {
         this.remove(this._textSpan);
         this.add(this._optionsDiv);
         this.onClick = this.onTouch = null;
-        this._emptyClickId = PointerInteractableHandler.addEmptyClickListener(
-            () => this.hideOptions());
+        this._hasListeners = true;
+        PointerInteractableHandler.addEmptyClickListener(
+            this._emptyClickListener);
     }
 
     _selectOption(text) {
@@ -100,11 +102,11 @@ class Select extends ScrollableComponent {
     hideOptions() {
         this.remove(this._optionsDiv);
         this.add(this._textSpan);
-        this.onClick = this.onTouch = (owner) => this._select();
-        if(this._emptyClickId) {
+        this.onClick = this.onTouch = () => this._select();
+        if(this._hasListeners) {
             PointerInteractableHandler.removeEmptyClickListener(
-                this._emptyClickId);
-            this._emptyClickId = null;
+                this._emptyClickListener);
+            this._hasListeners = false;
         }
     }
 

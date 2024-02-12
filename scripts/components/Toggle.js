@@ -26,7 +26,7 @@ class Toggle extends InteractableComponent {
         this._defaults['materialColor'] = 0xcccccc;
         this._defaults['width'] = 0.14;
         this._toggleMaterial = DEFAULT_MATERIAL.clone();
-        this.onClick = this.onTouch = (owner) => this._change();
+        this.onClick = this.onTouch = () => this._change();
         this.updateLayout();
     }
 

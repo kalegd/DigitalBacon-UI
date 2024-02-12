@@ -30,7 +30,7 @@ class Radio extends InteractableComponent {
         this._defaults['width'] = 0.08;
         this._name = name;
         this._toggleMaterial = DEFAULT_MATERIAL.clone();
-        this.onClick = this.onTouch = (owner) => this._select();
+        this.onClick = this.onTouch = () => this._select();
         this.updateLayout();
         if(!(name in RADIO_MAP)) RADIO_MAP[name] = new Set();
         RADIO_MAP[name].add(this);

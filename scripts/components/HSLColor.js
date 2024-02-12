@@ -55,19 +55,23 @@ export default class HSLColor {
             height: diameter,
             width: diameter / 10,
         });
-        this.hueSaturationWheel.onClick = (owner, closestPoint) => {
-            this._handleColorCursorDrag(owner, closestPoint);
+        this.hueSaturationWheel.pointerInteractable.addEventListener('down',
+            (e) =>this.hueSaturationWheel.pointerInteractable.capture(e.owner));
+        this.hueSaturationWheel.onClick = (e) => {
+            this._handleColorCursorDrag(e);
             if(this._onBlur) this._onBlur(this.getColor());
         };
-        this.hueSaturationWheel.onDrag = (owner, closestPoint) => {
-            this._handleColorCursorDrag(owner, closestPoint);
+        this.hueSaturationWheel.onDrag = (e) => {
+            this._handleColorCursorDrag(e);
         };
-        this.lightnessBar.onClick = (owner, closestPoint) => {
-            this._handleLightnessCursorDrag(owner, closestPoint);
+        this.lightnessBar.pointerInteractable.addEventListener('down',
+            (e) => this.lightnessBar.pointerInteractable.capture(e.owner));
+        this.lightnessBar.onClick = (e) => {
+            this._handleLightnessCursorDrag(e);
             if(this._onBlur) this._onBlur(this.getColor());
         };
-        this.lightnessBar.onDrag = (owner, closestPoint) => {
-            this._handleLightnessCursorDrag(owner, closestPoint);
+        this.lightnessBar.onDrag = (e) => {
+            this._handleLightnessCursorDrag(e);
         };
     }
 
@@ -129,7 +133,8 @@ export default class HSLColor {
         this._lightnessContext.putImageData(image, 0, 0);
     }
 
-    _handleColorCursorDrag(owner, point) {
+    _handleColorCursorDrag(e) {
+        let { owner, point } = e;
         if(!point) {
             PLANE.set(VEC3.set(0, 0, 1), 0);
             PLANE.applyMatrix4(this.hueSaturationWheel.matrixWorld);
@@ -148,7 +153,8 @@ export default class HSLColor {
         this._isDraggingColorCursor = true;
     }
 
-    _handleLightnessCursorDrag(owner, point) {
+    _handleLightnessCursorDrag(e) {
+        let { owner, point } = e;
         if(!point) {
             PLANE.set(VEC3.set(0, 0, 1), 0);
             PLANE.applyMatrix4(this.lightnessBar.matrixWorld);

@@ -9,7 +9,7 @@ import Handedness from '/scripts/enums/Handedness.js';
 import XRInputDeviceTypes from '/scripts/enums/XRInputDeviceTypes.js';
 import InputHandler from '/scripts/handlers/InputHandler.js';
 import InteractableHandler from '/scripts/handlers/InteractableHandler.js';
-import { isDescendant, uuidv4 } from '/scripts/utils.js';
+import { isDescendant } from '/scripts/utils.js';
 import * as THREE from 'three';
 
 const vector3 = new THREE.Vector3();
@@ -18,9 +18,7 @@ class PointerInteractableHandler extends InteractableHandler {
     constructor() {
         super();
         this._cursors = {};
-        this._emptyClickListeners = {};
         this._ignoredInteractables = new Set();;
-        this._wasPressed = new Map();
     }
 
     init(renderer, scene, camera, orbitTarget) {
@@ -31,16 +29,6 @@ class PointerInteractableHandler extends InteractableHandler {
         this._cameraFocus = orbitTarget || camera;
         if(DeviceTypes.active != 'XR')
             this._option = { type: DeviceTypes.active };
-    }
-
-    addEmptyClickListener(callback) {
-        let id = uuidv4();
-        this._emptyClickListeners[id] = callback;
-        return id;
-    }
-
-    removeEmptyClickListener(id) {
-        delete this._emptyClickListeners[id];
     }
 
     _getXRCursor(hand) {
@@ -131,7 +119,7 @@ class PointerInteractableHandler extends InteractableHandler {
     _raycastInteractables(controller, interactables) {
         this._ignoredInteractables.clear();
         let raycaster = controller['raycaster'];
-        if(!raycaster) return;
+        if(!raycaster || raycaster.disabled) return;
         raycaster.firstHitOnly = true;
         raycaster.params.Line.threshold = 0.01;
         let objects = [];
@@ -174,104 +162,168 @@ class PointerInteractableHandler extends InteractableHandler {
     _updateInteractables(controller) {
         let option = controller['option'];
         let isPressed = controller['isPressed'];
-        let hoveredInteractable = this._hoveredInteractables.get(option);
-        let selectedInteractable = this._selectedInteractables.get(option);
-        let closestInteractable = controller['closestInteractable'];
+        let hovered = this._hoveredInteractables.get(option);
+        let selected = this._selectedInteractables.get(option);
+        let over = this._overInteractables.get(option);
+        let closest = controller['closestInteractable'];
+        let closestPoint = controller['closestPoint'];
         let userDistance = controller['userDistance'];
-        if(closestInteractable && !closestInteractable.isOnlyGroup()) {
-            if(isPressed) {
-                if(selectedInteractable) {
-                    if(selectedInteractable == closestInteractable) {
-                        selectedInteractable.triggerDragActions(option,
-                            controller['closestPoint'], userDistance);
-                    } else {
-                        selectedInteractable.triggerDragActions(option, null,
-                            Infinity);
-                    }
-                } else if(hoveredInteractable == closestInteractable) {
-                    closestInteractable.addSelectedBy(option,
-                        controller['closestPoint'], userDistance);
-                    this._selectedInteractables.set(option,closestInteractable);
-                    closestInteractable.removeHoveredBy(option);
-                    this._hoveredInteractables.delete(option);
-                }
-            } else {
-                if(hoveredInteractable != closestInteractable) {
-                    if(hoveredInteractable) {
-                        hoveredInteractable.removeHoveredBy(option);
-                    }
-                    closestInteractable.addHoveredBy(option,
-                        controller['closestPoint'], userDistance);
-                    this._hoveredInteractables.set(option, closestInteractable);
-                }
-                if(selectedInteractable) {
-                    selectedInteractable.removeSelectedBy(option);
-                    this._selectedInteractables.delete(option);
-                }
-            }
-        } else if(!isPressed) {
-            if(this._wasPressed.get(option) && !hoveredInteractable
-                    && !selectedInteractable) {
-                for(let id in this._emptyClickListeners) {
-                    this._emptyClickListeners[id](option);
-                }
-            }
-            if(selectedInteractable) {
-                selectedInteractable.removeSelectedBy(option);
-                this._selectedInteractables.delete(option);
-            }
-            if(hoveredInteractable) {
-                hoveredInteractable.removeHoveredBy(option);
+        if(closest != hovered) {
+            if(hovered) {
+                hovered.removeHoveredBy(option);
                 this._hoveredInteractables.delete(option);
             }
-        } else if(selectedInteractable) {
-            selectedInteractable.triggerDragActions(option, null, Infinity);
+            if(closest && ((!selected && !isPressed) || closest == selected)) {
+                closest.addHoveredBy(option);
+                this._hoveredInteractables.set(option, closest);
+                hovered = closest;
+            }
+        }
+        //Events
+        //over  - when uncaptured pointer is first over an interactable. if
+        //        pointer becomes uncaptured while over another interactable,
+        //        we trigger this event
+        //out   - when uncaptured pointer is out. if pointer becomes uncaptured
+        //        while no longer over the capturing interactable, we trigger
+        //        this event
+        //down  - when select starts
+        //up    - when trigger released on an interactable. Also when a captured
+        //        action is released anywhere
+        //click - when trigger is released over selected interactable. Also when
+        //        captured action is released anywhere
+        //move  - when uncaptured pointer is over interactable. Also when a
+        //        captured pointer is anywhere
+        //drag  - when uncaptured pointer over selected interactable. Also when
+        //        captured pointer is anywhere
+        let basicEvent = { owner: option };
+        let detailedEvent = {
+            owner: option,
+            closestPoint: closestPoint,
+            userDistance,
+        };
+        if(selected) {
+            if(!isPressed) {
+                selected.removeSelectedBy(option);
+                this._selectedInteractables.delete(option);
+            }
+            if(selected == closest) {
+                if(over != closest) {
+                    if(over) over.out(basicEvent);
+                    closest.over(detailedEvent);
+                    this._overInteractables.set(option, closest);
+                }
+                closest.move(detailedEvent);
+                closest.drag(detailedEvent);
+                if(!isPressed) {
+                    closest.up(detailedEvent);
+                    closest.click(detailedEvent);
+                }
+            } else if(selected.isCapturedBy(option)) {
+                if(selected != over) {
+                    if(over) over.out(basicEvent);
+                    selected.over(basicEvent);
+                    this._overInteractables.set(option, selected);
+                    over = selected;
+                }
+                selected.move(basicEvent);
+                selected.drag(basicEvent);
+                if(!isPressed) {
+                    selected.up(basicEvent);
+                    selected.click(basicEvent);
+                    if(over) over.out(basicEvent);
+                    if(closest) {
+                        closest.over(detailedEvent);
+                        this._overInteractables.set(option, closest);
+                    } else {
+                        this._overInteractables.delete(option);
+                    }
+                }
+            } else if(closest) {
+                if(over != closest) {
+                    if(over) over.out(basicEvent);
+                    closest.over(detailedEvent);
+                    this._overInteractables.set(option, closest);
+                }
+                closest.move(detailedEvent);
+                if(!isPressed) {
+                    closest.up(detailedEvent);
+                }
+            } else if(over) {
+                over.out(basicEvent);
+                this._overInteractables.delete(option);
+            }
+        } else {
+            if(closest) {
+                if(over != closest) {
+                    if(over) over.out(basicEvent);
+                    closest.over(detailedEvent);
+                    this._overInteractables.set(option, closest);
+                }
+                closest.move(detailedEvent);
+                if(isPressed && !this._wasPressed.get(option)) {
+                    closest.down(detailedEvent);
+                    closest.addSelectedBy(option);
+                    this._selectedInteractables.set(option, closest);
+                } else if(!isPressed && this._wasPressed.get(option)) {
+                    closest.up(detailedEvent);
+                }
+            } else {
+                if(over) {
+                    over.out(basicEvent);
+                    this._overInteractables.delete(option);
+                }
+                if(!isPressed && this._wasPressed.get(option)) {
+                    for(let callback of this._emptyClickListeners) {
+                        callback(option);
+                    }
+                }
+            }
         }
         this._wasPressed.set(option, isPressed);
     }
 
-    _updateInteractablesTouchScreen(controller) {
-        let option = controller['option'];
-        let isPressed = controller['isPressed'];
-        let selectedInteractable = this._selectedInteractables.get(option);
-        if(this._screenWasTouched) {
-            if(!selectedInteractable) {
-                this._screenWasTouched = isPressed;
-                return;
-            }
+    //_updateInteractablesTouchScreen(controller) {
+    //    let option = controller['option'];
+    //    let isPressed = controller['isPressed'];
+    //    let selectedInteractable = this._selectedInteractables.get(option);
+    //    if(this._screenWasTouched) {
+    //        if(!selectedInteractable) {
+    //            this._screenWasTouched = isPressed;
+    //            return;
+    //        }
 
-            this._raycastInteractables(controller, this._interactables);
-            let userDistance = controller['userDistance'];
-            let closestInteractable = controller['closestInteractable'];
-            if(!isPressed) {
-                this._screenWasTouched = false;
-                if(closestInteractable == selectedInteractable) {
-                    selectedInteractable.triggerActions(option,
-                        controller['closestPoint'], userDistance);
-                }
-                selectedInteractable.removeSelectedBy(option);
-                this._selectedInteractables.delete(option);
-            } else {
-                if(selectedInteractable == closestInteractable) {
-                    selectedInteractable.triggerDragActions(option,
-                        controller['closestPoint'], userDistance);
-                } else {
-                    selectedInteractable.triggerDragActions(option, null,
-                        Infinity);
-                }
-            }
-        } else if(isPressed) {
-            this._screenWasTouched = true;
-            this._raycastInteractables(controller, this._interactables);
-            let userDistance = controller['userDistance'];
-            let closestInteractable = controller['closestInteractable'];
-            if(closestInteractable) {
-                closestInteractable.addSelectedBy(option,
-                    controller['closestPoint'], userDistance);
-                this._selectedInteractables.set(option, closestInteractable);
-            }
-        }
-    }
+    //        this._raycastInteractables(controller, this._interactables);
+    //        let userDistance = controller['userDistance'];
+    //        let closestInteractable = controller['closestInteractable'];
+    //        if(!isPressed) {
+    //            this._screenWasTouched = false;
+    //            if(closestInteractable == selectedInteractable) {
+    //                selectedInteractable.triggerActions(option,
+    //                    controller['closestPoint'], userDistance);
+    //            }
+    //            selectedInteractable.removeSelectedBy(option);
+    //            this._selectedInteractables.delete(option);
+    //        } else {
+    //            if(selectedInteractable == closestInteractable) {
+    //                selectedInteractable.triggerDragActions(option,
+    //                    controller['closestPoint'], userDistance);
+    //            } else {
+    //                selectedInteractable.triggerDragActions(option, null,
+    //                    Infinity);
+    //            }
+    //        }
+    //    } else if(isPressed) {
+    //        this._screenWasTouched = true;
+    //        this._raycastInteractables(controller, this._interactables);
+    //        let userDistance = controller['userDistance'];
+    //        let closestInteractable = controller['closestInteractable'];
+    //        if(closestInteractable) {
+    //            closestInteractable.addSelectedBy(option,
+    //                controller['closestPoint'], userDistance);
+    //            this._selectedInteractables.set(option, closestInteractable);
+    //        }
+    //    }
+    //}
 
     _updateCursor(controller) {
         let cursor = controller.cursor;
@@ -353,7 +405,8 @@ class PointerInteractableHandler extends InteractableHandler {
             this._updateInteractables(controller);
         }
         let style = this._renderer.domElement.style;
-        if(this._hoveredInteractables.get(this._option)) {
+        if(!this._selectedInteractables.get(this._option)
+                && this._hoveredInteractables.get(this._option)) {
             if(!style.cursor) style.cursor = 'pointer';
         } else if(style.cursor == 'pointer') {
             style.cursor = '';
@@ -369,11 +422,18 @@ class PointerInteractableHandler extends InteractableHandler {
             closestPointDistance: Number.MAX_SAFE_INTEGER,
             userDistance: Number.MAX_SAFE_INTEGER,
         };
+        controller.raycaster.disabled = !controller.isPressed
+            && !this._wasPressed.get(this._option);
+        let skipUpdate = false;
         if(this._toolHandlers[this._tool]) {
-            let skipUpdate = this._toolHandlers[this._tool](controller);
-            if(skipUpdate) return;
+            skipUpdate = this._toolHandlers[this._tool](controller);
         }
-        this._updateInteractablesTouchScreen(controller);
+        if(!skipUpdate) {
+            this._raycastInteractables(controller, this._interactables);
+            this._updateInteractables(controller);
+        } else {
+            this._wasPressed.set(this._option, controller.isPressed);
+        }
     }
 }
 

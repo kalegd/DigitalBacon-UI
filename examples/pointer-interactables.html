@@ -85,7 +85,7 @@
       DigitalBaconUI.InputHandler.enableXRControllerManagement(scene);
 
       const interactable = new DigitalBaconUI.PointerInteractable(cube);
-      interactable.addAction(() => {
+      interactable.addEventListener('click', () => {
         material.color.set(randomSaturatedColor());
       });
       DigitalBaconUI.addPointerInteractable(interactable);

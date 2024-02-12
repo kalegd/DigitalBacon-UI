@@ -59,46 +59,161 @@ class GripInteractableHandler extends InteractableHandler {
     }
 
     _updateInteractables(controller) {
-        let option = controller.option;
+        let option = controller['option'];
         let isPressed = controller['isPressed'];
-        this._scopeInteractables(controller, this._interactables);
-        let hoveredInteractable = this._hoveredInteractables.get(option);
-        let selectedInteractable = this._selectedInteractables.get(option);
-        let closestInteractable = controller['closestInteractable'];
-        if(closestInteractable) {
-            if(isPressed) {
-                if(!selectedInteractable 
-                        && hoveredInteractable == closestInteractable)
-                {
-                    closestInteractable.addSelectedBy(option);
-                    this._selectedInteractables.set(option,closestInteractable);
-                    closestInteractable.removeHoveredBy(option);
-                    this._hoveredInteractables.delete(option);
-                }
-            } else {
-                if(hoveredInteractable != closestInteractable) {
-                    if(hoveredInteractable) {
-                        hoveredInteractable.removeHoveredBy(option);
-                    }
-                    closestInteractable.addHoveredBy(option);
-                    this._hoveredInteractables.set(option, closestInteractable);
-                }
-                if(selectedInteractable) {
-                    selectedInteractable.removeSelectedBy(option);
-                    this._selectedInteractables.delete(option);
-                }
-            }
-        } else if(!isPressed) {
-            if(hoveredInteractable) {
-                hoveredInteractable.removeHoveredBy(option);
+        let hovered = this._hoveredInteractables.get(option);
+        let selected = this._selectedInteractables.get(option);
+        let over = this._overInteractables.get(option);
+        let closest = controller['closestInteractable'];
+        if(closest != hovered) {
+            if(hovered) {
+                hovered.removeHoveredBy(option);
                 this._hoveredInteractables.delete(option);
             }
-            if(selectedInteractable) {
-                selectedInteractable.removeSelectedBy(option);
-                this._selectedInteractables.delete(option);
+            if(closest && ((!selected && !isPressed) || closest == selected)) {
+                closest.addHoveredBy(option);
+                this._hoveredInteractables.set(option, closest);
+                hovered = closest;
             }
         }
+        //Events
+        //over  - when uncaptured pointer is first over an interactable. if
+        //        pointer becomes uncaptured while over another interactable,
+        //        we trigger this event
+        //out   - when uncaptured pointer is out. if pointer becomes uncaptured
+        //        while no longer over the capturing interactable, we trigger
+        //        this event
+        //down  - when select starts
+        //up    - when trigger released on an interactable. Also when a captured
+        //        action is released anywhere
+        //click - when trigger is released over selected interactable. Also when
+        //        captured action is released anywhere
+        //move  - when uncaptured pointer is over interactable. Also when a
+        //        captured pointer is anywhere
+        //drag  - when uncaptured pointer over selected interactable. Also when
+        //        captured pointer is anywhere
+        let basicEvent = { owner: option };
+        if(selected) {
+            if(!isPressed) {
+                selected.removeSelectedBy(option);
+                this._selectedInteractables.delete(option);
+            }
+            if(selected == closest) {
+                if(over != closest) {
+                    if(over) over.out(basicEvent);
+                    closest.over(basicEvent);
+                    this._overInteractables.set(option, closest);
+                }
+                closest.move(basicEvent);
+                closest.drag(basicEvent);
+                if(!isPressed) {
+                    closest.up(basicEvent);
+                    closest.click(basicEvent);
+                }
+            } else if(selected.isCapturedBy(option)) {
+                if(selected != over) {
+                    if(over) over.out(basicEvent);
+                    selected.over(basicEvent);
+                    this._overInteractables.set(option, selected);
+                    over = selected;
+                }
+                selected.move(basicEvent);
+                selected.drag(basicEvent);
+                if(!isPressed) {
+                    selected.up(basicEvent);
+                    selected.click(basicEvent);
+                    if(over) over.out(basicEvent);
+                    if(closest) {
+                        closest.over(basicEvent);
+                        this._overInteractables.set(option, closest);
+                    } else {
+                        this._overInteractables.delete(option);
+                    }
+                }
+            } else if(closest) {
+                if(over != closest) {
+                    if(over) over.out(basicEvent);
+                    closest.over(basicEvent);
+                    this._overInteractables.set(option, closest);
+                }
+                closest.move(basicEvent);
+                if(!isPressed) {
+                    closest.up(basicEvent);
+                }
+            } else if(over) {
+                over.out(basicEvent);
+                this._overInteractables.delete(option);
+            }
+        } else {
+            if(closest) {
+                if(over != closest) {
+                    if(over) over.out(basicEvent);
+                    closest.over(basicEvent);
+                    this._overInteractables.set(option, closest);
+                }
+                closest.move(basicEvent);
+                if(isPressed && !this._wasPressed.get(option)) {
+                    closest.down(basicEvent);
+                    closest.addSelectedBy(option);
+                    this._selectedInteractables.set(option, closest);
+                } else if(!isPressed && this._wasPressed.get(option)) {
+                    closest.up(basicEvent);
+                }
+            } else {
+                if(over) {
+                    over.out(basicEvent);
+                    this._overInteractables.delete(option);
+                }
+                if(!isPressed && this._wasPressed.get(option)) {
+                    for(let callback of this._emptyClickListeners) {
+                        callback(option);
+                    }
+                }
+            }
+        }
+        this._wasPressed.set(option, isPressed);
     }
+
+    //_updateInteractables(controller) {
+    //    let option = controller.option;
+    //    let isPressed = controller['isPressed'];
+    //    let hoveredInteractable = this._hoveredInteractables.get(option);
+    //    let selectedInteractable = this._selectedInteractables.get(option);
+    //    let closestInteractable = controller['closestInteractable'];
+    //    if(closestInteractable) {
+    //        if(isPressed) {
+    //            if(!selectedInteractable 
+    //                    && hoveredInteractable == closestInteractable)
+    //            {
+    //                closestInteractable.addSelectedBy(option);
+    //                this._selectedInteractables.set(option,closestInteractable);
+    //                closestInteractable.removeHoveredBy(option);
+    //                this._hoveredInteractables.delete(option);
+    //            }
+    //        } else {
+    //            if(hoveredInteractable != closestInteractable) {
+    //                if(hoveredInteractable) {
+    //                    hoveredInteractable.removeHoveredBy(option);
+    //                }
+    //                closestInteractable.addHoveredBy(option);
+    //                this._hoveredInteractables.set(option, closestInteractable);
+    //            }
+    //            if(selectedInteractable) {
+    //                selectedInteractable.removeSelectedBy(option);
+    //                this._selectedInteractables.delete(option);
+    //            }
+    //        }
+    //    } else if(!isPressed) {
+    //        if(hoveredInteractable) {
+    //            hoveredInteractable.removeHoveredBy(option);
+    //            this._hoveredInteractables.delete(option);
+    //        }
+    //        if(selectedInteractable) {
+    //            selectedInteractable.removeSelectedBy(option);
+    //            this._selectedInteractables.delete(option);
+    //        }
+    //    }
+    //}
 
     _updateForXR() {
         for(let handedness in Handedness) {
@@ -136,19 +251,13 @@ class GripInteractableHandler extends InteractableHandler {
                 if(this._toolHandlers[this._tool]) {
                     skipUpdate = this._toolHandlers[this._tool](controller);
                 }
-                if(!skipUpdate) this._updateInteractables(controller);
+                if(!skipUpdate) {
+                    this._scopeInteractables(controller, this._interactables);
+                    this._updateInteractables(controller);
+                }
             }
         }
     }
-
-    _updateForPointer() {
-        return;
-    }
-
-    _updateForTouchScreen() {
-        return;
-    }
-
 }
 
 let gripInteractableHandler = new GripInteractableHandler();

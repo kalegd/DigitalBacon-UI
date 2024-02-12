@@ -58,8 +58,8 @@ class TextArea extends ScrollableComponent {
         this._text = new Text('', this._textStyle);
         this._content.add(this._text);
         this._createCaret();
-        this.onClick = this.onTouch =
-            (owner, closestPoint) => this._select(owner, closestPoint);
+        this.onClick = this.onTouch = (e) => this._select(e);
+        this._emptyClickListener = () => this.blur();
         this._keyListener = (event) => this.handleKey(event.key);
         this._pasteListener = (event) => this._handlePaste(event);
         this._syncCompleteListener = () => {
@@ -88,8 +88,9 @@ class TextArea extends ScrollableComponent {
         this._caret._updateMaterialOffset(this._materialOffset + 1);
     }
 
-    _select(owner, closestPoint) {
-        if(!closestPoint) return;
+    _select(e) {
+        let { owner, closestPoint } = e;
+        if(!closestPoint) return;//TODO: for touch we need to find point
         if(this._textStyle.minHeight != this._caret.computedHeight)
             this._textStyle.minHeight = this._caret.computedHeight;
         this._text._content.add(this._caretParent);
@@ -98,12 +99,13 @@ class TextArea extends ScrollableComponent {
         let caret = getCaretAtPoint(troikaText.textRenderInfo, VEC3.x, VEC3.y);
         this._setCaretIndexFromCharIndex(caret.charIndex);
         this._updateCaret();
-        if(!this._emptyClickId) this._addListeners();
+        if(!this._hasListeners) this._addListeners();
     }
 
     _addListeners() {
-        this._emptyClickId = PointerInteractableHandler
-            .addEmptyClickListener(() => this.blur());
+        this._hasListeners = true;
+        PointerInteractableHandler.addEmptyClickListener(
+            this._emptyClickListener);
         if(DeviceTypes.active == 'XR') {
             Keyboard.register(this);
         } else if(DeviceTypes.active == 'TOUCH_SCREEN') {
@@ -119,8 +121,8 @@ class TextArea extends ScrollableComponent {
 
     _removeListeners() {
         PointerInteractableHandler.removeEmptyClickListener(
-            this._emptyClickId);
-        this._emptyClickId = null;
+            this._emptyClickListener);
+        this._hasListeners = false;
         if(DeviceTypes.active == 'POINTER') {
             Keyboard.unregister(this);
         } else if(DeviceTypes.active == 'TOUCH_SCREEN') {
@@ -257,8 +259,7 @@ class TextArea extends ScrollableComponent {
     }
 
     _checkForCaretScroll(isSync) {
-        if(!this._pointerInteractableAction.dragAction
-                && this._content.position.y != 0) {
+        if(!this._scrollable && this._content.position.y != 0) {
             this._content.position.y = 0;
             return;
         }
@@ -275,7 +276,7 @@ class TextArea extends ScrollableComponent {
     }
 
     blur() {
-        if(this._emptyClickId) this._removeListeners();
+        if(this._hasListeners) this._removeListeners();
     }
 
     insertContent(content) {

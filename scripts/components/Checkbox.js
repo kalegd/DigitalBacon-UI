@@ -26,7 +26,7 @@ class Checkbox extends InteractableComponent {
         this._text.textAlign = 'center';
         this._text.anchorX = 'center';
         this._text.anchorY = 'middle';
-        this.onClick = this.onTouch = (owner) => this._change();
+        this.onClick = this.onTouch = () => this._change();
         if(this.overflow != 'visible')
             this._text.material.clippingPlanes = this._getClippingPlanes();
         this.updateLayout();

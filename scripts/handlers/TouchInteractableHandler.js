@@ -92,18 +92,23 @@ class TouchInteractableHandler extends InteractableHandler {
             this._selectedInteractables.set(option, new Set());
         let selectedInteractables = this._selectedInteractables.get(option);
         let touchedInteractables = controller['touchedInteractables'];
+        let basicEvent = { owner: option };
         for(let interactable of selectedInteractables) {
             if(!touchedInteractables.has(interactable)) {
                 interactable.removeSelectedBy(option);
                 selectedInteractables.delete(interactable);
+                interactable.drag(basicEvent);
+                interactable.up(basicEvent);
+                interactable.click(basicEvent);
             }
         }
         for(let interactable of touchedInteractables) {
             if(selectedInteractables.has(interactable)) {
-                interactable.triggerDragActions(option);
+                interactable.drag(basicEvent);
             } else {
                 interactable.addSelectedBy(option);
                 selectedInteractables.add(interactable);
+                interactable.down(basicEvent);
             }
         }
     }
@@ -149,15 +154,6 @@ class TouchInteractableHandler extends InteractableHandler {
             }
         }
     }
-
-    _updateForPointer() {
-        return;
-    }
-
-    _updateForTouchScreen() {
-        return;
-    }
-
 }
 
 let touchInteractableHandler = new TouchInteractableHandler();

@@ -12,8 +12,12 @@ export default class InteractableHandler {
         this._interactables = new Set();
         this._hoveredInteractables = new Map();
         this._selectedInteractables = new Map();
+        this._capturedInteractables = new Map();
+        this._overInteractables = new Map();
+        this._wasPressed = new Map();
         this._tool = null;
         this._toolHandlers = {};
+        this._emptyClickListeners = new Set();
     }
 
     _setupXRSubscription() {
@@ -25,8 +29,8 @@ export default class InteractableHandler {
             for(let [option, interactable] of this._selectedInteractables) {
                 if(!interactable) continue;
                 let count = 0;
-                if(tool) count += interactable.getActionsLength(tool);
-                if(this._tool) count += interactable.getActionsLength(
+                if(tool) count += interactable.getCallbacksLength(tool);
+                if(this._tool) count += interactable.getCallbacksLength(
                     this._tool);
                 if(count) {
                     interactable.removeSelectedBy(option);
@@ -46,6 +50,14 @@ export default class InteractableHandler {
         } else if(DeviceTypes.active == "TOUCH_SCREEN") {
             this.update = this._updateForTouchScreen;
         }
+    }
+
+    addEmptyClickListener(callback) {
+        this._emptyClickListeners.add(callback);
+    }
+
+    removeEmptyClickListener(callback) {
+        this._emptyClickListeners.delete(callback);
     }
 
     registerToolHandler(tool, handler) {
@@ -82,5 +94,8 @@ export default class InteractableHandler {
     }
 
     update() {}
+    _updateForXR() {}
+    _updateForPointer() {}
+    _updateForTouchScreen() {}
 
 }

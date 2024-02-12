@@ -9,6 +9,7 @@ import PointerInteractable from '/scripts/interactables/PointerInteractable.js';
 import TouchInteractable from '/scripts/interactables/TouchInteractable.js';
 import PointerInteractableHandler from '/scripts/handlers/PointerInteractableHandler.js';
 import TouchInteractableHandler from '/scripts/handlers/TouchInteractableHandler.js';
+import { capitalizeFirstLetter } from '/scripts/utils.js';
 import * as THREE from 'three';
 
 class InteractableComponent extends LayoutComponent {
@@ -16,18 +17,10 @@ class InteractableComponent extends LayoutComponent {
         super(...styles);
         this.pointerInteractable = new PointerInteractable(this);
         this.touchInteractable = new TouchInteractable(this);
-        this._clickAction = (owner, closestPoint) => this._pointerClick(owner,
-            closestPoint);
-        this._dragAction = (owner, closestPoint) => this._pointerDrag(owner,
-            closestPoint);
-        this._touchAction = (owner) => this._touch(owner);
-        this._touchDragAction = (owner) => this._touchDrag(owner);
-        this._pointerInteractableAction = this.pointerInteractable.addAction(
-            this._clickAction, this._dragAction);
-        this._touchInteractableAction = this.touchInteractable.addAction(
-            this._touchAction, this._touchDragAction);
-        this.pointerInteractable.removeAction(this._pointerInteractableAction);
-        this.touchInteractable.removeAction(this._touchInteractableAction);
+        this._clickAction = (e) => this._pointerClick(e);
+        this._dragAction = (e) => this._pointerDrag(e);
+        this._touchAction = (e) => this._touch(e);
+        this._touchDragAction = (e) => this._touchDrag(e);
         this.addEventListener('added', () => this._onAdded());
         this.addEventListener('removed', () => this._onRemoved());
     }
@@ -38,68 +31,27 @@ class InteractableComponent extends LayoutComponent {
         this.touchInteractable.setObject(this._background);
     }
 
-    updateLayout() {
-        super.updateLayout();
-        this._updateInteractables();
-    }
-
-    _updateInteractables() {
-        let clickActive = this._onClick != null || this._onDrag != null;
-        let touchActive = this._onTouch != null || this._onTouchDrag != null;
-        let hasClickAction = this.pointerInteractable.hasAction(
-            this._pointerInteractableAction);
-        let hasTouchAction = this.touchInteractable.hasAction(
-            this._touchInteractableAction);
-        if(this._onDrag) {
-            this._pointerInteractableAction.dragAction = this._dragAction;
-        } else {
-            delete this._pointerInteractableAction.dragAction;
-        }
-        if(this._onTouchDrag) {
-            this._touchInteractableAction.dragAction = this._touchDragAction;
-        } else {
-            delete this._touchInteractableAction.dragAction;
-        }
-        if(clickActive != hasClickAction) {
-            if(clickActive) {
-                this.pointerInteractable.addAction(
-                    this._pointerInteractableAction);
-            } else {
-                this.pointerInteractable.removeAction(
-                    this._pointerInteractableAction);
-            }
-        }
-        if(touchActive != hasTouchAction) {
-            if(touchActive) {
-                this.touchInteractable.addAction(this._touchInteractableAction);
-            } else {
-                this.touchInteractable.removeAction(
-                    this._touchInteractableAction);
-            }
-        }
-    }
-
-    _pointerClick(owner, closestPoint) {
+    _pointerClick(e) {
         if(this._onClick) {
-            this._onClick(owner, closestPoint);
+            this._onClick(e);
         }
     }
 
-    _pointerDrag(owner, closestPoint) {
+    _pointerDrag(e) {
         if(this._onDrag) {
-            this._onDrag(owner, closestPoint);
+            this._onDrag(e);
         }
     }
 
-    _touch(owner) {
+    _touch(e) {
         if(this._onTouch) {
-            this._onTouch(owner);
+            this._onTouch(e);
         }
     }
 
-    _touchDrag(owner) {
+    _touchDrag(e) {
         if(this._onTouchDrag) {
-            this._onTouchDrag(owner);
+            this._onTouchDrag(e);
         }
     }
 
@@ -136,15 +88,34 @@ class InteractableComponent extends LayoutComponent {
         }
     }
 
+    _setCallback(interactable, type, name, newCallback) {
+        let callbackName = '_on' + capitalizeFirstLetter(name);
+        let localCallbackName = '_' + name + 'Action';
+        if(newCallback && !this[callbackName]) {
+            interactable.addEventListener(type, this[localCallbackName]);
+        } else if(!newCallback && this[callbackName]) {
+            interactable.removeEventListener(type, this[localCallbackName]);
+        }
+        this[callbackName] = newCallback;
+    }
+
     get onClick() { return this._onClick; }
     get onDrag() { return this._onDrag; }
     get onTouch() { return this._onTouch; }
     get onTouchDrag() { return this._onTouchDrag; }
 
-    set onClick(v) { this._onClick = v; this._updateInteractables(); }
-    set onDrag(v) { this._onDrag = v; this._updateInteractables(); }
-    set onTouch(v) { this._onTouch = v; this._updateInteractables(); }
-    set onTouchDrag(v) { this._onTouchDrag = v; this._updateInteractables(); }
+    set onClick(v) {
+        this._setCallback(this.pointerInteractable, 'click', 'click', v);
+    }
+    set onDrag(v) {
+        this._setCallback(this.pointerInteractable, 'drag', 'drag', v);
+    }
+    set onTouch(v) {
+        this._setCallback(this.touchInteractable, 'click', 'touch', v);
+    }
+    set onTouchDrag(v) {
+        this._setCallback(this.touchInteractable, 'drag', 'touchDrag', v);
+    }
 }
 
 export default InteractableComponent;

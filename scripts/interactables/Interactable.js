@@ -15,41 +15,84 @@ class Interactable {
         this.children = new Set();
         this._hoveredOwners = new Set();
         this._selectedOwners = new Set();
-        this._actions = {};
-        this._actionsLength = 0;
+        this._capturedOwners = new Set();
+        this._callbacks = {};
+        this._callbacksLength = 0;
         this._toolCounts = {};
+        this._hoveredCallbackState = false;
     }
 
-    addAction(tool) {
-        let id = uuidv4();
-        let action = {
-            id: id,
-            tool: tool,
-        };
-        this._actions[id] = action;
-        this._actionsLength = Object.keys(this._actions).length;
-        tool = tool || 'none';
+    addEventListener(type, callback, options) {
+        if(options) options = { ...options };//Shallow copy
+        let tool = options?.tool || 'none';
+        if(!(type in this._callbacks)) this._callbacks[type] = new Map();
+        if(this._callbacks[type].has(callback))
+            this.removeEventListener(type, callback);
+        this._callbacks[type].set(callback, options);
+        this._callbacksLength++;
         if(!this._toolCounts[tool]) this._toolCounts[tool] = 0;
         this._toolCounts[tool]++;
-        return action;
     }
 
-    removeAction(id) {
-        if(id?.id) id = id.id;
-        let action = this._actions[id];
-        delete this._actions[id];
-        this._actionsLength = Object.keys(this._actions).length;
-        if(action) this._toolCounts[action.tool || 'none']--;
-        return action;
+    removeEventListener(type, callback) {
+        if(type in this._callbacks && this._callbacks[type].has(callback)) {
+            let options = this._callbacks[type].get(callback);
+            this._callbacks[type].delete(callback)
+            this._callbacksLength--;
+            let tool = options?.tool || 'none';
+            this._toolCounts[tool]--;
+        }
     }
 
-    hasAction(id) {
-        if(id?.id) id = id.id;
-        return this._actions[id] != null;
+    dispatchEvent(type, e) {
+        if(!(type in this._callbacks)) return;
+        let tool = InteractionTool.getTool();
+        for(let [callback, options] of this._callbacks[type]) {
+            let callbackTool = options?.tool;
+            if(!callbackTool || callbackTool == tool) callback(e);
+        }
     }
 
-    getActionsLength(tool) {
-        return (tool) ? this._toolCounts[tool] : this._actionsLength;
+    over(e) {
+        this.dispatchEvent('over', e);
+    }
+
+    out(e) {
+        this.dispatchEvent('out', e);
+    }
+
+    down(e) {
+        this.dispatchEvent('down', e);
+    }
+
+    up(e) {
+        this.dispatchEvent('up', e);
+    }
+
+    click(e) {
+        this.dispatchEvent('click', e);
+        if(this._capturedOwners.has(e.owner))
+            this._capturedOwners.delete(e.owner);
+    }
+
+    move(e) {
+        this.dispatchEvent('move', e);
+    }
+
+    drag(e) {
+        this.dispatchEvent('drag', e);
+    }
+
+    capture(owner) {
+        this._capturedOwners.add(owner);
+    }
+
+    isCapturedBy(owner) {
+        return this._capturedOwners.has(owner);
+    }
+
+    getCallbacksLength(tool) {
+        return (tool) ? this._toolCounts[tool] : this._callbacksLength;
     }
 
     supportsTool() {
@@ -98,30 +141,46 @@ class Interactable {
         }
     }
 
+    _determineHoveredCallbackState() {
+        if(!this._hoveredCallback) return;
+        let newState = false;
+        for(let owner of this._hoveredOwners) {
+            if(!this._selectedOwners.has(owner)) {
+                newState = true;
+                break;
+            }
+        }
+        if(newState != this._hoveredCallbackState) {
+            console.log(newState);
+            this._hoveredCallbackState = newState;
+            this._hoveredCallback(newState);
+        }
+    }
+
     addHoveredBy(owner) {
         if(this._hoveredOwners.has(owner)) return;
         this._hoveredOwners.add(owner);
-        if(this._hoveredOwners.size == 1 && this._hoveredCallback)
-            this._hoveredCallback(true);
+        this._determineHoveredCallbackState();
         if(this._selectedOwners.size == 0)
             this.setState(States.HOVERED);
     }
 
     removeHoveredBy(owner) {
         this._hoveredOwners.delete(owner);
-        if(this._hoveredOwners.size == 0 && this._hoveredCallback) {
-            this._hoveredCallback(false);
-        }
         this._determineAndSetState();
+        this._determineHoveredCallbackState();
     }
 
-    addSelectedBy(_owner) {
-        console.error("Interactable.addSelectedBy(owner) must be overridden");
+    addSelectedBy(owner) {
+        this._selectedOwners.add(owner);
+        this.setState(States.SELECTED);
+        this._determineHoveredCallbackState();
     }
 
-    removeSelectedBy(_owner) {
-        console.error(
-            "Interactable.removeSelectedBy(owner) must be overridden");
+    removeSelectedBy(owner) {
+        this._selectedOwners.delete(owner);
+        this._determineAndSetState();
+        this._determineHoveredCallbackState();
     }
 
     reset() {

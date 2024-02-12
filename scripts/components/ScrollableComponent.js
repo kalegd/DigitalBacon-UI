@@ -8,7 +8,7 @@ import InteractableComponent from '/scripts/components/InteractableComponent.js'
 import LayoutComponent from '/scripts/components/LayoutComponent.js';
 import PointerInteractable from '/scripts/interactables/PointerInteractable.js';
 import PointerInteractableHandler from '/scripts/handlers/PointerInteractableHandler.js';
-import { numberOr } from '/scripts/utils.js';
+import { capitalizeFirstLetter, numberOr } from '/scripts/utils.js';
 import * as THREE from 'three';
 
 const VEC3 = new THREE.Vector3();
@@ -23,6 +23,30 @@ class ScrollableComponent extends InteractableComponent {
         this._scrollBoundsMin = new THREE.Vector2();
         this._scrollBoundsMax = new THREE.Vector2();
         this._scrollOwner;
+        this._scrollable = false;
+        this._downAction = (e) => this.pointerInteractable.capture(e.owner);
+        this._touchDownAction = (e) => this.touchInteractable.capture(e.owner);
+    }
+
+    updateLayout() {
+        super.updateLayout();
+        let wasScrollable = this._scrollable;
+        this._updateScrollable();
+        let scrollableAncestor = this._getScrollableAncestor() != null;
+        if(wasScrollable == (this._scrollable || scrollableAncestor)) return;
+        let functionName = (wasScrollable)
+            ? 'removeEventListener'
+            : 'addEventListener';
+        this.pointerInteractable[functionName]('down', this._downAction);
+        this.touchInteractable[functionName]('down', this._touchDownAction);
+        if(!this._onClick)
+            this.pointerInteractable[functionName]('click', this._clickAction);
+        if(!this._onDrag)
+            this.pointerInteractable[functionName]('drag', this._dragAction);
+        if(!this._onTouch)
+            this.touchInteractable[functionName]('click', this._touchAction);
+        if(!this._onDrag)
+            this.touchInteractable[functionName]('drag', this._touchDragAction);
     }
 
     _updateScrollable() {
@@ -33,8 +57,9 @@ class ScrollableComponent extends InteractableComponent {
         let overflowScroll = (this.overflow == 'scroll');
         this._verticallyScrollable = contentHeight > height && overflowScroll;
         this._horizontallyScrollable = contentWidth > width && overflowScroll;
-        this.scrollable = this._verticallyScrollable
+        this._scrollable = this._verticallyScrollable
             || this._horizontallyScrollable;
+        if(!this._scrollable) return;
         let justifyContent = this.justifyContent;
         let alignItems = this.alignItems;
         let dimension, otherDimension, contentDimension, otherContentDimension,
@@ -90,65 +115,25 @@ class ScrollableComponent extends InteractableComponent {
         }
     }
 
-    _updateInteractables() {
-        this._updateScrollable();
-        let clickActive = this.scrollable || this._onClick != null
-            || this._onDrag != null;
-        let touchActive = this.scrollable || this._onTouch != null
-            || this._onTouchDrag != null;
-        let hasClickAction = this.pointerInteractable.hasAction(
-            this._pointerInteractableAction);
-        let hasTouchAction = this.touchInteractable.hasAction(
-            this._touchInteractableAction);
-        let scrollableAncestor = this._getScrollableAncestor();
-        if(this.scrollable || this._onDrag
-                || (this._onClick && scrollableAncestor)) {
-            this._pointerInteractableAction.dragAction = this._dragAction;
-        } else {
-            delete this._pointerInteractableAction.dragAction;
-        }
-        if(this.scrollable || this._onTouchDrag
-                || (this._onTouch && scrollableAncestor)) {
-            this._touchInteractableAction.dragAction = this._touchDragAction;
-        } else {
-            delete this._touchInteractableAction.dragAction;
-        }
-        if(clickActive != hasClickAction) {
-            if(clickActive) {
-                this.pointerInteractable.addAction(
-                    this._pointerInteractableAction);
-            } else {
-                this.pointerInteractable.removeAction(
-                    this._pointerInteractableAction);
-            }
-        }
-        if(touchActive != hasTouchAction) {
-            if(touchActive) {
-                this.touchInteractable.addAction(this._touchInteractableAction);
-            } else {
-                this.touchInteractable.removeAction(
-                    this._touchInteractableAction);
-            }
-        }
-    }
-
-    _pointerClick(owner, closestPoint) {
+    _pointerClick(e) {
+        let { owner, closestPoint } = e;
         if(this._scrollAncestor) {
             let clickEnabled = !this._scrollAncestor.scrollThresholdReached;
             this._scrollAncestor.clearScroll(owner);
             this._scrollAncestor = null;
             if(this._onClick && clickEnabled && closestPoint)
-                this._onClick(owner,closestPoint);
+                this._onClick(e);
         } else if(this._onClick) {
-            this._onClick(owner, closestPoint);
+            this._onClick(e);
         }
         this.clearScroll(owner);
     }
 
-    _pointerDrag(owner, closestPoint) {
+    _pointerDrag(e) {
+        let { owner, closestPoint } = e;
         if(this._onDrag) {
-            this._onDrag(owner, closestPoint);
-        } else if(this.scrollable) {
+            this._onDrag(e);
+        } else if(this._scrollable) {
             this.handleScroll(owner, closestPoint);
         } else if(this._scrollAncestor) {
             this._scrollAncestor.handleScroll(owner, closestPoint);
@@ -159,7 +144,8 @@ class ScrollableComponent extends InteractableComponent {
         }
     }
 
-    _touch(owner) {
+    _touch(e) {
+        let owner = e.owner;
         if(this._scrollAncestor) {
             let touchEnabled = !this.scrollThresholdReached;
             this.scrollThresholdReached = false;
@@ -172,10 +158,11 @@ class ScrollableComponent extends InteractableComponent {
         this.clearScroll(owner);
     }
 
-    _touchDrag(owner) {
+    _touchDrag(e) {
+        let owner = e.owner;
         if(this._onTouchDrag) {
             this._onTouchDrag(owner);
-        } else if(this.scrollable) {
+        } else if(this._scrollable) {
             this.handleTouchScroll(owner, this.touchInteractable);
         } else if(this._scrollAncestor) {
             if(this._scrollAncestor.scrollThresholdReached
@@ -251,7 +238,7 @@ class ScrollableComponent extends InteractableComponent {
     _getScrollableAncestor() {
         let object = this.parentComponent;
         while(object instanceof LayoutComponent) {
-            if(object.scrollable) return object;
+            if(object._scrollable) return object;
             object = object.parentComponent;
         }
     }
@@ -282,6 +269,19 @@ class ScrollableComponent extends InteractableComponent {
                 this.scrollThresholdReached = true;
             }
         }
+    }
+
+    _setCallback(interactable, type, name, newCallback) {
+        let callbackName = '_on' + capitalizeFirstLetter(name);
+        let localCallbackName = '_' + name + 'Action';
+        if(!this._scrollable && !this._getScrollableAncestor()) {
+            if(newCallback && !this[callbackName]) {
+                interactable.addEventListener(type, this[localCallbackName]);
+            } else if(!newCallback && this[callbackName]) {
+                interactable.removeEventListener(type, this[localCallbackName]);
+            }
+        }
+        this[callbackName] = newCallback;
     }
 }
 
