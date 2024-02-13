@@ -373,7 +373,7 @@ class Keyboard extends InteractableComponent {
         if(this._registeredComponent) this._registeredComponent.blur();
         this._registeredComponent = component;
         let body = getComponentBody(component);
-        if(type == 'Number') {
+        if(type == Keyboard.types.NUMBER) {
             this._setNumberPage();
         }
         if(this._onPopup) {
@@ -423,6 +423,8 @@ class Keyboard extends InteractableComponent {
 
     get onPopup() { return this._onPopup; }
     set onPopup(onPopup) { this._onPopup = onPopup }
+
+    static types = { NUMBER: 'NUMBER' };
 }
 
 function getComponentBody(component) {

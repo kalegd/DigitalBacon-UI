@@ -152,7 +152,7 @@ class TextArea extends ScrollableComponent {
             div.style.alignItems = 'center';
             div.style.backgroundColor = '#00000069';
             div.appendChild(textArea);
-            div.onclick = () => {
+            div.onclick = (e) => {
                 if(e.target != div) return;
                 this._text.text = textArea.value;
                 this.blur();
@@ -239,7 +239,7 @@ class TextArea extends ScrollableComponent {
         } else if(key == "Backspace") {
             this._deleteChar();
         } else if(key == "Enter") {
-            (this._submitOnEnter) ? this.blur() : this.insertContent('\n');
+            this.insertContent('\n');
         } else if(ARROW_KEYS.has(key)) {
             this._moveCaret(key);
         } else if(!IGNORED_KEYS.has(key)) {

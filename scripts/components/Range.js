@@ -72,13 +72,13 @@ class Range extends InteractableComponent {
     _select(e) {
         let { owner, closestPoint } = e;
         this._updateValue(owner, closestPoint);
-        if(this._onChange) this._onChange(this._value, false);
+        if(this._onBlur) this._onBlur(this._value);
     }
 
     _drag(e) {
         let { owner, closestPoint } = e;
         this._updateValue(owner, closestPoint);
-        if(this._onChange) this._onChange(this._value, true);
+        if(this._onChange) this._onChange(this._value);
     }
 
     _updateValue(owner, closestPoint) {
@@ -102,9 +102,11 @@ class Range extends InteractableComponent {
         }
     }
 
+    get onBlur() { return this._onBlur; }
     get onChange() { return this._onChange; }
     get value() { return this._value; }
 
+    set onBlur(onBlur) { this._onBlur = onBlur; }
     set onChange(onChange) { this._onChange = onChange; }
     set value(value) {
         this._value = Math.max(0, Math.min(value, 1));
