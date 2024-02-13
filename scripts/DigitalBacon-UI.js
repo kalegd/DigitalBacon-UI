@@ -126,6 +126,7 @@ export { GripInteractableHandler };
 export { PointerInteractableHandler };
 export { TouchInteractableHandler };
 export { InputHandler };
+export { UpdateHandler };
 export { ThreeMeshBVH };
 export { TroikaThreeText };
 export { addGripInteractable };

@@ -10,6 +10,7 @@ import * as THREE from 'three';
 class Body extends ScrollableComponent {
     constructor(...styles) {
         super(...styles);
+        this.bypassContentPositioning = true;
         this._defaults['backgroundVisible'] = true;
         this._defaults['borderRadius'] = 0.05;
         this._defaults['borderWidth'] = 0.001;

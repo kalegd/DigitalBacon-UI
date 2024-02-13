@@ -3,7 +3,7 @@ const ENGLISH = {
     pages: [{
         style: { padding: 0.01 },
         rows: [{
-            keys: ['q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p'],
+            keys: ['q', 'w', { text: 'e', type: 'key', value: 'e', additionalCharacters: ['é', 'è', 'ë', 'ê'] }, 'r', 't', 'y', 'u', 'i', 'o', 'p'],
         }, {
             keys: ['a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l'],
         }, {

@@ -11,7 +11,10 @@ import Span from '/scripts/components/Span.js';
 import Text from '/scripts/components/Text.js';
 import InteractableComponent from '/scripts/components/InteractableComponent.js';
 import LayoutComponent from '/scripts/components/LayoutComponent.js';
+import DeviceTypes from '/scripts/enums/DeviceTypes.js';
 import KeyboardLayouts from '/scripts/enums/KeyboardLayouts.js';
+import InputHandler from '/scripts/handlers/InputHandler.js';
+import UpdateHandler from '/scripts/handlers/UpdateHandler.js';
 import * as THREE from 'three';
 
 const HOVERED_Z_OFFSET = 0.01;
@@ -37,10 +40,13 @@ const SHIFT_STATES = {
 class Keyboard extends InteractableComponent {
     constructor(...styles) {
         super(...styles);
+        this.bypassContentPositioning = true;
         this._defaults['backgroundVisible'] = true;
         this._defaults['materialColor'] = 0xc0c5ce;
         this._layouts = {};
         this._keyboardPageLayouts = [];
+        this._timeoutIds = new Map();
+        this._updateListeners = new Map();
         this._createOptionsPanel();
         this._addLayout(KeyboardLayouts.ENGLISH);
         this._addLayout(KeyboardLayouts.RUSSIAN);
@@ -134,6 +140,9 @@ class Keyboard extends InteractableComponent {
                 keyDiv.pointerInteractable.setHoveredCallback((hovered) => {
                     text.position.z = (hovered) ? HOVERED_Z_OFFSET : 0.00000001;
                 });
+                if(typeof key != 'string' && key.additionalCharacters) {
+                    this._addAdditionalCharacters(keyDiv, key);
+                }
                 keyDiv.onClick = () => {
                     if(typeof key == 'string') {
                         let eventKey = (this._shiftState == 'UNSHIFTED')
@@ -184,6 +193,100 @@ class Keyboard extends InteractableComponent {
         this._reposition();
     }
 
+    _addAdditionalCharacters(div, key) {
+        div.pointerInteractable.addEventListener('down', (e) => {
+            let owner = e.owner;
+            if(e.additionalCharactersOwner) return;
+            this._timeoutIds.set(owner, setTimeout(() => {
+                this._displayAdditionalCharacters(div, key);
+                this._timeoutIds.delete(owner);
+            }, 500));
+            div.additionalCharactersOwner = owner;
+            let outCallback = (e2) => {
+                if(e2.owner != owner) return;
+                if(this._timeoutIds.has(owner)) {
+                    clearTimeout(this._timeoutIds.get(owner));
+                    this._timeoutIds.delete(owner);
+                    UpdateHandler.remove(this._updateListeners.get(owner));
+                    delete div.additionalCharactersOwner;
+                }
+                div.pointerInteractable.removeEventListener('out', outCallback);
+            };
+            div.pointerInteractable.addEventListener('out', outCallback);
+            this._updateListeners.set(owner, () => {
+                let isPressed;
+                if(DeviceTypes.active == 'XR') {
+                    let handedness = owner.handedness;
+                } else if(DeviceTypes.active == 'POINTER') {
+                    isPressed = InputHandler.isPointerPressed();
+                } else {
+                    isPressed = InputHandler.isScreenTouched();
+                }
+                if(!isPressed) {
+                    if(this._timeoutIds.has(owner)) {
+                        clearTimeout(this._timeoutIds.get(owner));
+                        this._timeoutIds.delete(owner);
+                    }
+                    if(div.additionalCharactersSpan)
+                        div.remove(div.additionalCharactersSpan);
+                    div.pointerInteractable.removeEventListener('out',
+                        outCallback);
+                    UpdateHandler.remove(this._updateListeners.get(owner));
+                    delete div.additionalCharactersOwner;
+                }
+            });
+            UpdateHandler.add(this._updateListeners.get(owner));
+        });
+    }
+
+    _displayAdditionalCharacters(div, key) {
+        if(div.additionalCharactersSpan) {
+            div.additionalCharactersSpan.borderRadius = this.borderRadius;
+            div.add(div.additionalCharactersSpan);
+            return;
+        }
+        let characters = key.additionalCharacters;
+        let span = new Span({
+            backgroundVisible: true,
+            materialColor: 0xc0c5ce,
+        });
+        span.bypassContentPositioning = true;
+        span.position.y = div.computedHeight;
+        for(let content of characters) {
+            let keyDiv = new Div(DEFAULT_KEY_STYLE, key.style);
+
+            let text = new Text(content, DEFAULT_FONT_STYLE);
+            if(this._shiftState != 'UNSHIFTED')
+                text.text = text.text.toUpperCase();
+            keyDiv.add(text);
+            span.add(keyDiv);
+            keyDiv.pointerInteractable.addEventListener('over', () => {
+                text.position.z = HOVERED_Z_OFFSET;
+            });
+            keyDiv.pointerInteractable.addEventListener('out', () => {
+                text.position.z = 0.00000001;
+            });
+            keyDiv.pointerInteractable.addEventListener('up', () => {
+                let eventKey = (this._shiftState == 'UNSHIFTED')
+                    ? content
+                    : content.toUpperCase();
+                this._registeredComponent.handleKey(eventKey);
+                if(this._shiftState == 'SHIFTED') {
+                    this._shiftState = 'UNSHIFTED';
+                    this._shiftCase(this._keyboardPage, false);
+                }
+            });
+        }
+        span.borderRadius = this.borderRadius;
+        let padding = div?.parentComponent?.parentComponent?.padding;
+        if(padding) {
+            span.padding = padding;
+            span.position.y += padding;
+        }
+        div.additionalCharactersSpan = span;
+        div.add(span);
+    }
+
     _setLanguagesPage() {
         for(let child of this._content.children) {
             if(child instanceof LayoutComponent) this.remove(child);
@@ -227,6 +330,13 @@ class Keyboard extends InteractableComponent {
                 let text = div._content.children[0];
                 if(text.text.length == 1) {
                     text.text = text.text[shiftCaseFunction]();
+                }
+                if(div.additionalCharactersSpan) {
+                    let extras = div.additionalCharactersSpan._content.children;
+                    for(let div2 of extras) {
+                        let text = div2._content.children[0];
+                        text.text = text.text[shiftCaseFunction]();
+                    }
                 }
             }
         }

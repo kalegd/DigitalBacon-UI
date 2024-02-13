@@ -152,10 +152,12 @@ class InputHandler {
                 if(inputSource.targetRaySpace) {
                     xrInputDevice.controllers.targetRay = new Object3D();
                     xrInputDevice.controllers.targetRay.xrInputDeviceType =type;
+                    xrInputDevice.controllers.targetRay.handedness = handedness;
                 }
                 if(inputSource.gripSpace) {
                     xrInputDevice.controllers.grip = new Object3D();
                     xrInputDevice.controllers.grip.xrInputDeviceType = type;
+                    xrInputDevice.controllers.grip.handedness = handedness;
                 }
             }
             xrInputDevice.inputSource = inputSource;
