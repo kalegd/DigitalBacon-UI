@@ -123,7 +123,7 @@ class TextArea extends ScrollableComponent {
         PointerInteractableHandler.removeEmptyClickListener(
             this._emptyClickListener);
         this._hasListeners = false;
-        if(DeviceTypes.active == 'POINTER') {
+        if(DeviceTypes.active == 'XR') {
             Keyboard.unregister(this);
         } else if(DeviceTypes.active == 'TOUCH_SCREEN') {
 

@@ -13,8 +13,11 @@ import InteractableComponent from '/scripts/components/InteractableComponent.js'
 import LayoutComponent from '/scripts/components/LayoutComponent.js';
 import DeviceTypes from '/scripts/enums/DeviceTypes.js';
 import KeyboardLayouts from '/scripts/enums/KeyboardLayouts.js';
+import XRInputDeviceTypes from '/scripts/enums/XRInputDeviceTypes.js';
+import GripInteractableHandler from '/scripts/handlers/GripInteractableHandler.js';
 import InputHandler from '/scripts/handlers/InputHandler.js';
 import UpdateHandler from '/scripts/handlers/UpdateHandler.js';
+import GripInteractable from '/scripts/interactables/GripInteractable.js';
 import * as THREE from 'three';
 
 const HOVERED_Z_OFFSET = 0.01;
@@ -216,7 +219,7 @@ class Keyboard extends InteractableComponent {
             this._updateListeners.set(owner, () => {
                 let isPressed;
                 if(DeviceTypes.active == 'XR') {
-                    let handedness = owner.handedness;
+                    isPressed = this._isXRControllerPressed(owner);
                 } else if(DeviceTypes.active == 'POINTER') {
                     isPressed = InputHandler.isPointerPressed();
                 } else {
@@ -239,9 +242,23 @@ class Keyboard extends InteractableComponent {
         });
     }
 
+    _isXRControllerPressed(owner) {
+        let type = owner.xrInputDeviceType;
+        let handedness = owner.handedness;
+        if(type == XRInputDeviceTypes.HAND) {
+            let model = InputHandler.getXRControllerModel(type, handedness);
+            return model?.motionController?.isPinching == true;
+        } else {
+            let gamepad = InputHandler.getXRGamepad(handedness);
+            return gamepad?.buttons != null && gamepad.buttons[0].pressed;
+        }
+    }
+
     _displayAdditionalCharacters(div, key) {
         if(div.additionalCharactersSpan) {
             div.additionalCharactersSpan.borderRadius = this.borderRadius;
+            div.additionalCharactersSpan._updateMaterialOffset(
+                div._materialOffset + 1);
             div.add(div.additionalCharactersSpan);
             return;
         }
@@ -283,6 +300,7 @@ class Keyboard extends InteractableComponent {
             span.padding = padding;
             span.position.y += padding;
         }
+        span._updateMaterialOffset(div._materialOffset + 1);
         div.additionalCharactersSpan = span;
         div.add(span);
     }
@@ -365,6 +383,7 @@ class Keyboard extends InteractableComponent {
             this.position.set(0, (-body.computedHeight - this.computedHeight)
                 / 2 - 0.025, 0);
             body.add(this);
+            this._updateMaterialOffset(component._materialOffset);
         }
     }
 
@@ -377,6 +396,29 @@ class Keyboard extends InteractableComponent {
             this._setLayout(this._lastKeyboardLayout);
             this._lastKeyboardLayout = null;
         }
+    }
+
+    setupGripInteractable(scene) {
+        this.gripInteractable = new GripInteractable(this);
+        this.gripInteractable.addEventListener('down', (e) => {
+          e.owner.attach(this);
+          this.gripInteractable.capture(e.owner);
+        });
+        this.gripInteractable.addEventListener('click', (e) => {
+            if(this.parent == e.owner) scene.attach(this);
+        });
+    }
+
+    _onAdded() {
+        super._onAdded();
+        if(this.gripInteractable)
+            GripInteractableHandler.addInteractable(this.gripInteractable);
+    }
+
+    _onRemoved() {
+        super._onRemoved();
+        if(this.gripInteractable)
+            GripInteractableHandler.removeInteractable(this.gripInteractable);
     }
 
     get onPopup() { return this._onPopup; }

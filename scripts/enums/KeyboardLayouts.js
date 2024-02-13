@@ -3,11 +3,11 @@ const ENGLISH = {
     pages: [{
         style: { padding: 0.01 },
         rows: [{
-            keys: ['q', 'w', { text: 'e', type: 'key', value: 'e', additionalCharacters: ['é', 'è', 'ë', 'ê'] }, 'r', 't', 'y', 'u', 'i', 'o', 'p'],
+            keys: ['q', 'w', { text: 'e', type: 'key', value: 'e', additionalCharacters: ['è', 'é', 'ë', 'ê'] }, 'r', 't', 'y', { text: 'u', type: 'key', value: 'u', additionalCharacters: ['ù', 'ú', 'ü', 'û'] }, { text: 'i', type: 'key', value: 'i', additionalCharacters: ['ì', 'í', 'ï', 'î'] }, { text: 'o', type: 'key', value: 'o', additionalCharacters: ['ò', 'ó', 'ö', 'ô', 'ø'] }, 'p'],
         }, {
-            keys: ['a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l'],
+            keys: [{ text: 'a', type: 'key', value: 'a', additionalCharacters: ['à', 'á', 'ä', 'â'] }, 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l'],
         }, {
-            keys: [{ text: '⇧', type: 'shift', style: { width: 0.155 }}, 'z', 'x', 'c', 'v', 'b', 'n', 'm', { text: '⌫', type: 'key', value: 'Backspace', style: { width: 0.155 } }],
+            keys: [{ text: '⇧', type: 'shift', style: { width: 0.155 }}, 'z', 'x', { text: 'c', type: 'key', value: 'c', additionalCharacters: ['ç'] }, 'v', 'b', { text: 'n', type: 'key', value: 'n', additionalCharacters: ['ñ'] }, 'm', { text: '⌫', type: 'key', value: 'Backspace', style: { width: 0.155 } }],
         }, {
             keys: [{ text: '123', type: 'page', page: 1, style: { width: 0.155 }}, ',', { text: 'space', type: 'key', value: ' ', style: { width: 0.539 }}, '.', { text: '⏎', type: 'key', value: 'Enter', style: { width: 0.155 } }],
         }],

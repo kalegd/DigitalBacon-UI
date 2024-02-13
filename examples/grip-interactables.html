@@ -80,7 +80,10 @@
       DigitalBaconUI.InputHandler.enableXRControllerManagement(scene);
 
       const interactable = new DigitalBaconUI.GripInteractable(cube);
-      interactable.addEventListener('down', (e) => e.owner.attach(cube));
+      interactable.addEventListener('down', (e) => {
+        e.owner.attach(cube);
+        interactable.capture(e.owner);
+      });
       interactable.addEventListener('click', (e) => {
         if(cube.parent == e.owner) scene.attach(cube);
       });
