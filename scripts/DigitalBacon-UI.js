@@ -25,6 +25,7 @@ import TouchInteractable from '/scripts/interactables/TouchInteractable.js';
 import GripInteractableHandler from '/scripts/handlers/GripInteractableHandler.js';
 import PointerInteractableHandler from '/scripts/handlers/PointerInteractableHandler.js';
 import TouchInteractableHandler from '/scripts/handlers/TouchInteractableHandler.js';
+import DelayedClickHandler from '/scripts/handlers/DelayedClickHandler.js';
 import InputHandler from '/scripts/handlers/InputHandler.js';
 import UpdateHandler from '/scripts/handlers/UpdateHandler.js';
 import * as utils from '/scripts/utils.js';
@@ -93,7 +94,11 @@ const init = async (container, renderer, scene, camera, deviceType, orbitTarget)
     PointerInteractableHandler.init(renderer, scene, camera, orbitTarget);
     GripInteractableHandler.init(scene);
     TouchInteractableHandler.init(scene);
-    if(deviceType == 'XR') Keyboard.setupGripInteractable(scene);
+    if(deviceType == 'XR') {
+        Keyboard.setupGripInteractable(scene);
+    } else {
+        DelayedClickHandler.setup();
+    }
 };
 
 const update = (frame) => {
@@ -126,6 +131,7 @@ export { TouchInteractable };
 export { GripInteractableHandler };
 export { PointerInteractableHandler };
 export { TouchInteractableHandler };
+export { DelayedClickHandler };
 export { InputHandler };
 export { UpdateHandler };
 export { ThreeMeshBVH };

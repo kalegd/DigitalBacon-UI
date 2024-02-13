@@ -10,6 +10,7 @@ import ScrollableComponent from '/scripts/components/ScrollableComponent.js';
 import Style from '/scripts/components/Style.js';
 import Text from '/scripts/components/Text.js';
 import DeviceTypes from '/scripts/enums/DeviceTypes.js';
+import DelayedClickHandler from '/scripts/handlers/DelayedClickHandler.js';
 import InputHandler from '/scripts/handlers/InputHandler.js';
 import PointerInteractableHandler from '/scripts/handlers/PointerInteractableHandler.js';
 import { getCaretAtPoint, Text as TroikaText } from '/node_modules/troika-three-text/dist/troika-three-text.esm.js';
@@ -109,7 +110,7 @@ class TextArea extends ScrollableComponent {
         if(DeviceTypes.active == 'XR') {
             Keyboard.register(this);
         } else if(DeviceTypes.active == 'TOUCH_SCREEN') {
-
+            this._displayMobileTextArea();
         } else {
             document.addEventListener("keydown", this._keyListener);
             document.addEventListener("paste", this._pasteListener);
@@ -126,7 +127,7 @@ class TextArea extends ScrollableComponent {
         if(DeviceTypes.active == 'XR') {
             Keyboard.unregister(this);
         } else if(DeviceTypes.active == 'TOUCH_SCREEN') {
-
+            document.body.removeChild(this._mobileTextAreaParent);
         } else {
             document.removeEventListener("keydown", this._keyListener);
             document.removeEventListener("paste", this._pasteListener);
@@ -135,6 +136,46 @@ class TextArea extends ScrollableComponent {
             this._syncCompleteListener);
         this._text._content.remove(this._caretParent);
         if(this._onBlur) this._onBlur(this._value);
+    }
+
+    _displayMobileTextArea() {
+        if(!this._mobileTextArea) {
+            let div = document.createElement('div');
+            let textArea = document.createElement('textarea');
+            div.style.width = '100%';
+            div.style.height = '100%';
+            div.style.position = 'fixed';
+            div.style.top = '0px';
+            div.style.left = '0px';
+            div.style.display = 'flex';
+            div.style.justifyContent = 'center';
+            div.style.alignItems = 'center';
+            div.style.backgroundColor = '#00000069';
+            div.appendChild(textArea);
+            div.onclick = () => {
+                if(e.target != div) return;
+                this._text.text = textArea.value;
+                this.blur();
+            }
+            textArea.onblur = () => {
+                this._text.text = textArea.value;
+                this.blur();
+            };
+            textArea.addEventListener("compositionend", () => {
+                if(this._text.text == textArea.value) return;
+                this._text.text = textArea.value;
+                if(this._onChange) this._onChange(this._text.text);
+            });
+            textArea.onkeyup = () => {
+                if(this._text.text == textArea.value) return;
+                this._text.text = textArea.value;
+                if(this._onChange) this._onChange(this._text.text);
+            };
+            this._mobileTextAreaParent = div;
+            this._mobileTextArea = textArea;
+        }
+        document.body.appendChild(this._mobileTextAreaParent);
+        DelayedClickHandler.trigger(() => this._mobileTextArea.click());
     }
 
     _createCaret() {

@@ -90,7 +90,7 @@ class InputHandler {
             this._renderer.domElement.addEventListener('touchend', () => {
                 this._screenTouched = false;
             });
-            this._renderer.domElement.addEventListener( 'touchmove', (event) =>{
+            this._renderer.domElement.addEventListener('touchmove', (event) =>{
                 let rect = event.target.getBoundingClientRect();
                 this._pointerPosition.x = ((event.touches[0].clientX -rect.left)
                     / this._renderer.domElement.clientWidth) * 2 - 1;
