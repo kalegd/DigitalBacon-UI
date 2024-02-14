@@ -119,6 +119,12 @@ class LayoutComponent extends UIComponent {
         this.material.color.set(materialColor);
     }
 
+    _handleStyleUpdateForOpacity() {
+        let opacity = this.opacity;
+        if(materialColor == null) opacity = 1;
+        this.material.opacity = opacity;
+    }
+
     _handleStyleUpdateForOverflow() {
         if(this.overflow != 'visible') {
             if(!this.clippingPlanes) this._createClippingPlanes();
@@ -134,7 +140,9 @@ class LayoutComponent extends UIComponent {
         this._border = null;
         let material = this.material;
         let materialColor = this.materialColor;
+        let opacity = this.opacity;
         if(materialColor) material.color.set(materialColor);
+        if(opacity) material.opacity = opacity;
         let borderWidth = this.borderWidth || 0;
         let borderRadius = this.borderRadius || 0;
         let topLeftRadius = numberOr(this.borderTopLeftRadius, borderRadius);

@@ -126,6 +126,7 @@ class UIComponent extends THREE.Object3D {
     get maxWidth() { return this._genericGet('maxWidth'); }
     get minHeight() { return this._genericGet('minHeight'); }
     get minWidth() { return this._genericGet('minWidth'); }
+    get opacity() { return this._genericGet('opacity'); }
     get overflow() { return this._genericGet('overflow'); }
     get padding() { return this._genericGet('padding'); }
     get paddingBottom() { return this._genericGet('paddingBottom'); }
@@ -166,6 +167,7 @@ class UIComponent extends THREE.Object3D {
     set maxWidth(v) { this._genericSet('maxWidth', v); }
     set minHeight(v) { this._genericSet('minHeight', v); }
     set minWidth(v) { this._genericSet('minWidth', v); }
+    set opacity(v) { this._genericSet('opacity', v); }
     set overflow(v) { this._genericSet('overflow', v); }
     set padding(v) { this._genericSet('padding', v); }
     set paddingBottom(v) { this._genericSet('paddingBottom', v); }
