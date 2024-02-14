@@ -86,6 +86,13 @@ class InteractableComponent extends LayoutComponent {
             PointerInteractableHandler.removeInteractable(
                 this.pointerInteractable);
         }
+        if(this.touchInteractable.parent) {
+            this.touchInteractable.parent.removeChild(
+                this.touchInteractable);
+        } else {
+            TouchInteractableHandler.removeInteractable(
+                this.touchInteractable);
+        }
     }
 
     _setCallback(interactable, type, name, newCallback) {

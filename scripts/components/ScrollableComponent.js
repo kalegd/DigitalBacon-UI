@@ -151,9 +151,9 @@ class ScrollableComponent extends InteractableComponent {
             this.scrollThresholdReached = false;
             this._scrollAncestor = null;
             if(this._onTouch && touchEnabled)
-                this._onTouch(owner);
+                this._onTouch(e);
         } else if(this._onTouch) {
-            this._onTouch(owner);
+            this._onTouch(e);
         }
         this.clearScroll(owner);
     }
@@ -212,7 +212,7 @@ class ScrollableComponent extends InteractableComponent {
 
     handleTouchScroll(owner, interactable) {
         if(!this._scrollStart) {
-            let details = interactable.getIntersectionPoints(owner);
+            let details = interactable.getClosestPointTo(owner);
             this._scrollController = details[1].object;
             this._scrollVertex = this._scrollController.bvhGeometry.index.array[
                 details[1].faceIndex * 3];

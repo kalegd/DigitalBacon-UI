@@ -53,7 +53,7 @@ class TouchInteractable extends Interactable {
             object.bvhGeometry, matrix4);
     }
 
-    getIntersectionPoints(object) {
+    getClosestPointTo(object) {
         if(object.model) object = object.model;
         if(!object?.bvhGeometry?.boundsTree) return;
         if(!this._object?.bvhGeometry?.boundsTree) return;

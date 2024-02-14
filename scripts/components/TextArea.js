@@ -60,7 +60,8 @@ class TextArea extends ScrollableComponent {
         this._text = new Text('', this._textStyle);
         this._content.add(this._text);
         this._createCaret();
-        this.onClick = this.onTouch = (e) => this._select(e);
+        this.onClick = (e) => this._select(e);
+        this.onTouch = (e) => this._selectTouch(e);
         this._keyListener = (event) => this.handleKey(event.key);
         this._pasteListener = (event) => this._handlePaste(event);
         this._downListener = (e) => {
@@ -97,9 +98,20 @@ class TextArea extends ScrollableComponent {
         this._caret._updateMaterialOffset(this._materialOffset + 1);
     }
 
+    _selectTouch(e) {
+        let { owner } = e;
+        let details = this.touchInteractable.getClosestPointTo(owner);
+        let object = details[1].object;
+        let vertex = object.bvhGeometry.index.array[details[1].faceIndex * 3];
+        let positionAttribute = object.bvhGeometry.getAttribute('position');
+        VEC3.fromBufferAttribute(positionAttribute, vertex);
+        object.localToWorld(VEC3);
+        this._select({ owner: owner, closestPoint: VEC3 });
+    }
+
     _select(e) {
         let { owner, closestPoint } = e;
-        if(!closestPoint) return;//TODO: for touch we need to find point
+        if(!closestPoint) return;
         if(this._textStyle.minHeight != this._caret.computedHeight)
             this._textStyle.minHeight = this._caret.computedHeight;
         this._text._content.add(this._caretParent);
