@@ -154,6 +154,10 @@ class TextArea extends ScrollableComponent {
         if(!this._mobileTextArea) {
             let div = document.createElement('div');
             let textArea = document.createElement('textarea');
+            textArea.rows = 5;
+            textArea.style.fontSize = '16px';
+            textArea.style.minWidth = '250px';
+            textArea.style.width = '33%';
             div.style.width = '100%';
             div.style.height = '100%';
             div.style.position = 'fixed';

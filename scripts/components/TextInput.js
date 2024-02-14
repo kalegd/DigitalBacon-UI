@@ -41,6 +41,9 @@ class TextInput extends TextArea {
             let div = document.createElement('div');
             let input = document.createElement('input');
             input.type = 'text';
+            input.style.fontSize = '16px';
+            input.style.minWidth = '250px';
+            input.style.width = '33%';
             div.style.width = '100%';
             div.style.height = '100%';
             div.style.position = 'fixed';

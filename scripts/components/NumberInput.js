@@ -69,6 +69,9 @@ class NumberInput extends TextInput {
             let input = document.createElement('input');
             input.type = 'text';
             input.inputMode = 'decimal';
+            input.style.fontSize = '16px';
+            input.style.minWidth = '250px';
+            input.style.width = '33%';
             div.style.width = '100%';
             div.style.height = '100%';
             div.style.position = 'fixed';
