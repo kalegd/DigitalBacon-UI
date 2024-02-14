@@ -46,15 +46,17 @@ class NumberInput extends TextInput {
 
     _addListeners() {
         this._hasListeners = true;
-        PointerInteractableHandler.addEmptyClickListener(
-            this._emptyClickListener);
         if(DeviceTypes.active == 'XR') {
             Keyboard.register(this, Keyboard.types.NUMBER);
+            PointerInteractableHandler.addEventListener("down",
+                this._downListener);
         } else if(DeviceTypes.active == 'TOUCH_SCREEN') {
             this._displayMobileTextArea();
         } else {
             document.addEventListener("keydown", this._keyListener);
             document.addEventListener("paste", this._pasteListener);
+            PointerInteractableHandler.addEventListener("down",
+                this._downListener);
         }
         this._text._text.addEventListener('synccomplete',
             this._syncCompleteListener);

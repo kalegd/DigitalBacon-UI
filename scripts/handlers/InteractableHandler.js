@@ -15,9 +15,9 @@ export default class InteractableHandler {
         this._capturedInteractables = new Map();
         this._overInteractables = new Map();
         this._wasPressed = new Map();
+        this._listeners = {};
         this._tool = null;
         this._toolHandlers = {};
-        this._emptyClickListeners = new Set();
     }
 
     _setupXRSubscription() {
@@ -52,12 +52,30 @@ export default class InteractableHandler {
         }
     }
 
-    addEmptyClickListener(callback) {
-        this._emptyClickListeners.add(callback);
+    addEventListener(type, callback) {
+        if(!(type in this._listeners)) this._listeners[type] = new Set();
+        this._listeners[type].add(callback);
     }
 
-    removeEmptyClickListener(callback) {
-        this._emptyClickListeners.delete(callback);
+    removeEventListener(type, callback) {
+        if(!(type in this._listeners)) return;
+        this._listeners[type].delete(callback);
+        if(this._listeners[type].size == 0) delete this._listeners[type];
+    }
+
+    _trigger(type, eventDetails, interactable) {
+        if(this._listeners[type]) {
+            let eventCopy = { ...eventDetails };
+            if(interactable) {
+                eventCopy.target = interactable.getObject();
+                interactable[type](eventDetails);
+            }
+            for(let callback of this._listeners[type]) {
+                callback(eventCopy);
+            }
+        } else if(interactable) {
+            interactable[type](eventDetails);
+        }
     }
 
     registerToolHandler(tool, handler) {

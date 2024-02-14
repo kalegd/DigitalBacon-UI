@@ -98,7 +98,7 @@ class TouchInteractableHandler extends InteractableHandler {
                 interactable.removeSelectedBy(option);
                 selectedInteractables.delete(interactable);
                 interactable.drag(basicEvent);
-                interactable.up(basicEvent);
+                this._trigger('up', basicEvent, interactable);
                 interactable.click(basicEvent);
             }
         }
@@ -108,7 +108,7 @@ class TouchInteractableHandler extends InteractableHandler {
             } else {
                 interactable.addSelectedBy(option);
                 selectedInteractables.add(interactable);
-                interactable.down(basicEvent);
+                this._trigger('down', basicEvent, interactable);
             }
         }
     }

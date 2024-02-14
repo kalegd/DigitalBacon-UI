@@ -10,6 +10,7 @@ import ScrollableComponent from '/scripts/components/ScrollableComponent.js';
 import Style from '/scripts/components/Style.js';
 import Text from '/scripts/components/Text.js';
 import DeviceTypes from '/scripts/enums/DeviceTypes.js';
+import States from '/scripts/enums/InteractableStates.js';
 import DelayedClickHandler from '/scripts/handlers/DelayedClickHandler.js';
 import InputHandler from '/scripts/handlers/InputHandler.js';
 import PointerInteractableHandler from '/scripts/handlers/PointerInteractableHandler.js';
@@ -60,9 +61,16 @@ class TextArea extends ScrollableComponent {
         this._content.add(this._text);
         this._createCaret();
         this.onClick = this.onTouch = (e) => this._select(e);
-        this._emptyClickListener = () => this.blur();
         this._keyListener = (event) => this.handleKey(event.key);
         this._pasteListener = (event) => this._handlePaste(event);
+        this._downListener = (e) => {
+            let object = e.target;
+            while(object) {
+                if(object == Keyboard || object == this) return;
+                object = object.parent;
+            }
+            this.blur();
+        };
         this._syncCompleteListener = () => {
             this._updateCaret();
             this._checkForCaretScroll();
@@ -105,15 +113,17 @@ class TextArea extends ScrollableComponent {
 
     _addListeners() {
         this._hasListeners = true;
-        PointerInteractableHandler.addEmptyClickListener(
-            this._emptyClickListener);
         if(DeviceTypes.active == 'XR') {
             Keyboard.register(this);
+            PointerInteractableHandler.addEventListener("down",
+                this._downListener);
         } else if(DeviceTypes.active == 'TOUCH_SCREEN') {
             this._displayMobileTextArea();
         } else {
             document.addEventListener("keydown", this._keyListener);
             document.addEventListener("paste", this._pasteListener);
+            PointerInteractableHandler.addEventListener("down",
+                this._downListener);
         }
         this._text._text.addEventListener('synccomplete',
             this._syncCompleteListener);
@@ -121,16 +131,18 @@ class TextArea extends ScrollableComponent {
     }
 
     _removeListeners() {
-        PointerInteractableHandler.removeEmptyClickListener(
-            this._emptyClickListener);
         this._hasListeners = false;
         if(DeviceTypes.active == 'XR') {
             Keyboard.unregister(this);
+            PointerInteractableHandler.removeEventListener("down",
+                this._downListener);
         } else if(DeviceTypes.active == 'TOUCH_SCREEN') {
             document.body.removeChild(this._mobileTextAreaParent);
         } else {
             document.removeEventListener("keydown", this._keyListener);
             document.removeEventListener("paste", this._pasteListener);
+            PointerInteractableHandler.removeEventListener("down",
+                this._downListener);
         }
         this._text._text.removeEventListener('synccomplete',
             this._syncCompleteListener);

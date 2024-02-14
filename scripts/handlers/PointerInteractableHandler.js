@@ -215,7 +215,7 @@ class PointerInteractableHandler extends InteractableHandler {
                 closest.move(detailedEvent);
                 closest.drag(detailedEvent);
                 if(!isPressed) {
-                    closest.up(detailedEvent);
+                    this._trigger('up', detailedEvent, closest);
                     closest.click(detailedEvent);
                 }
             } else if(selected.isCapturedBy(option)) {
@@ -228,7 +228,7 @@ class PointerInteractableHandler extends InteractableHandler {
                 selected.move(basicEvent);
                 selected.drag(basicEvent);
                 if(!isPressed) {
-                    selected.up(basicEvent);
+                    this._trigger('up', basicEvent, selected);
                     selected.click(basicEvent);
                     if(over) over.out(basicEvent);
                     if(closest) {
@@ -246,7 +246,7 @@ class PointerInteractableHandler extends InteractableHandler {
                 }
                 closest.move(detailedEvent);
                 if(!isPressed) {
-                    closest.up(detailedEvent);
+                    this._trigger('up', detailedEvent, closest);
                 }
             } else if(over) {
                 over.out(basicEvent);
@@ -261,21 +261,22 @@ class PointerInteractableHandler extends InteractableHandler {
                 }
                 closest.move(detailedEvent);
                 if(isPressed && !this._wasPressed.get(option)) {
-                    closest.down(detailedEvent);
+                    this._trigger('down', detailedEvent, closest);
                     closest.addSelectedBy(option);
                     this._selectedInteractables.set(option, closest);
                 } else if(!isPressed && this._wasPressed.get(option)) {
-                    closest.up(detailedEvent);
+                    this._trigger('up', detailedEvent, closest);
                 }
             } else {
                 if(over) {
                     over.out(basicEvent);
                     this._overInteractables.delete(option);
                 }
-                if(!isPressed && this._wasPressed.get(option)) {
-                    for(let callback of this._emptyClickListeners) {
-                        callback(option);
-                    }
+                if(isPressed) {
+                    if(!this._wasPressed.get(option))
+                        this._trigger('down', basicEvent);
+                } else if(this._wasPressed.get(option)) {
+                    this._trigger('up', basicEvent);
                 }
             }
         }

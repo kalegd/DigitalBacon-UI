@@ -107,7 +107,7 @@ class GripInteractableHandler extends InteractableHandler {
                 closest.move(basicEvent);
                 closest.drag(basicEvent);
                 if(!isPressed) {
-                    closest.up(basicEvent);
+                    this._trigger('up', basicEvent, closest);
                     closest.click(basicEvent);
                 }
             } else if(selected.isCapturedBy(option)) {
@@ -120,7 +120,7 @@ class GripInteractableHandler extends InteractableHandler {
                 selected.move(basicEvent);
                 selected.drag(basicEvent);
                 if(!isPressed) {
-                    selected.up(basicEvent);
+                    this._trigger('up', basicEvent, selected);
                     selected.click(basicEvent);
                     if(over) over.out(basicEvent);
                     if(closest) {
@@ -138,7 +138,7 @@ class GripInteractableHandler extends InteractableHandler {
                 }
                 closest.move(basicEvent);
                 if(!isPressed) {
-                    closest.up(basicEvent);
+                    this._trigger('up', basicEvent, closest);
                 }
             } else if(over) {
                 over.out(basicEvent);
@@ -153,21 +153,22 @@ class GripInteractableHandler extends InteractableHandler {
                 }
                 closest.move(basicEvent);
                 if(isPressed && !this._wasPressed.get(option)) {
-                    closest.down(basicEvent);
+                    this._trigger('down', basicEvent, closest);
                     closest.addSelectedBy(option);
                     this._selectedInteractables.set(option, closest);
                 } else if(!isPressed && this._wasPressed.get(option)) {
-                    closest.up(basicEvent);
+                    this._trigger('up', basicEvent, closest);
                 }
             } else {
                 if(over) {
                     over.out(basicEvent);
                     this._overInteractables.delete(option);
                 }
-                if(!isPressed && this._wasPressed.get(option)) {
-                    for(let callback of this._emptyClickListeners) {
-                        callback(option);
-                    }
+                if(isPressed) {
+                    if(!this._wasPressed.get(option))
+                        this._trigger('down', basicEvent);
+                } else if(this._wasPressed.get(option)) {
+                    this._trigger('up', basicEvent);
                 }
             }
         }

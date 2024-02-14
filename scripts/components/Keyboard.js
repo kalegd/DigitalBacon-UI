@@ -55,6 +55,8 @@ class Keyboard extends InteractableComponent {
         this._addLayout(KeyboardLayouts.RUSSIAN);
         this._addLayout(KeyboardLayouts.EMOJIS);
         this._setLayout(KeyboardLayouts.ENGLISH);
+        this.types = { NUMBER: 'NUMBER' };
+        this.onClick = () => {};
         this.updateLayout();
     }
 
@@ -373,7 +375,7 @@ class Keyboard extends InteractableComponent {
         if(this._registeredComponent) this._registeredComponent.blur();
         this._registeredComponent = component;
         let body = getComponentBody(component);
-        if(type == Keyboard.types.NUMBER) {
+        if(type == this.types.NUMBER) {
             this._setNumberPage();
         }
         if(this._onPopup) {
@@ -423,8 +425,6 @@ class Keyboard extends InteractableComponent {
 
     get onPopup() { return this._onPopup; }
     set onPopup(onPopup) { this._onPopup = onPopup }
-
-    static types = { NUMBER: 'NUMBER' };
 }
 
 function getComponentBody(component) {

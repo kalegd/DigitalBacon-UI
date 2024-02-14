@@ -50,7 +50,14 @@ class Select extends ScrollableComponent {
         this._content.add(this._textSpan);
         this._textSpan.add(this._text);
         this._textSpan.add(this._caret);
-        this._emptyClickListener = () => this.hideOptions();
+        this._downListener = (e) => {
+            let object = e.target;
+            while(object) {
+                if(object == this) return;
+                object = object.parent;
+            }
+            this.hideOptions();
+        };
         this.onClick = this.onTouch = () => this._select();
         this.updateLayout();
     }
@@ -69,9 +76,7 @@ class Select extends ScrollableComponent {
         this.remove(this._textSpan);
         this.add(this._optionsDiv);
         this.onClick = this.onTouch = null;
-        this._hasListeners = true;
-        PointerInteractableHandler.addEmptyClickListener(
-            this._emptyClickListener);
+        PointerInteractableHandler.addEventListener('down', this._downListener);
     }
 
     _selectOption(text) {
@@ -103,11 +108,8 @@ class Select extends ScrollableComponent {
         this.remove(this._optionsDiv);
         this.add(this._textSpan);
         this.onClick = this.onTouch = () => this._select();
-        if(this._hasListeners) {
-            PointerInteractableHandler.removeEmptyClickListener(
-                this._emptyClickListener);
-            this._hasListeners = false;
-        }
+        PointerInteractableHandler.removeEventListener('down',
+            this._downListener);
     }
 
     getMaxDisplayOptions() { return this._maxDisplayOptions; }
