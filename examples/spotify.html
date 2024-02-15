@@ -30,6 +30,7 @@
       import * as SpotifyHelper from '/examples/scripts/SpotifyHelper.js';
       import * as DigitalBaconUI from 'DigitalBacon-UI';
       import * as THREE from 'three';
+      const { Div, Span, Style, Text } = DigitalBaconUI;
 
       let { container, scene, camera, clock, stats, renderer }
         = await ThreeBoilerplate.init();
@@ -45,18 +46,18 @@
         stats.end();
       });
 
-      const sectionStyle = new DigitalBaconUI.Style({
+      let sectionStyle = new Style({
         backgroundVisible: true,
         borderRadius: 0.01,
         glassmorphism: true,
         materialColor: 0xaaaaaa,
       });
-      const recentlyPlayedRowStyle = new DigitalBaconUI.Style({
+      let recentlyPlayedRowStyle = new Style({
         height: 0.1,
         justifyContent: 'spaceBetween',
         width: '100%',
       });
-      const recentlyPlayedTrackStyle = new DigitalBaconUI.Style({
+      let recentlyPlayedTrackStyle = new Style({
         backgroundVisible: true,
         borderRadius: 0.005,
         glassmorphism: true,
@@ -64,24 +65,27 @@
         materialColor: 0x606d75,
         width: 0.365,
       });
-      const recentlyPlayedImageStyle = new DigitalBaconUI.Style({
+      let recentlyPlayedImageStyle = new Style({
         borderTopLeftRadius: 0.01,
         borderBottomLeftRadius: 0.01,
         height: '100%',
       });
-      const colorWhite = new DigitalBaconUI.Style({ color: 0xffffff });
-      const fontSmall = new DigitalBaconUI.Style({ fontSize: 0.03 });
-      const fontMedium = new DigitalBaconUI.Style({ fontSize: 0.03 });
-      const fontBold = new DigitalBaconUI.Style({
+      let colorWhite = new Style({ color: 0xffffff });
+      let fontSmall = new Style({ fontSize: 0.02 });
+      let fontMedium = new Style({ fontSize: 0.025 });
+      let fontLarge = new Style({ fontSize: 0.0325 });
+      let fontXLarge = new Style({ fontSize: 0.04 });
+      let font500 = new Style({
         font: 'https://fonts.gstatic.com/s/roboto/v30/KFOlCnqEu92Fr1MmEU9vAA.woff',
-        fontSize: 0.025,
       });
-      const fontLargeBold = new DigitalBaconUI.Style({
-        font: 'https://fonts.gstatic.com/s/roboto/v30/KFOlCnqEu92Fr1MmEU9vAA.woff',
-        fontSize: 0.04,
+      let font700 = new Style({
+        font: 'https://fonts.gstatic.com/s/roboto/v30/KFOlCnqEu92Fr1MmWUlvAA.woff',
       });
+      let homeSectionHovered = new Style(font700);
+      let homeSectionActive = new Style(font700);
+      window.h = homeSectionHovered;
 
-      const body = new DigitalBaconUI.Body({
+      let body = new DigitalBaconUI.Body({
         backgroundVisible: true,
         glassmorphism: true,
         materialColor: 0xdddddd,
@@ -89,20 +93,20 @@
         paddingRight: 0.045,
         width: 1.4,
       });
-      const logoRow = new DigitalBaconUI.Span({
+      let logoRow = new Span({
         height: 0.07,
         width: '100%',
       });
-      const logo = new DigitalBaconUI.Image(
+      let logo = new DigitalBaconUI.Image(
         '/images/spotify-logo.png', { height: '45%' });
 
       //Login UI
-      const loginContent = new DigitalBaconUI.Div(sectionStyle, {
+      let loginContent = new Div(sectionStyle, {
         height: 0.85,
         justifyContent: 'center',
         width: '100%',
       });
-      const loginButton = new DigitalBaconUI.Div({
+      let loginButton = new Div({
         backgroundVisible: true,
         borderRadius: 0.05,
         height: 0.1,
@@ -110,7 +114,7 @@
         materialColor: 0x1db954,
         width: 0.52,
       });
-      const loginText = new DigitalBaconUI.Text('CONNECT TO SPOTIFY', {
+      let loginText = new Text('CONNECT TO SPOTIFY', {
         color: 0xffffff,
         fontSize: 0.04,
       });
@@ -130,45 +134,56 @@
       });
 
       //Main UI
-      const mainContent = new DigitalBaconUI.Span({
+      let mainContent = new Span({
         height: 0.86,
         justifyContent: 'spaceBetween',
         width: '100%',
       });
-      const column1 = new DigitalBaconUI.Div({
+      let column1 = new Div({
         height: '100%',
         width: '37%',
         justifyContent: 'spaceBetween',
       });
-      const column2 = new DigitalBaconUI.Div(sectionStyle, {
+      let column2 = new Div(sectionStyle, {
         height: '100%',
         overflow: 'scroll',
         paddingLeft: 0.03,
         paddingRight: 0.03,
         width: '62.3%',
       });
-      const homeSection = new DigitalBaconUI.Div(sectionStyle, {
-        height: 0.15,
-        width: '100%',
+      let homeSection = new Div(sectionStyle,
+        { height: 0.15, padding: 0.01, width: '100%' });
+      function createHomeSectionButton(iconUrl, title, onClick) {
+        let span = new Span({ height: 0.065, width: '100%' });
+        let image = new DigitalBaconUI.Image(iconUrl, { height: '50%', margin: 0.0125 });
+        let textParent = new Span({ paddingTop: 0.005 });
+        let text = new Text(title, colorWhite, fontMedium, font500);
+        homeSection.add(span);
+        span.add(image);
+        span.add(textParent);
+        textParent.add(text);
+        span.onClick = onClick;
+        span.pointerInteractable.setHoveredCallback((hovered) => {
+          text[(hovered) ? 'addStyle' : 'removeStyle'](homeSectionHovered);
+        });
+      }
+      createHomeSectionButton('/examples/images/home-icon.png', 'Home', () => {
+        console.log("TODO: Handle Home Click");
       });
-      const librarySection = new DigitalBaconUI.Div(sectionStyle, {
-        height: 0.70,
-        width: '100%',
+      createHomeSectionButton('/examples/images/search-icon.png', 'Search',()=>{
+        console.log("TODO: Handle Search Click");
       });
-      const navBar = new DigitalBaconUI.Span({
-        height: 0.09,
-        width: '100%',
-      });
-      const recentlyPlayedSection = new DigitalBaconUI.Div({
-        width: '100%',
-      });
-      const recentlyPlayedTextSpan = new DigitalBaconUI.Span({
+      let librarySection = new Div(sectionStyle,
+        { height: 0.70, width: '100%' });
+      let navBar = new Span({ height: 0.09, width: '100%' });
+      let recentlyPlayedSection = new Div({ width: '100%' });
+      let recentlyPlayedTextSpan = new Span({
         paddingTop: 0.02,
         paddingBottom: 0.02,
         width: '100%',
       });
-      const recentlyPlayedText = new DigitalBaconUI.Text('Recently Played',
-        colorWhite, fontLargeBold);
+      let recentlyPlayedText = new Text('Recently Played', colorWhite, font700,
+        fontXLarge);
 
       logoRow.add(logo);
       mainContent.add(column1);
@@ -191,17 +206,18 @@
         let row;
         for(let item of response.items) {
           if(index % 2 == 0) {
-            row = new DigitalBaconUI.Span(recentlyPlayedRowStyle);
+            row = new Span(recentlyPlayedRowStyle);
             recentlyPlayedSection.add(row);
           }
-          let span = new DigitalBaconUI.Span(recentlyPlayedTrackStyle);
+          let span = new Span(recentlyPlayedTrackStyle);
           let album = new DigitalBaconUI.Image(item.track.album.images[0].url,
             recentlyPlayedImageStyle);
-          let text = new DigitalBaconUI.Text(item.track.name, colorWhite,
-            fontBold, { marginLeft: 0.02 });
+          let text = new Text(item.track.name, colorWhite, font500, fontMedium,
+            { marginLeft: 0.02 });
           row.add(span);
           span.add(album);
           span.add(text);
+          span.onClick = () => console.log("TODO: Play song");
           index++;
         }
       }

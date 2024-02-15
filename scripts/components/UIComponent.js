@@ -35,8 +35,8 @@ class UIComponent extends THREE.Object3D {
             }
         }
         this._styles.push(style);
-        for(let property in Style.PROPERTIES) {
-            if(property in style) this._onStyleChange(property);
+        for(let property of Style.PROPERTIES) {
+            if(style[property] != null) this._onStyleChange(property);
         }
         if(!alreadyUsed) style.addUpdateListener(this._styleListener);
     }
@@ -56,8 +56,8 @@ class UIComponent extends THREE.Object3D {
             }
         }
         if(removed) {
-            for(let property in Style.PROPERTIES) {
-                if(property in style) this._onStyleChange(property);
+            for(let property of Style.PROPERTIES) {
+                if(style[property] != null) this._onStyleChange(property);
             }
             style.removeUpdateListener(this._styleListener);
         }
