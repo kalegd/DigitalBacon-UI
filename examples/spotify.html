@@ -1,0 +1,218 @@
+<html>
+  <head>
+    <title>Examples - Spotify</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <meta name="theme-color" content="#ffebfd"/>
+    <link rel="apple-touch-icon" sizes="180x180" href="/images/favicons/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/images/favicons/favicon-16x16.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/images/favicons/favicon-32x32.png">
+    <link rel="stylesheet" href="/css/examples.css">
+    <script type="importmap">
+      {
+        "imports": {
+          "DigitalBacon-UI": "/scripts/DigitalBacon-UI.js",
+          "three": "/node_modules/three/build/three.module.js",
+          "troika-worker-utils": "/node_modules/troika-worker-utils/dist/troika-worker-utils.esm.js",
+          "webgl-sdf-generator": "/node_modules/webgl-sdf-generator/dist/webgl-sdf-generator.mjs",
+          "bidi-js": "/node_modules/bidi-js/dist/bidi.mjs",
+          "troika-three-utils": "/node_modules/troika-three-utils/dist/troika-three-utils.esm.js"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <h1>Spotify</h1>
+    <div id="container"></div>
+    <div id="vr-button"></div>
+    <div id="ar-button"></div>
+    <script type="module">
+      import * as ThreeBoilerplate from '/examples/scripts/ThreeBoilerplate.js';
+      import * as SpotifyHelper from '/examples/scripts/SpotifyHelper.js';
+      import * as DigitalBaconUI from 'DigitalBacon-UI';
+      import * as THREE from 'three';
+
+      let { container, scene, camera, clock, stats, renderer }
+        = await ThreeBoilerplate.init();
+
+      await DigitalBaconUI.init(container, renderer, scene, camera);
+      DigitalBaconUI.InputHandler.enableXRControllerManagement(scene);
+
+      renderer.setAnimationLoop((time, frame) => {
+        stats.begin();
+        let timeDelta = clock.getDelta();
+        DigitalBaconUI.update(frame);
+        renderer.render(scene, camera);
+        stats.end();
+      });
+
+      const sectionStyle = new DigitalBaconUI.Style({
+        backgroundVisible: true,
+        borderRadius: 0.01,
+        glassmorphism: true,
+        materialColor: 0xaaaaaa,
+      });
+      const recentlyPlayedRowStyle = new DigitalBaconUI.Style({
+        height: 0.1,
+        justifyContent: 'spaceBetween',
+        width: '100%',
+      });
+      const recentlyPlayedTrackStyle = new DigitalBaconUI.Style({
+        backgroundVisible: true,
+        borderRadius: 0.005,
+        glassmorphism: true,
+        height: '80%',
+        materialColor: 0x606d75,
+        width: 0.365,
+      });
+      const recentlyPlayedImageStyle = new DigitalBaconUI.Style({
+        borderTopLeftRadius: 0.01,
+        borderBottomLeftRadius: 0.01,
+        height: '100%',
+      });
+      const colorWhite = new DigitalBaconUI.Style({ color: 0xffffff });
+      const fontSmall = new DigitalBaconUI.Style({ fontSize: 0.03 });
+      const fontMedium = new DigitalBaconUI.Style({ fontSize: 0.03 });
+      const fontBold = new DigitalBaconUI.Style({
+        font: 'https://fonts.gstatic.com/s/roboto/v30/KFOlCnqEu92Fr1MmEU9vAA.woff',
+        fontSize: 0.025,
+      });
+      const fontLargeBold = new DigitalBaconUI.Style({
+        font: 'https://fonts.gstatic.com/s/roboto/v30/KFOlCnqEu92Fr1MmEU9vAA.woff',
+        fontSize: 0.04,
+      });
+
+      const body = new DigitalBaconUI.Body({
+        backgroundVisible: true,
+        glassmorphism: true,
+        materialColor: 0xdddddd,
+        paddingLeft: 0.045,
+        paddingRight: 0.045,
+        width: 1.4,
+      });
+      const logoRow = new DigitalBaconUI.Span({
+        height: 0.07,
+        width: '100%',
+      });
+      const logo = new DigitalBaconUI.Image(
+        '/images/spotify-logo.png', { height: '45%' });
+
+      //Login UI
+      const loginContent = new DigitalBaconUI.Div(sectionStyle, {
+        height: 0.85,
+        justifyContent: 'center',
+        width: '100%',
+      });
+      const loginButton = new DigitalBaconUI.Div({
+        backgroundVisible: true,
+        borderRadius: 0.05,
+        height: 0.1,
+        justifyContent: 'center',
+        materialColor: 0x1db954,
+        width: 0.52,
+      });
+      const loginText = new DigitalBaconUI.Text('CONNECT TO SPOTIFY', {
+        color: 0xffffff,
+        fontSize: 0.04,
+      });
+      loginContent.add(loginButton);
+      loginButton.add(loginText);
+      loginButton.onClick = () => {
+        SpotifyHelper.authenticate();
+      }
+      loginButton.pointerInteractable.setHoveredCallback((hovered) => {
+        if(hovered) {
+          loginButton.materialColor = 0x189a46;
+          loginText.troikaText.position.z = 0.01;
+        } else {
+          loginButton.materialColor = 0x1db954;
+          loginText.troikaText.position.z = 0;
+        }
+      });
+
+      //Main UI
+      const mainContent = new DigitalBaconUI.Span({
+        height: 0.86,
+        justifyContent: 'spaceBetween',
+        width: '100%',
+      });
+      const column1 = new DigitalBaconUI.Div({
+        height: '100%',
+        width: '37%',
+        justifyContent: 'spaceBetween',
+      });
+      const column2 = new DigitalBaconUI.Div(sectionStyle, {
+        height: '100%',
+        overflow: 'scroll',
+        paddingLeft: 0.03,
+        paddingRight: 0.03,
+        width: '62.3%',
+      });
+      const homeSection = new DigitalBaconUI.Div(sectionStyle, {
+        height: 0.15,
+        width: '100%',
+      });
+      const librarySection = new DigitalBaconUI.Div(sectionStyle, {
+        height: 0.70,
+        width: '100%',
+      });
+      const navBar = new DigitalBaconUI.Span({
+        height: 0.09,
+        width: '100%',
+      });
+      const recentlyPlayedSection = new DigitalBaconUI.Div({
+        width: '100%',
+      });
+      const recentlyPlayedTextSpan = new DigitalBaconUI.Span({
+        paddingTop: 0.02,
+        paddingBottom: 0.02,
+        width: '100%',
+      });
+      const recentlyPlayedText = new DigitalBaconUI.Text('Recently Played',
+        colorWhite, fontLargeBold);
+
+      logoRow.add(logo);
+      mainContent.add(column1);
+      mainContent.add(column2);
+      column1.add(homeSection);
+      column1.add(librarySection);
+      column2.add(navBar);
+      column2.add(recentlyPlayedSection);
+      recentlyPlayedSection.add(recentlyPlayedTextSpan);
+      recentlyPlayedTextSpan.add(recentlyPlayedText);
+
+      body.position.set(0, 1.7, -0.7);
+      scene.add(body);
+      body.add(logoRow);
+
+      async function populateHome() {
+        let response = await SpotifyHelper.getRecentlyPlayed();
+        console.log(response);
+        let index = 0;
+        let row;
+        for(let item of response.items) {
+          if(index % 2 == 0) {
+            row = new DigitalBaconUI.Span(recentlyPlayedRowStyle);
+            recentlyPlayedSection.add(row);
+          }
+          let span = new DigitalBaconUI.Span(recentlyPlayedTrackStyle);
+          let album = new DigitalBaconUI.Image(item.track.album.images[0].url,
+            recentlyPlayedImageStyle);
+          let text = new DigitalBaconUI.Text(item.track.name, colorWhite,
+            fontBold, { marginLeft: 0.02 });
+          row.add(span);
+          span.add(album);
+          span.add(text);
+          index++;
+        }
+      }
+
+      if(await SpotifyHelper.isAuthenticated()) {
+        body.add(mainContent);
+        populateHome();
+      } else {
+        body.add(loginContent);
+      }
+
+    </script>
+  </body>
+</html>

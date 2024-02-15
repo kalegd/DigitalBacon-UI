@@ -350,7 +350,8 @@ class LayoutComponent extends UIComponent {
                         + otherPaddingAfter * sign
                         + otherMarginAfter * sign;
                 } else {
-                    child.position[otherVec2Param] = 0;
+                    let offset = (otherPaddingAfter - otherPaddingPrior)*sign/2;
+                    child.position[otherVec2Param] = offset;
                 }
             }
         }

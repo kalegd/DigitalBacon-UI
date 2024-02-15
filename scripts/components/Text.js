@@ -16,6 +16,7 @@ class TextComponent extends LayoutComponent {
         this._defaults['textAlign'] = 'left';
         this._text = new Text();
         this._content.add(this._text);
+        if(this.font) this._text.font = this.font;
         this._text.text = text || '';
         this._text.color = this.color;
         this._text.fontSize = this.fontSize;
@@ -28,6 +29,11 @@ class TextComponent extends LayoutComponent {
         this._text.sync();
         if(this.overflow != 'visible')
             this._text.material.clippingPlanes = this._getClippingPlanes();
+    }
+
+    _handleStyleUpdateForFont() {
+        this._text.font = this.font;
+        if(this.width == 'auto' || this.height == 'auto') this.updateLayout();
     }
 
     _handleStyleUpdateForFontSize() {
@@ -82,6 +88,8 @@ class TextComponent extends LayoutComponent {
     }
 
     get text() { return this._text.text; }
+    get troikaText() { return this._text; }
+
     set text(v) {
         this._text.text = v;
         this._text.sync();

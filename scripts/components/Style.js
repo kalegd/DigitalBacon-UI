@@ -52,6 +52,7 @@ class Style {
     get borderWidth() { return this._genericGet('borderWidth'); }
     get color() { return this._genericGet('color'); }
     get contentDirection() { return this._genericGet('contentDirection'); }
+    get font() { return this._genericGet('font'); }
     get fontSize() { return this._genericGet('fontSize'); }
     get glassmorphism() { return this._genericGet('glassmorphism'); }
     get height() { return this._genericGet('height'); }
@@ -93,6 +94,7 @@ class Style {
     set borderWidth(v) { this._genericSet('borderWidth', v); }
     set color(v) { this._genericSet('color', v); }
     set contentDirection(v) { this._genericSet('contentDirection', v); }
+    set font(v) { this._genericSet('font', v); }
     set fontSize(v) { this._genericSet('fontSize', v); }
     set glassmorphism(v) { this._genericSet('glassmorphism', v); }
     set height(v) { this._genericSet('height', v); }
@@ -131,6 +133,7 @@ class Style {
         'borderWidth',
         'color',
         'contentDirection',
+        'font',
         'fontSize',
         'glassmorphism',
         'height',
