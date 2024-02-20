@@ -111,6 +111,10 @@ function base64encode(input) {
     .replace(/\//g, '_');
 }
 
+export function getAccessToken() {
+    return accessToken;
+}
+
 export async function isAuthenticated() {
     if(getTokenPromise) {
         await getTokenPromise;
@@ -140,12 +144,109 @@ export async function authenticate() {
     window.location.href = authUrl.toString();
 };
 
-export async function getRecentlyPlayed() {
+async function genericAPICall(method, resource) {
     await validateToken();
-    let result = await fetch("https://api.spotify.com/v1/me/player/recently-played", {
+    let result = await fetch("https://api.spotify.com/v1" + resource, {
+        method: method, headers: { Authorization: `Bearer ${accessToken}` }
+    });
+    return await result;
+}
+
+export async function getPlaylist(playlistId) {
+    let result = await genericAPICall('GET', '/playlists/' + playlistId);
+    return await result.json();
+}
+
+export async function getPlaylists() {
+    let result = await genericAPICall('GET', '/me/playlists');
+    return await result.json();
+}
+
+export async function getRecentlyPlayed() {
+    let result = await genericAPICall('GET', '/me/player/recently-played');
+    return await result.json();
+}
+
+export async function transferPlayback(deviceId) {
+    await validateToken();
+    let result = await fetch("https://api.spotify.com/v1/me/player", {
+        method: "PUT",
+        headers: { Authorization: `Bearer ${accessToken}` },
+        body: JSON.stringify({ device_ids: [deviceId], play: false }),
+    });
+    return await result;
+}
+
+export async function getPlaybackState(deviceId) {
+    await validateToken();
+    let result = await fetch("https://api.spotify.com/v1/me/player", {
         method: "GET", headers: { Authorization: `Bearer ${accessToken}` }
     });
     return await result.json();
+}
+
+async function playbackAPICall(method, resource, deviceId) {
+    await validateToken();
+    let result = await fetch("https://api.spotify.com/v1/me/player/" + resource + '?device_id=' + deviceId, {
+        method: method, headers: { Authorization: `Bearer ${accessToken}` }
+    });
+    return await result;
+}
+
+export async function previous(deviceId) {
+    return await playbackAPICall('POST', 'previous', deviceId);
+}
+export async function next(deviceId) {
+    return await playbackAPICall('POST', 'next', deviceId);
+}
+export async function play(deviceId) {
+    return await playbackAPICall('PUT', 'play', deviceId);
+}
+export async function playSong(deviceId, uri, contextUri) {
+    await validateToken();
+    let body = {};
+    if(contextUri) {
+        body.context_uri = contextUri;
+        body.offset = { uri: uri };
+    } else {
+        body.uris = [uri];
+    }
+    let result = await fetch("https://api.spotify.com/v1/me/player/play?device_id=" + deviceId, {
+        method: "PUT",
+        headers: { Authorization: `Bearer ${accessToken}` },
+        body: JSON.stringify(body),
+    });             
+    return await result;
+}
+export async function pause(deviceId) {
+    return await playbackAPICall('PUT', 'pause', deviceId);
+}
+
+export async function seek(position, deviceId) {
+    await validateToken();
+    let result = await fetch("https://api.spotify.com/v1/me/player/seek?position_ms=" + position + '&device_id=' + deviceId, {
+        method: "PUT",
+        headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    return await result;
+}
+
+export async function shuffle(state, deviceId) {
+    await validateToken();
+    let result = await fetch("https://api.spotify.com/v1/me/player/shuffle?state=" + (state == true) + '&device_id=' + deviceId, {
+        method: "PUT",
+        headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    return await result;
+}
+
+export async function repeat(state, deviceId) {
+    await validateToken();
+    let result = await fetch("https://api.spotify.com/v1/me/player/repeat?state=" + state + '&device_id=' + deviceId, {
+        method: "PUT",
+        headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    return await result;
 }
 
 setup();

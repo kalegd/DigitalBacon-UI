@@ -24,16 +24,21 @@ class ScrollableComponent extends InteractableComponent {
         this._scrollBoundsMax = new THREE.Vector2();
         this._scrollOwner;
         this._scrollable = false;
+        this._scrollableByAncestor = false;
         this._downAction = (e) => this.pointerInteractable.capture(e.owner);
         this._touchDownAction = (e) => this.touchInteractable.capture(e.owner);
     }
 
     updateLayout() {
         super.updateLayout();
-        let wasScrollable = this._scrollable;
+        this._updateScrollInteractables();
+    }
+
+    _updateScrollInteractables() {
+        let wasScrollable = this._scrollable || this._scrollableByAncestor;
         this._updateScrollable();
-        let scrollableAncestor = this._getScrollableAncestor() != null;
-        if(wasScrollable == (this._scrollable || scrollableAncestor)) return;
+        if(wasScrollable == (this._scrollable || this._scrollableByAncestor))
+            return;
         let functionName = (wasScrollable)
             ? 'removeEventListener'
             : 'addEventListener';
@@ -59,7 +64,13 @@ class ScrollableComponent extends InteractableComponent {
         this._horizontallyScrollable = contentWidth > width && overflowScroll;
         this._scrollable = this._verticallyScrollable
             || this._horizontallyScrollable;
-        if(!this._scrollable) return;
+        this._scrollableByAncestor = this._onClick != null
+            && this._getScrollableAncestor() != null;
+        if(!this._scrollable) {
+            this._content.position.x = 0;
+            this._content.position.y = 0;
+            return;
+        }
         let justifyContent = this.justifyContent;
         let alignItems = this.alignItems;
         let dimension, otherDimension, contentDimension, otherContentDimension,
@@ -113,6 +124,8 @@ class ScrollableComponent extends InteractableComponent {
                 - otherDimension) / 2;
             scrollBounds1[otherVec2Param] = scrollBounds2[otherVec2Param] * -1;
         }
+        if(this._verticallyScrollable) this._boundScrollPosition('y');
+        if(this._horizontallyScrollable) this._boundScrollPosition('x');
     }
 
     _pointerClick(e) {
@@ -135,12 +148,14 @@ class ScrollableComponent extends InteractableComponent {
             this._onDrag(e);
         } else if(this._scrollable) {
             this.handleScroll(owner, closestPoint);
-        } else if(this._scrollAncestor) {
-            this._scrollAncestor.handleScroll(owner, closestPoint);
-        } else {
-            this._scrollAncestor = this._getScrollableAncestor();
-            if(this._scrollAncestor) this._scrollAncestor.handleScroll(owner,
-                closestPoint);
+        } else if(this._scrollableByAncestor) {
+            if(this._scrollAncestor) {
+                this._scrollAncestor.handleScroll(owner, closestPoint);
+            } else {
+                this._scrollAncestor = this._getScrollableAncestor();
+                if(this._scrollAncestor)
+                    this._scrollAncestor.handleScroll(owner, closestPoint);
+            }
         }
     }
 
@@ -247,11 +262,7 @@ class ScrollableComponent extends InteractableComponent {
         let currentPosition = this._content.position[axis];
         this._content.position[axis] = this._scrollStartPosition[axis]
             - this._scrollStart[axis] + closestPoint[axis];
-        if(this._content.position[axis] < this._scrollBoundsMin[axis]) {
-            this._content.position[axis] = this._scrollBoundsMin[axis];
-        } else if(this._content.position[axis]>this._scrollBoundsMax[axis]){
-            this._content.position[axis] = this._scrollBoundsMax[axis];
-        }
+        this._boundScrollPosition(axis);
         if(!this.scrollThresholdReached) {
             let diff = Math.abs(currentPosition - this._content.position[axis]);
             this.scrollAmount += diff;
@@ -271,10 +282,18 @@ class ScrollableComponent extends InteractableComponent {
         }
     }
 
+    _boundScrollPosition(axis) {
+        if(this._content.position[axis] < this._scrollBoundsMin[axis]) {
+            this._content.position[axis] = this._scrollBoundsMin[axis];
+        } else if(this._content.position[axis]>this._scrollBoundsMax[axis]) {
+            this._content.position[axis] = this._scrollBoundsMax[axis];
+        }
+    }
+
     _setCallback(interactable, type, name, newCallback) {
         let callbackName = '_on' + capitalizeFirstLetter(name);
         let localCallbackName = '_' + name + 'Action';
-        if(!this._scrollable && !this._getScrollableAncestor()) {
+        if(!this._scrollable && !this._scrollableByAncestor) {
             if(newCallback && !this[callbackName]) {
                 interactable.addEventListener(type, this[localCallbackName]);
             } else if(!newCallback && this[callbackName]) {

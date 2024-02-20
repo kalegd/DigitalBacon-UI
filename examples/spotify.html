@@ -7,10 +7,11 @@
     <link rel="icon" type="image/png" sizes="16x16" href="/images/favicons/favicon-16x16.png">
     <link rel="icon" type="image/png" sizes="32x32" href="/images/favicons/favicon-32x32.png">
     <link rel="stylesheet" href="/css/examples.css">
+    <script src="https://sdk.scdn.co/spotify-player.js"></script>
     <script type="importmap">
       {
         "imports": {
-          "DigitalBacon-UI": "/scripts/DigitalBacon-UI.js",
+          "digitalbacon-ui": "/scripts/DigitalBacon-UI.js",
           "three": "/node_modules/three/build/three.module.js",
           "troika-worker-utils": "/node_modules/troika-worker-utils/dist/troika-worker-utils.esm.js",
           "webgl-sdf-generator": "/node_modules/webgl-sdf-generator/dist/webgl-sdf-generator.mjs",
@@ -28,7 +29,10 @@
     <script type="module">
       import * as ThreeBoilerplate from '/examples/scripts/ThreeBoilerplate.js';
       import * as SpotifyHelper from '/examples/scripts/SpotifyHelper.js';
-      import * as DigitalBaconUI from 'DigitalBacon-UI';
+      import SpotifyLoginContent from '/examples/scripts/SpotifyLoginContent.js';
+      import SpotifyMainContent from '/examples/scripts/SpotifyMainContent.js';
+      import SpotifyPlaybackController from '/examples/scripts/SpotifyPlaybackController.js';
+      import * as DigitalBaconUI from 'digitalbacon-ui';
       import * as THREE from 'three';
       const { Div, Span, Style, Text } = DigitalBaconUI;
 
@@ -37,14 +41,6 @@
 
       await DigitalBaconUI.init(container, renderer, scene, camera);
       DigitalBaconUI.InputHandler.enableXRControllerManagement(scene);
-
-      renderer.setAnimationLoop((time, frame) => {
-        stats.begin();
-        let timeDelta = clock.getDelta();
-        DigitalBaconUI.update(frame);
-        renderer.render(scene, camera);
-        stats.end();
-      });
 
       let sectionStyle = new Style({
         backgroundVisible: true,
@@ -71,6 +67,7 @@
         height: '100%',
       });
       let colorWhite = new Style({ color: 0xffffff });
+      let materialColorWhite = new Style({ materialColor: 0xffffff });
       let fontSmall = new Style({ fontSize: 0.02 });
       let fontMedium = new Style({ fontSize: 0.025 });
       let fontLarge = new Style({ fontSize: 0.0325 });
@@ -83,7 +80,8 @@
       });
       let homeSectionHovered = new Style(font700);
       let homeSectionActive = new Style(font700);
-      window.h = homeSectionHovered;
+      let buttonHovered = new Style(materialColorWhite);
+      let buttonActive = new Style(materialColorWhite);
 
       let body = new DigitalBaconUI.Body({
         backgroundVisible: true,
@@ -100,135 +98,33 @@
       let logo = new DigitalBaconUI.Image(
         '/images/spotify-logo.png', { height: '45%' });
 
-      //Login UI
-      let loginContent = new Div(sectionStyle, {
-        height: 0.85,
-        justifyContent: 'center',
-        width: '100%',
-      });
-      let loginButton = new Div({
-        backgroundVisible: true,
-        borderRadius: 0.05,
-        height: 0.1,
-        justifyContent: 'center',
-        materialColor: 0x1db954,
-        width: 0.52,
-      });
-      let loginText = new Text('CONNECT TO SPOTIFY', {
-        color: 0xffffff,
-        fontSize: 0.04,
-      });
-      loginContent.add(loginButton);
-      loginButton.add(loginText);
-      loginButton.onClick = () => {
-        SpotifyHelper.authenticate();
-      }
-      loginButton.pointerInteractable.setHoveredCallback((hovered) => {
-        if(hovered) {
-          loginButton.materialColor = 0x189a46;
-          loginText.troikaText.position.z = 0.01;
-        } else {
-          loginButton.materialColor = 0x1db954;
-          loginText.troikaText.position.z = 0;
-        }
-      });
-
       //Main UI
-      let mainContent = new Span({
-        height: 0.86,
-        justifyContent: 'spaceBetween',
-        width: '100%',
-      });
-      let column1 = new Div({
-        height: '100%',
-        width: '37%',
-        justifyContent: 'spaceBetween',
-      });
-      let column2 = new Div(sectionStyle, {
-        height: '100%',
-        overflow: 'scroll',
-        paddingLeft: 0.03,
-        paddingRight: 0.03,
-        width: '62.3%',
-      });
-      let homeSection = new Div(sectionStyle,
-        { height: 0.15, padding: 0.01, width: '100%' });
-      function createHomeSectionButton(iconUrl, title, onClick) {
-        let span = new Span({ height: 0.065, width: '100%' });
-        let image = new DigitalBaconUI.Image(iconUrl, { height: '50%', margin: 0.0125 });
-        let textParent = new Span({ paddingTop: 0.005 });
-        let text = new Text(title, colorWhite, fontMedium, font500);
-        homeSection.add(span);
-        span.add(image);
-        span.add(textParent);
-        textParent.add(text);
-        span.onClick = onClick;
-        span.pointerInteractable.setHoveredCallback((hovered) => {
-          text[(hovered) ? 'addStyle' : 'removeStyle'](homeSectionHovered);
-        });
-      }
-      createHomeSectionButton('/examples/images/home-icon.png', 'Home', () => {
-        console.log("TODO: Handle Home Click");
-      });
-      createHomeSectionButton('/examples/images/search-icon.png', 'Search',()=>{
-        console.log("TODO: Handle Search Click");
-      });
-      let librarySection = new Div(sectionStyle,
-        { height: 0.70, width: '100%' });
       let navBar = new Span({ height: 0.09, width: '100%' });
-      let recentlyPlayedSection = new Div({ width: '100%' });
-      let recentlyPlayedTextSpan = new Span({
-        paddingTop: 0.02,
-        paddingBottom: 0.02,
-        width: '100%',
-      });
-      let recentlyPlayedText = new Text('Recently Played', colorWhite, font700,
-        fontXLarge);
-
-      logoRow.add(logo);
-      mainContent.add(column1);
-      mainContent.add(column2);
-      column1.add(homeSection);
-      column1.add(librarySection);
-      column2.add(navBar);
-      column2.add(recentlyPlayedSection);
-      recentlyPlayedSection.add(recentlyPlayedTextSpan);
-      recentlyPlayedTextSpan.add(recentlyPlayedText);
 
       body.position.set(0, 1.7, -0.7);
       scene.add(body);
       body.add(logoRow);
-
-      async function populateHome() {
-        let response = await SpotifyHelper.getRecentlyPlayed();
-        console.log(response);
-        let index = 0;
-        let row;
-        for(let item of response.items) {
-          if(index % 2 == 0) {
-            row = new Span(recentlyPlayedRowStyle);
-            recentlyPlayedSection.add(row);
-          }
-          let span = new Span(recentlyPlayedTrackStyle);
-          let album = new DigitalBaconUI.Image(item.track.album.images[0].url,
-            recentlyPlayedImageStyle);
-          let text = new Text(item.track.name, colorWhite, font500, fontMedium,
-            { marginLeft: 0.02 });
-          row.add(span);
-          span.add(album);
-          span.add(text);
-          span.onClick = () => console.log("TODO: Play song");
-          index++;
-        }
-      }
+      logoRow.add(logo);
 
       if(await SpotifyHelper.isAuthenticated()) {
-        body.add(mainContent);
-        populateHome();
+        window.onSpotifyWebPlaybackSDKReady = () => {
+          let playbackController = new SpotifyPlaybackController();
+          let mainContent = new SpotifyMainContent(playbackController);
+          body.add(playbackController.getObject());
+          body.add(mainContent.getObject());
+        };
       } else {
-        body.add(loginContent);
+        let loginContent = new SpotifyLoginContent();
+        body.add(loginContent.getObject());
       }
 
+      renderer.setAnimationLoop((time, frame) => {
+        stats.begin();
+        let timeDelta = clock.getDelta();
+        DigitalBaconUI.update(frame);
+        renderer.render(scene, camera);
+        stats.end();
+      });
     </script>
   </body>
 </html>

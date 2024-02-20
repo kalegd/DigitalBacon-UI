@@ -68,7 +68,7 @@ class LayoutComponent extends UIComponent {
         if(this.overflow != 'visible') this._createClippingPlanes();
     }
 
-    _handleStyleUpdateForBackgroundVisibility() {
+    _handleStyleUpdateForBackgroundVisible() {
         if(!this._background) return;
         this._background.visible = this.backgroundVisible || false;
     }
@@ -226,6 +226,7 @@ class LayoutComponent extends UIComponent {
         this.clippingPlanes[1].normal.set(0, -1, 0);
         this.clippingPlanes[2].normal.set(1, 0, 0);
         this.clippingPlanes[3].normal.set(-1, 0, 0);
+        this.updateWorldMatrix(true);
         for(let plane of this.clippingPlanes) {
             plane.applyMatrix4(this.matrixWorld);
         }
