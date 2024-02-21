@@ -149,7 +149,7 @@ async function genericAPICall(method, resource) {
     let result = await fetch("https://api.spotify.com/v1" + resource, {
         method: method, headers: { Authorization: `Bearer ${accessToken}` }
     });
-    return await result;
+    return result;
 }
 
 export async function getPlaylist(playlistId) {
@@ -174,7 +174,7 @@ export async function transferPlayback(deviceId) {
         headers: { Authorization: `Bearer ${accessToken}` },
         body: JSON.stringify({ device_ids: [deviceId], play: false }),
     });
-    return await result;
+    return result;
 }
 
 export async function getPlaybackState(deviceId) {
@@ -190,7 +190,7 @@ async function playbackAPICall(method, resource, deviceId) {
     let result = await fetch("https://api.spotify.com/v1/me/player/" + resource + '?device_id=' + deviceId, {
         method: method, headers: { Authorization: `Bearer ${accessToken}` }
     });
-    return await result;
+    return result;
 }
 
 export async function previous(deviceId) {
@@ -216,10 +216,19 @@ export async function playSong(deviceId, uri, contextUri) {
         headers: { Authorization: `Bearer ${accessToken}` },
         body: JSON.stringify(body),
     });             
-    return await result;
+    return result;
 }
 export async function pause(deviceId) {
     return await playbackAPICall('PUT', 'pause', deviceId);
+}
+
+export async function search(query) {
+    await validateToken();
+    let result = await fetch("https://api.spotify.com/v1/search?query=" + encodeURIComponent(query) + '&type=album,artist,playlist,track', {
+        method: "GET",
+        headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    return result.json();
 }
 
 export async function seek(position, deviceId) {
@@ -237,7 +246,7 @@ export async function shuffle(state, deviceId) {
         method: "PUT",
         headers: { Authorization: `Bearer ${accessToken}` },
     });
-    return await result;
+    return result;
 }
 
 export async function repeat(state, deviceId) {
@@ -246,7 +255,7 @@ export async function repeat(state, deviceId) {
         method: "PUT",
         headers: { Authorization: `Bearer ${accessToken}` },
     });
-    return await result;
+    return result;
 }
 
 setup();

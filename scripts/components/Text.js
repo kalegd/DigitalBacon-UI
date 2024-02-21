@@ -31,6 +31,10 @@ class TextComponent extends LayoutComponent {
             this._text.material.clippingPlanes = this._getClippingPlanes();
     }
 
+    _handleStyleUpdateForColor() {
+        this._text.color = this.color;
+    }
+
     _handleStyleUpdateForFont() {
         this._text.font = this.font;
         if(this.width == 'auto' || this.height == 'auto') this.updateLayout();

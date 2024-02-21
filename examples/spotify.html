@@ -7,7 +7,6 @@
     <link rel="icon" type="image/png" sizes="16x16" href="/images/favicons/favicon-16x16.png">
     <link rel="icon" type="image/png" sizes="32x32" href="/images/favicons/favicon-32x32.png">
     <link rel="stylesheet" href="/css/examples.css">
-    <script src="https://sdk.scdn.co/spotify-player.js"></script>
     <script type="importmap">
       {
         "imports": {
@@ -34,54 +33,12 @@
       import SpotifyPlaybackController from '/examples/scripts/SpotifyPlaybackController.js';
       import * as DigitalBaconUI from 'digitalbacon-ui';
       import * as THREE from 'three';
-      const { Div, Span, Style, Text } = DigitalBaconUI;
 
       let { container, scene, camera, clock, stats, renderer }
         = await ThreeBoilerplate.init();
 
       await DigitalBaconUI.init(container, renderer, scene, camera);
       DigitalBaconUI.InputHandler.enableXRControllerManagement(scene);
-
-      let sectionStyle = new Style({
-        backgroundVisible: true,
-        borderRadius: 0.01,
-        glassmorphism: true,
-        materialColor: 0xaaaaaa,
-      });
-      let recentlyPlayedRowStyle = new Style({
-        height: 0.1,
-        justifyContent: 'spaceBetween',
-        width: '100%',
-      });
-      let recentlyPlayedTrackStyle = new Style({
-        backgroundVisible: true,
-        borderRadius: 0.005,
-        glassmorphism: true,
-        height: '80%',
-        materialColor: 0x606d75,
-        width: 0.365,
-      });
-      let recentlyPlayedImageStyle = new Style({
-        borderTopLeftRadius: 0.01,
-        borderBottomLeftRadius: 0.01,
-        height: '100%',
-      });
-      let colorWhite = new Style({ color: 0xffffff });
-      let materialColorWhite = new Style({ materialColor: 0xffffff });
-      let fontSmall = new Style({ fontSize: 0.02 });
-      let fontMedium = new Style({ fontSize: 0.025 });
-      let fontLarge = new Style({ fontSize: 0.0325 });
-      let fontXLarge = new Style({ fontSize: 0.04 });
-      let font500 = new Style({
-        font: 'https://fonts.gstatic.com/s/roboto/v30/KFOlCnqEu92Fr1MmEU9vAA.woff',
-      });
-      let font700 = new Style({
-        font: 'https://fonts.gstatic.com/s/roboto/v30/KFOlCnqEu92Fr1MmWUlvAA.woff',
-      });
-      let homeSectionHovered = new Style(font700);
-      let homeSectionActive = new Style(font700);
-      let buttonHovered = new Style(materialColorWhite);
-      let buttonActive = new Style(materialColorWhite);
 
       let body = new DigitalBaconUI.Body({
         backgroundVisible: true,
@@ -91,7 +48,7 @@
         paddingRight: 0.045,
         width: 1.4,
       });
-      let logoRow = new Span({
+      let logoRow = new DigitalBaconUI.Span({
         height: 0.07,
         width: '100%',
       });
@@ -99,7 +56,7 @@
         '/images/spotify-logo.png', { height: '45%' });
 
       //Main UI
-      let navBar = new Span({ height: 0.09, width: '100%' });
+      let navBar = new DigitalBaconUI.Span({ height: 0.09, width: '100%' });
 
       body.position.set(0, 1.7, -0.7);
       scene.add(body);
@@ -126,5 +83,6 @@
         stats.end();
       });
     </script>
+    <script src="https://sdk.scdn.co/spotify-player.js" defer></script>
   </body>
 </html>

@@ -1,12 +1,13 @@
 import * as SpotifyHelper from '/examples/scripts/SpotifyHelper.js';
 import * as Styles from '/examples/scripts/SpotifyStyles.js';
 import * as DigitalBaconUI from 'digitalbacon-ui';
-const { Div, Span, Text } = DigitalBaconUI;
+const { Div, Span, Text, TextInput } = DigitalBaconUI;
 
 export default class SpotifyMainContent {
     constructor(playbackController) {
         this._playbackController = playbackController;
         this._playlistTrackSpans = [];
+        this._searchTrackSpans = [];
         this._createContent();
     }
 
@@ -30,6 +31,7 @@ export default class SpotifyMainContent {
         this._createPlaylistsSection();
         this._createPlaylistSection();
         this._createRecentlyPlayedSection();
+        this._createSearchSection();
 
         this._content.add(column1);
         this._content.add(column2);
@@ -62,10 +64,9 @@ export default class SpotifyMainContent {
             });
             return span;
         }
-        let homeButton = createHomeSectionButton('Home');
-        homeButton.onClick = () => this._loadHome();
-        let searchButton = createHomeSectionButton('Search');
-        searchButton.onClick = () => this._loadSearch();
+        let homeButton = createHomeSectionButton('Home', () =>this._loadHome());
+        let searchButton = createHomeSectionButton('Search',
+            () => this._loadSearch());
     }
 
     _createPlaylistsSection() {
@@ -111,6 +112,38 @@ export default class SpotifyMainContent {
         this._recentlyPlayedSection.add(recentlyPlayedTextSpan);
         recentlyPlayedTextSpan.add(recentlyPlayedText);
         this._populateRecentlyPlayed();
+    }
+
+    _createSearchSection() {
+        this._searchSection = new Div({ width: '100%' });
+        let searchInputSpan = new Span({
+            backgroundVisible: true,
+            borderRadius: 0.0275,
+            glassmorphism: true,
+            height: 0.057,
+            materialColor: 0x606d75,
+            marginTop: 0.04,
+            marginBottom: 0.04,
+            width: '100%',
+        });
+        let searchIcon = new DigitalBaconUI.Image(
+            '/examples/images/search-icon.png',
+            { height: '60%', marginLeft: 0.015 }
+        );
+        this._searchInput = new TextInput({
+            backgroundVisible: false,
+            borderWidth: 0,
+            color: 0xffffff,
+            fontSize: 0.035,
+            height: 0.055,
+            marginLeft: -0.055,
+            paddingLeft: 0.07,
+            width: '100%',
+        });
+        this._searchSection.add(searchInputSpan);
+        searchInputSpan.add(searchIcon);
+        searchInputSpan.add(this._searchInput);
+        this._searchInput.onBlur = () => this._search();
     }
 
     async _populatePlaylists() {
@@ -170,83 +203,108 @@ export default class SpotifyMainContent {
 
     _loadHome() {
         this._mainPanel.remove(this._playlistSection);
+        this._mainPanel.remove(this._searchSection);
         this._mainPanel.add(this._recentlyPlayedSection);
     }
 
     _loadSearch() {
-        console.log("TODO: Handle Search Click");
+        this._mainPanel.remove(this._playlistSection);
+        this._mainPanel.remove(this._recentlyPlayedSection);
+        this._mainPanel.add(this._searchSection);
+    }
+
+    async _search() {
+        let value = this._searchInput.value;
+        if(!value) {
+            this._clearSearchResults();
+            return;
+        }
+        let response = await SpotifyHelper.search(value);
+        this._clearSearchResults();
+        //console.log(response);
+        for(let i = 0; i < response.tracks.items.length; i++) {
+            let item = response.tracks.items[i];
+            let span = this._createTrackSpan(i + 1, item);
+            this._searchSection.add(span);
+            this._searchTrackSpans.push(span);
+        }
     }
 
     async _loadPlaylist(details) {
         this._playlistNameText.text = details.name;
         this._mainPanel.remove(this._recentlyPlayedSection);
+        this._mainPanel.remove(this._searchSection);
         this._mainPanel.add(this._playlistSection);
         this._clearPlaylist();
         let response = await SpotifyHelper.getPlaylist(details.id);
         //console.log(response);
         for(let i = 0; i < response.tracks.items.length; i++) {
             let item = response.tracks.items[i].track;
-            let span = new Span({
-                alignItems: 'start',
-                borderRadius: 0.005,
-                glassmorphism: true,
-                height: 0.1,
-                materialColor: 0x606d75,
-                paddingTop: 0.01,
-                paddingBottom: 0.01,
-                width:'100%',
-            });
-            let numberSpan = new Span({
-                height: '100%',
-                justifyContent: 'center',
-                width: 0.05,
-            });
-            let numberText = new Text(String(i + 1), Styles.colorWhite,
-                Styles.font500, Styles.fontMedium);
-            numberSpan.add(numberText);
-            let albumImage = new DigitalBaconUI.Image(item.album.images[0].url,
-                { height: '100%' });
-            let titleDiv = new Div({
-                alignItems: 'start',
-                height: '100%',
-                justifyContent: 'center',
-                overflow: 'hidden',
-                padding: 0.01,
-                width: 0.3,
-            });
-            let titleText = new Text(item.name, Styles.colorWhite,
-                Styles.font700, Styles.fontMedium);
-            let artistText = new Text(item.artists[0].name, Styles.colorWhite,
-                Styles.font500, Styles.fontMedium);
-            titleDiv.add(titleText);
-            titleDiv.add(artistText);
-            let albumSpan = new Span({
-                height: '100%',
-                overflow: 'hidden',
-                marginLeft: 0.01,
-                marginRight: 0.01,
-                width: 0.25,
-            });
-            let albumText = new Text(item.album.name, Styles.colorWhite,
-                Styles.font500, Styles.fontMedium);
-            albumSpan.add(albumText);
-            let durationSpan = new Span({ height: '100%', width: 0.1 });
-            let durationText = new Text(this._msToTime(item.duration_ms),
-                Styles.colorWhite, Styles.font500, Styles.fontMedium);
-            durationSpan.add(durationText);
+            let span = this._createTrackSpan(i + 1, item, response.uri);
             this._playlistSection.add(span);
-            span.add(numberSpan);
-            span.add(albumImage);
-            span.add(titleDiv);
-            span.add(albumSpan);
-            span.add(durationSpan);
-            span.onClick = () => this._playbackController.play(item.uri,
-                response.uri);
-            span.pointerInteractable.setHoveredCallback((hovered) => {
-                span.backgroundVisible = (hovered) ? true : false;
-            });
             this._playlistTrackSpans.push(span);
         }
+    }
+
+    _createTrackSpan(index, item, contextUri) {
+        let span = new Span({
+            alignItems: 'start',
+            borderRadius: 0.005,
+            glassmorphism: true,
+            height: 0.1,
+            materialColor: 0x606d75,
+            paddingTop: 0.01,
+            paddingBottom: 0.01,
+            width:'100%',
+        });
+        let numberSpan = new Span({
+            height: '100%',
+            justifyContent: 'center',
+            width: 0.05,
+        });
+        let numberText = new Text(String(index), Styles.colorWhite,
+            Styles.font500, Styles.fontMedium);
+        numberSpan.add(numberText);
+        let albumImage = new DigitalBaconUI.Image(item.album.images[0].url,
+            { height: '100%' });
+        let titleDiv = new Div({
+            alignItems: 'start',
+            height: '100%',
+            justifyContent: 'center',
+            overflow: 'hidden',
+            padding: 0.01,
+            width: 0.3,
+        });
+        let titleText = new Text(item.name, Styles.colorWhite, Styles.font700,
+            Styles.fontMedium);
+        let artistText = new Text(item.artists[0].name, Styles.colorWhite,
+            Styles.font500, Styles.fontMedium);
+        titleDiv.add(titleText);
+        titleDiv.add(artistText);
+        let albumSpan = new Span({
+            height: '100%',
+            overflow: 'hidden',
+            marginLeft: 0.01,
+            marginRight: 0.01,
+            width: 0.25,
+        });
+        let albumText = new Text(item.album.name, Styles.colorWhite,
+            Styles.font500, Styles.fontMedium);
+        albumSpan.add(albumText);
+        let durationSpan = new Span({ height: '100%', width: 0.1 });
+        let durationText = new Text(this._msToTime(item.duration_ms),
+            Styles.colorWhite, Styles.font500, Styles.fontMedium);
+        durationSpan.add(durationText);
+        span.add(numberSpan);
+        span.add(albumImage);
+        span.add(titleDiv);
+        span.add(albumSpan);
+        span.add(durationSpan);
+        span.onClick = () => this._playbackController.play(item.uri,contextUri);
+        span.pointerInteractable.setHoveredCallback((hovered) => {
+            span.backgroundVisible = (hovered) ? true : false;
+        });
+        return span;
     }
 
     _msToTime(ms) {
@@ -261,6 +319,13 @@ export default class SpotifyMainContent {
             this._playlistSection.remove(span);
         }
         this._playlistTrackSpans = [];
+    }
+
+    _clearSearchResults() {
+        for(let span of this._searchTrackSpans) {
+            this._searchSection.remove(span);
+        }
+        this._searchTrackSpans = [];
     }
 
     getObject() {

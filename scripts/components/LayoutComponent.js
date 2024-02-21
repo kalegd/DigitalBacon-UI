@@ -141,7 +141,7 @@ class LayoutComponent extends UIComponent {
         let material = this.material;
         let materialColor = this.materialColor;
         let opacity = this.opacity;
-        if(materialColor) material.color.set(materialColor);
+        if(materialColor != null) material.color.set(materialColor);
         if(opacity) material.opacity = opacity;
         let borderWidth = this.borderWidth || 0;
         let borderRadius = this.borderRadius || 0;

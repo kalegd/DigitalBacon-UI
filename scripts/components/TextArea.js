@@ -42,6 +42,7 @@ class TextArea extends ScrollableComponent {
         this._defaults['backgroundVisible'] = true;
         this._defaults['borderMaterial'].color.set(0x4f4f4f);
         this._defaults['borderWidth'] = 0.002;
+        this._defaults['color'] = 0x000000;
         this._defaults['justifyContent'] = 'start';
         this._defaults['fontSize'] = 0.06;
         this._defaults['overflow'] = 'scroll';
@@ -52,6 +53,7 @@ class TextArea extends ScrollableComponent {
         this._value = [];
         this._runeLengths = [];
         this._textStyle = new Style({
+            color: this.color,
             fontSize: this.fontSize,
             textAlign: 'left',
             maxWidth: 0,
@@ -79,6 +81,10 @@ class TextArea extends ScrollableComponent {
         this.updateLayout();
         if(this.overflow != 'visible' && !this.clippingPlanes)
             this._createClippingPlanes();
+    }
+
+    _handleStyleUpdateForColor() {
+        this._textStyle.color = this.color;
     }
 
     _handleStyleUpdateForFontSize() {
