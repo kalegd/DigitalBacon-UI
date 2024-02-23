@@ -1,6 +1,6 @@
 <html>
   <head>
-    <title>Examples - Language Selection</title>
+    <title>Examples - UI Borders</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="theme-color" content="#ffebfd"/>
     <link rel="apple-touch-icon" sizes="180x180" href="/images/favicons/apple-touch-icon.png">
@@ -27,6 +27,7 @@
     <script type="module">
       import * as ThreeBoilerplate from '/examples/scripts/ThreeBoilerplate.js';
       import * as DigitalBaconUI from 'DigitalBacon-UI';
+      import * as THREE from 'three';
 
       let { container, scene, camera, clock, stats, renderer }
         = await ThreeBoilerplate.init();
@@ -35,88 +36,76 @@
       DigitalBaconUI.InputHandler.enableXRControllerManagement(scene);
 
       const body = new DigitalBaconUI.Body({
-        borderRadius: 0.05,
-        borderWidth: 0.001,
-        glassmorphism: true,
         justifyContent: 'spaceBetween',
+        materialColor: 0x000000,
+        opacity: 0.7,
+        padding: 0.12,
         width: 1.5,
       });
-      const row1 = new DigitalBaconUI.Span({
-        backgroundVisible: true,
-        borderTopLeftRadius: 0.05,
-        borderTopRightRadius: 0.05,
-        glassmorphism: true,
-        materialColor: '#dddddd',
-        height: '50%',
+      const row1 = new DigitalBaconUI.Div({
+        alignItems: 'start',
         width: '100%',
-        justifyContent: 'center',
       });
       const row2 = new DigitalBaconUI.Span({
-        height: '37.5%',
+        justifyContent: 'spaceBetween',
         width: '100%',
-        justifyContent: 'start',
-        overflow: 'scroll',
-      });
-      const languagesSpan = new DigitalBaconUI.Span({
-        height: '100%',
-        width: '150%',
-        justifyContent: 'spaceEvenly',
       });
       const row3 = new DigitalBaconUI.Span({
-        backgroundVisible: true,
-        borderBottomLeftRadius: 0.05,
-        borderBottomRightRadius: 0.05,
-        materialColor: '#000000',
-        height: '12.5%',
+        justifyContent: 'spaceBetween',
         width: '100%',
       });
-      const helloText = new DigitalBaconUI.Text('Hello!', {
-        fontSize: 0.15,
+      const text1 = new DigitalBaconUI.Text('Borders can be configured with the following properties', {
         color: '#ffffff',
+        fontSize: 0.055,
+        maxWidth: '100%',
       });
-      const languages = {};
-      const buttonStyle = new DigitalBaconUI.Style({
-        backgroundVisible: true,
-        borderRadius: 0.05,
+      const borderMaterial = new THREE.MeshBasicMaterial({ color: 0xff9999 });
+      new THREE.TextureLoader().load('/examples/images/magma.png', (texture) =>{
+        texture.wrapS = THREE.RepeatWrapping;
+        texture.wrapT = THREE.RepeatWrapping;
+        texture.repeat.set( 6, 6 );
+        borderMaterial.map = texture;
+        borderMaterial.needsUpdate = true;
+      });
+      const example = new DigitalBaconUI.Div({
+        borderBottomLeftRadius: 0.08,
+        borderBottomRightRadius: 0.12,
+        borderTopLeftRadius: 0.04,
+        borderTopRightRadius: 0.16,
+        borderMaterial: borderMaterial,
+        borderWidth: 0.05,
+        height: 0.58,
+        padding: 0.075,
         justifyContent: 'center',
-        materialColor: '#1c2230',
-        height: 0.2,
-        width: 0.33,
+        width: 0.71,
+      });
+      const propertiesText = new DigitalBaconUI.Text('borderMaterial\nborderWidth\nborderRadius\nborderTopLeftRadius\nborderTopRightRadius\nborderBottomLeftRadius\nborderBottomRightRadius', {
+        color: '#ffffff',
+        fontSize: 0.045,
       });
 
-      function addLanguage(name, code, text) {
-        let div = new DigitalBaconUI.Div(buttonStyle);
-        let textComponent = new DigitalBaconUI.Text(code, { color: '#ffffff' });
-        div.add(textComponent);
-        languagesSpan.add(div);
-        languages[name] = {
-          div: div,
-          text: text,
-        };
-        div.onTouch = div.onClick = () => {
-          for(let id in languages) {
-            let d = languages[id].div;
-            d.materialColor = (d == div) ? '#2a0275' : '#1c2230';
-            helloText.text = text;
-          }
-        };
-        return div;
-      }
-      addLanguage('english', 'EN', 'Hello!');
-      addLanguage('chinese', '汉语', '你好!');
-      addLanguage('hindi', 'हिंदी', 'नमस्ते!');
-      addLanguage('spanish', 'ES', 'Hola!');
-      addLanguage('russian', 'RU', 'привет!');
-      languages['english'].div.materialColor = '#2a0275';
       body.position.set(0, 1.7, -1);
       scene.add(body);
-      body.add(row1, row2, row3);
-      row1.add(helloText);
-      row2.add(languagesSpan);
+      body.add(text1);
+      body.add(example);
+      example.add(propertiesText);
+
+      let t = 0;
+      let period = 2.5;
+      let bodyMaxRadius = 0.15;
+
+      function getRadius(t, range) {
+        let radiusPercent = (Math.sin(t * 2 * Math.PI / period) + 1) / 2;
+        return radiusPercent * range;
+      }
 
       renderer.setAnimationLoop((time, frame) => {
         stats.begin();
         let timeDelta = clock.getDelta();
+        t += timeDelta;
+        let radiusPercent = (Math.sin(t * 2 * Math.PI / period) + 1) / 2;
+        body.borderRadius = getRadius(t, bodyMaxRadius);
+        body.borderWidth = body.borderRadius / 2;
         DigitalBaconUI.update(frame);
         renderer.render(scene, camera);
         stats.end();

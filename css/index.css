@@ -1,0 +1,89 @@
+:root {
+    --border: 1px solid #E8E8E8;
+    --sidebar-padding: 20px;
+    --sidebar-width: 300px;
+}
+
+body {
+    font-family: "Courier New", "Courier", monospace;
+    margin: 0;
+}
+
+h1 {
+    border-bottom: var(--border);
+    margin-bottom: 0;
+    margin-top: 12px;
+    padding-bottom: 12px;
+    font-size: 1.75em;
+    text-align: center;
+}
+
+h2 {
+    border-bottom: 1px solid #b4b4b4;
+    font-size: 1.25em;
+    margin-bottom: 0;
+}
+
+iframe {
+    border: none;
+    box-sizing: border-box;
+    height: 100%;
+    padding-left: var(--sidebar-width);
+    width: 100%;
+}
+
+.sidebar {
+    box-sizing: border-box;
+    border-right: 1px solid #E8E8E8;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    left: 0px;
+    overflow: auto;
+    position: fixed;
+    width: var(--sidebar-width);
+    z-index: 100;
+}
+
+.github-link, .github-link:visited {
+    align-items: center;
+    background-color: black;
+    border-radius: 16px;
+    box-shadow: 1px 1px 3px rgba(0,0,0,0.8);
+    color: white;
+    display: flex;
+    font-size: 24px;
+    height: 32px;
+    padding-left: 8px;
+    text-decoration: none;
+}
+
+.sidebar-list {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 12px var(--sidebar-padding) var(--sidebar-padding) var(--sidebar-padding);
+}
+
+.sidebar ul {
+    list-style-type: none;
+    margin-top: 10px;
+    padding-left: 0;
+}
+.sidebar li {
+    font-size: 1.1em;
+    padding: 4px 10px;
+    margin: 10px 0;
+    border-radius: 3px;
+}
+
+.sidebar li:hover {
+    color: blue;
+    cursor: pointer;
+    background-color: #e6e6e6;
+}
+
+.sidebar li.selected {
+    background-color: black;
+    color: white;
+}

@@ -12,8 +12,6 @@ class Body extends ScrollableComponent {
         super(...styles);
         this.bypassContentPositioning = true;
         this._defaults['backgroundVisible'] = true;
-        this._defaults['borderRadius'] = 0.05;
-        this._defaults['borderWidth'] = 0.001;
         this._defaults['height'] = 1;
         this._defaults['width'] = 1;
         this.updateLayout();

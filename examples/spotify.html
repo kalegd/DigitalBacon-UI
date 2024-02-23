@@ -21,7 +21,6 @@
     </script>
   </head>
   <body>
-    <h1>Spotify</h1>
     <div id="container"></div>
     <div id="vr-button"></div>
     <div id="ar-button"></div>
@@ -41,6 +40,8 @@
       DigitalBaconUI.InputHandler.enableXRControllerManagement(scene);
 
       let body = new DigitalBaconUI.Body({
+        borderRadius: 0.05,
+        borderWidth: 0.001,
         backgroundVisible: true,
         glassmorphism: true,
         materialColor: 0xdddddd,

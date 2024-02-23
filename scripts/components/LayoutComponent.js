@@ -73,6 +73,26 @@ class LayoutComponent extends UIComponent {
         this._background.visible = this.backgroundVisible || false;
     }
 
+    _handleStyleUpdateForBorderRadius() {
+        this._createBackground();
+    }
+
+    _handleStyleUpdateForBorderBottomLeftRadius() {
+        this._createBackground();
+    }
+
+    _handleStyleUpdateForBorderBottomRightRadius() {
+        this._createBackground();
+    }
+
+    _handleStyleUpdateForBorderTopLeftRadius() {
+        this._createBackground();
+    }
+
+    _handleStyleUpdateForBorderTopRightRadius() {
+        this._createBackground();
+    }
+
     _handleStyleUpdateForMargin() {
         this.updateLayout();
     }
@@ -121,7 +141,7 @@ class LayoutComponent extends UIComponent {
 
     _handleStyleUpdateForOpacity() {
         let opacity = this.opacity;
-        if(materialColor == null) opacity = 1;
+        if(opacity == null) opacity = 1;
         this.material.opacity = opacity;
     }
 

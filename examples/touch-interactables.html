@@ -21,72 +21,34 @@
     </script>
   </head>
   <body>
-    <h1>Touch Interactables</h1>
     <div id="container"></div>
     <div id="vr-button"></div>
     <div id="ar-button"></div>
     <script type="module">
+      import * as ThreeBoilerplate from '/examples/scripts/ThreeBoilerplate.js';
       import * as DigitalBaconUI from 'DigitalBacon-UI';
       import * as THREE from 'three';
-      import Stats from '/node_modules/three/examples/jsm/libs/stats.module.js';
-      import { VRButton } from 'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/webxr/VRButton.js';
-      import { ARButton } from 'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/webxr/ARButton.js';
 
-      //Begin Boilerplate
+      let { container, scene, camera, clock, stats, renderer }
+        = await ThreeBoilerplate.init();
 
-      const container = document.getElementById('container');
-      const vrButtonDiv = document.getElementById('vr-button');
-      const arButtonDiv = document.getElementById('ar-button');
-      const scene = new THREE.Scene();
-      const camera = new THREE.PerspectiveCamera(90, window.innerWidth / window.innerHeight, 0.1, 1000);
-      const clock = new THREE.Clock();
-      const stats = new Stats();
-      stats.showPanel(0);
-      stats.dom.style.top = '';
-      stats.dom.style.left = '';
-      stats.dom.style.position = 'absolute';
-      container.appendChild(stats.dom, container.firstChild);
-      
-      const renderer = new THREE.WebGLRenderer({ antialias : true });
-      renderer.setSize(container.clientWidth, container.clientHeight);
-      container.appendChild(renderer.domElement);
-      if('xr' in renderer) {
-        let features = ['local-floor', 'bounded-floor', 'hand-tracking',
-                        'layers', 'anchors', 'plane-detection'];
-        let vrButton = VRButton.createButton(renderer);
-        let arButton = ARButton.createButton(renderer,
-          { optionalFeatures: features });
-        vrButtonDiv.appendChild(vrButton);
-        arButtonDiv.appendChild(arButton);
-        renderer.xr.enabled = true;
-      }
+      DigitalBaconUI.init(container, renderer, scene, camera);
+      DigitalBaconUI.InputHandler.enableXRControllerManagement(scene);
 
       const geometry = new THREE.BoxGeometry(0.3, 0.3, 0.3);
       const material = new THREE.MeshStandardMaterial({ color: 0x00ff00 });
       const cube = new THREE.Mesh(geometry, material);
-      const ambientLight = new THREE.AmbientLight(0x404040, 1);
-      const pointLight = new THREE.PointLight(0xffffff, 100);
-      pointLight.position.set(0, 2.5, 5);
       cube.position.set(0, 1.7, -1);
-      camera.position.y = 1.7;
-      scene.add(camera);
       scene.add(cube);
-      scene.add(ambientLight);
-      scene.add(pointLight);
-      geometry.computeBoundsTree();
-
-      //End Boilerplate
 
       function randomSaturatedColor() {
         return "hsl(" + 360 * Math.random() + ',100%,'
           + (40 + 20 * Math.random()) + '%)';
       }
 
-      DigitalBaconUI.init(container, renderer, scene, camera);
-      DigitalBaconUI.InputHandler.enableXRControllerManagement(scene);
-
       const interactable = new DigitalBaconUI.TouchInteractable(cube);
-      interactable.addEventListener('down', () => material.color.set(randomSaturatedColor()));
+      interactable.addEventListener('down',
+        () => material.color.set(randomSaturatedColor()));
       DigitalBaconUI.addTouchInteractable(interactable);
 
       renderer.setAnimationLoop((time, frame) => {

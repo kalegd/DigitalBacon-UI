@@ -38,6 +38,14 @@ export const init = async () => {
         renderer.xr.enabled = true;
     }
 
+    window.addEventListener('resize', () => { 
+        renderer.setSize(container.clientWidth,
+            container.clientHeight);
+        camera.aspect = container.clientWidth
+            / container.clientHeight;
+        camera.updateProjectionMatrix();
+    });
+
     const ambientLight = new THREE.AmbientLight(0x404040, 1);
     const pointLight = new THREE.PointLight(0xffffff, 100);
     pointLight.position.set(2.5, 5, 5);
