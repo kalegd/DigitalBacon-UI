@@ -70,7 +70,10 @@ export default class InteractableHandler {
                 eventCopy.target = interactable.getObject();
                 interactable[type](eventDetails);
             }
-            for(let callback of this._listeners[type]) {
+            if(!this._listeners[type]) return;
+            let callbacks = [];
+            this._listeners[type].forEach((callback)=>callbacks.push(callback));
+            for(let callback of callbacks) {
                 callback(eventCopy);
             }
         } else if(interactable) {
