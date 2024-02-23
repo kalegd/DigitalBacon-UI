@@ -186,6 +186,22 @@ class LayoutComponent extends UIComponent {
             this._background.visible = false;
     }
 
+    _addClippingPlanesUpdateListener() {
+        if(this.clippingPlanes) UpdateHandler.add(this._updateListener);
+        for(let child of this._content.children) {
+            if(child instanceof LayoutComponent)
+                child._addClippingPlanesUpdateListener();
+        }
+    }
+
+    _removeClippingPlanesUpdateListener() {
+        UpdateHandler.remove(this._updateListener);
+        for(let child of this._content.children) {
+            if(child instanceof LayoutComponent)
+                child._removeClippingPlanesUpdateListener();
+        }
+    }
+
     _createClippingPlanes() {
         this.clippingPlanes = [
             new THREE.Plane(new THREE.Vector3(0, 1, 0)),
@@ -533,6 +549,7 @@ class LayoutComponent extends UIComponent {
             object.updateClippingPlanes(true);
             this.updateLayout();
         } else {
+            this._addClippingPlanesUpdateListener();
             super.add(object);
         }
     }
@@ -546,6 +563,7 @@ class LayoutComponent extends UIComponent {
                 && !object.bypassContentPositioning) {
             this._content.remove(object);
         } else {
+            this._removeClippingPlanesUpdateListener();
             super.remove(object);
         }
     }
