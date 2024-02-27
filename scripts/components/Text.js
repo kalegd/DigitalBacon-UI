@@ -47,7 +47,8 @@ class TextComponent extends LayoutComponent {
 
     _handleStyleUpdateForMaxWidth() {
         if(this.maxWidth != null) {
-            this._text.maxWidth = this.maxWidth;
+            if(typeof this.maxWidth == 'number')
+                this._text.maxWidth = this.maxWidth;
         } else {
             this._text.maxWidth = null;
         }

@@ -68,6 +68,10 @@ class LayoutComponent extends UIComponent {
         if(this.overflow != 'visible') this._createClippingPlanes();
     }
 
+    _handleStyleUpdateForAlignItems() {
+        this.updateLayout();
+    }
+
     _handleStyleUpdateForBackgroundVisible() {
         if(!this._background) return;
         this._background.visible = this.backgroundVisible || false;
@@ -91,6 +95,10 @@ class LayoutComponent extends UIComponent {
 
     _handleStyleUpdateForBorderTopRightRadius() {
         this._createBackground();
+    }
+
+    _handleStyleUpdateForJustifyContent() {
+        this.updateLayout();
     }
 
     _handleStyleUpdateForMargin() {
@@ -544,6 +552,7 @@ class LayoutComponent extends UIComponent {
         this._materialOffset = parentOffset + 1;
         let material = this.material;
         let borderMaterial = this.borderMaterial;
+        borderMaterial.polygonOffset = material.polygonOffset = true;
         borderMaterial.polygonOffsetFactor = borderMaterial.polygonOffsetUnits
             = material.polygonOffsetFactor = material.polygonOffsetUnits
             = -1 * this._materialOffset;

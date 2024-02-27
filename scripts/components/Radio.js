@@ -59,21 +59,24 @@ class Radio extends InteractableComponent {
             this._toggleChild.renderOrder = 100 + this._materialOffset + 1;
     }
 
-    _select(ignoreOnSelect) {
+    _select(ignoreOnChange) {
         for(let radio of RADIO_MAP[this._name]) {
             if(radio != this) radio.unselect();
         }
         this._selected = true;
         this.borderMaterial.color.set(0x0030ff);
         this._toggleChild.visible = true;
-        if(this._onSelect && !ignoreOnSelect) this._onSelect(this._selected);
+        if(!ignoreOnChange) {
+            if(this._onChange) this._onChange(this._selected);
+            if(this._onSelect) this._onSelect();
+        }
     }
 
-    _unselect(ignoreOnSelect) {
+    _unselect(ignoreOnChange) {
         this._selected = false;
         this.borderMaterial.color.set(0x4f4f4f);
         this._toggleChild.visible = false;
-        if(this._onSelect && !ignoreOnSelect) this._onSelect(this._selected);
+        if(this._onChange && !ignoreOnChange) this._onChange(this._selected);
     }
 
     select() {
@@ -84,14 +87,16 @@ class Radio extends InteractableComponent {
         this._unselect();
     }
 
-    get selected() { return this._selected; }
+    get onChange() { return this._onChange; }
     get onSelect() { return this._onSelect; }
+    get selected() { return this._selected; }
 
+    set onChange(onChange) { this._onChange = onChange; }
+    set onSelect(onSelect) { this._onSelect = onSelect; }
     set selected(selected) {
         if(selected == this._selected) return;
         (selected) ? this._select(true) : this.unselect(true);
     }
-    set onSelect(onSelect) { this._onSelect = onSelect; }
 }
 
 export default Radio;

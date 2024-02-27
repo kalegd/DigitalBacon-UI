@@ -1,0 +1,136 @@
+<html>
+  <head>
+    <title>Examples - UI Alignment</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#ffebfd"/>
+    <link rel="apple-touch-icon" sizes="180x180" href="/images/favicons/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/images/favicons/favicon-16x16.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/images/favicons/favicon-32x32.png">
+    <link rel="stylesheet" href="/css/examples.css">
+    <script type="importmap">
+      {
+        "imports": {
+          "DigitalBacon-UI": "/scripts/DigitalBacon-UI.js",
+          "three": "/node_modules/three/build/three.module.js",
+          "troika-worker-utils": "/node_modules/troika-worker-utils/dist/troika-worker-utils.esm.js",
+          "webgl-sdf-generator": "/node_modules/webgl-sdf-generator/dist/webgl-sdf-generator.mjs",
+          "bidi-js": "/node_modules/bidi-js/dist/bidi.mjs",
+          "troika-three-utils": "/node_modules/troika-three-utils/dist/troika-three-utils.esm.js"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <div id="container"></div>
+    <div id="vr-button"></div>
+    <div id="ar-button"></div>
+    <script type="module">
+      import * as ThreeBoilerplate from '/examples/scripts/ThreeBoilerplate.js';
+      import * as DigitalBaconUI from 'DigitalBacon-UI';
+      import * as THREE from 'three';
+
+      let { container, scene, camera, clock, stats, renderer }
+        = await ThreeBoilerplate.init();
+
+      await DigitalBaconUI.init(container, renderer, scene, camera);
+      DigitalBaconUI.InputHandler.enableXRControllerManagement(scene);
+
+      const parentStyle = new DigitalBaconUI.Style({
+        justifyContent: 'center',
+      });
+      const borderMaterial = new THREE.MeshBasicMaterial({ color: 0x000000 });
+      const childStyle = new DigitalBaconUI.Style({
+        backgroundVisible: true,
+        borderMaterial: borderMaterial,
+        borderWidth: 0.0015,
+        height: 0.1,
+        materialColor: 0x1db954,
+        width: 0.1,
+      });
+      const textStyle = new DigitalBaconUI.Style({
+        color: '#ffffff',
+        fontSize: 0.052,
+        maxWidth: '100%',
+      });
+
+      const body = new DigitalBaconUI.Body({
+        borderRadius: 0.06,
+        borderWidth: 0.005,
+        height: 1.05,
+        justifyContent: 'spaceBetween',
+        materialColor: 0x000000,
+        opacity: 0.7,
+        padding: 0.04,
+        width: 1.5,
+      });
+      const text1 = new DigitalBaconUI.Text("Alignment is determined by alignItems, justifyContent, and contentDirection properties. Default contentDirection is 'column' for Divs and 'row' for Spans", textStyle);
+      const row = new DigitalBaconUI.Span({
+        alignItems: 'start',
+        justifyContent: 'spaceBetween',
+        width: '100%',
+      });
+      const optionsContainer = new DigitalBaconUI.Div({
+        height: 0.7,
+        justifyContent: 'spaceBetween',
+        width: 0.6,
+      });
+      const alignItemsOptions = new DigitalBaconUI.Div({ width: 0.26 });
+      const justifyContentOptions = new DigitalBaconUI.Div({ width: 0.45 });
+      const div = new DigitalBaconUI.Div(parentStyle, {
+        backgroundVisible: true,
+        height: 0.5,
+        width: 0.175,
+      });
+      const span = new DigitalBaconUI.Span(parentStyle, {
+        backgroundVisible: true,
+        height: 0.175,
+        width: 0.5,
+      });
+      alignItemsOptions.add(new DigitalBaconUI.Text('alignItems', textStyle));
+      for(let alignItems of ['start', 'center', 'end']) {
+        let radioSpan = new DigitalBaconUI.Span({ margin: 0.01, width: 0.25 });
+        let radio = new DigitalBaconUI.Radio('alignItems');
+        let label = new DigitalBaconUI.Text(' ' + alignItems, textStyle);
+        radioSpan.add(radio);
+        radioSpan.add(label);
+        radio.onSelect = () => parentStyle.alignItems = alignItems;
+        if(alignItems == 'center') radio.selected = true;
+        alignItemsOptions.add(radioSpan);
+      }
+      justifyContentOptions.add(new DigitalBaconUI.Text('justifyContent',
+        textStyle));
+      for(let justifyContent of ['start', 'center', 'end', 'spaceBetween', 'spaceAround', 'spaceEvenly']) {
+        let radioSpan = new DigitalBaconUI.Span({ marginTop: 0.02, width: 0.45 });
+        let radio = new DigitalBaconUI.Radio('justifyContent');
+        let label = new DigitalBaconUI.Text(' ' + justifyContent, textStyle);
+        radioSpan.add(radio);
+        radioSpan.add(label);
+        radio.onSelect = () => parentStyle.justifyContent = justifyContent;
+        if(justifyContent == 'center') radio.selected = true;
+        justifyContentOptions.add(radioSpan);
+      }
+      for(let i = 0; i < 3; i++) {
+        div.add(new DigitalBaconUI.Div(childStyle));
+        span.add(new DigitalBaconUI.Div(childStyle));
+      }
+
+      body.position.set(0, 1.7, -1);
+      scene.add(body);
+      body.add(text1);
+      body.add(row);
+      row.add(alignItemsOptions);
+      row.add(justifyContentOptions);
+      row.add(optionsContainer);
+      optionsContainer.add(div);
+      optionsContainer.add(span);
+
+      renderer.setAnimationLoop((time, frame) => {
+        stats.begin();
+        let timeDelta = clock.getDelta();
+        DigitalBaconUI.update(frame);
+        renderer.render(scene, camera);
+        stats.end();
+      });
+    </script>
+  </body>
+</html>

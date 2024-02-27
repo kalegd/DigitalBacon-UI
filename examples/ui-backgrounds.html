@@ -1,0 +1,109 @@
+<html>
+  <head>
+    <title>Examples - UI Backgrounds</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#ffebfd"/>
+    <link rel="apple-touch-icon" sizes="180x180" href="/images/favicons/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/images/favicons/favicon-16x16.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/images/favicons/favicon-32x32.png">
+    <link rel="stylesheet" href="/css/examples.css">
+    <script type="importmap">
+      {
+        "imports": {
+          "DigitalBacon-UI": "/scripts/DigitalBacon-UI.js",
+          "three": "/node_modules/three/build/three.module.js",
+          "troika-worker-utils": "/node_modules/troika-worker-utils/dist/troika-worker-utils.esm.js",
+          "webgl-sdf-generator": "/node_modules/webgl-sdf-generator/dist/webgl-sdf-generator.mjs",
+          "bidi-js": "/node_modules/bidi-js/dist/bidi.mjs",
+          "troika-three-utils": "/node_modules/troika-three-utils/dist/troika-three-utils.esm.js"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <div id="container"></div>
+    <div id="vr-button"></div>
+    <div id="ar-button"></div>
+    <script type="module">
+      import * as ThreeBoilerplate from '/examples/scripts/ThreeBoilerplate.js';
+      import * as DigitalBaconUI from 'DigitalBacon-UI';
+      import * as THREE from 'three';
+
+      let { container, scene, camera, clock, stats, renderer }
+        = await ThreeBoilerplate.init();
+
+      await DigitalBaconUI.init(container, renderer, scene, camera);
+      DigitalBaconUI.InputHandler.enableXRControllerManagement(scene);
+
+      const body = new DigitalBaconUI.Body({
+        borderRadius: 0.06,
+        justifyContent: 'spaceBetween',
+        materialColor: 0x000000,
+        opacity: 0.7,
+        padding: 0.04,
+        width: 1.5,
+      });
+      const text1 = new DigitalBaconUI.Text('Display backgrounds by using the backgroundVisible property. Only Body elements have backgroundVisible set to true by default', {
+        color: '#ffffff',
+        fontSize: 0.055,
+        maxWidth: '100%',
+      });
+      const material = new THREE.MeshBasicMaterial({
+        color: 0xaa6666,
+        opacity: 0.7,
+        transparent: true,
+      });
+      new THREE.TextureLoader().load('/examples/images/magma.png', (texture) =>{
+        texture.wrapS = THREE.RepeatWrapping;
+        texture.wrapT = THREE.RepeatWrapping;
+        texture.repeat.set( 6, 6 );
+        material.map = texture;
+        material.needsUpdate = true;
+      });
+      const exampleStyle = new DigitalBaconUI.Style({
+        backgroundVisible: true,
+        borderRadius: 0.03,
+        height: 0.2,
+        justifyContent: 'center',
+        padding: 0.04,
+        width: '100%',
+      });
+      const glassmorphismExample = new DigitalBaconUI.Div(exampleStyle, {
+        glassmorphism: true,
+      });
+      const customMaterialExample = new DigitalBaconUI.Div(exampleStyle, {
+        material: material,
+      });
+      const otherExample = new DigitalBaconUI.Div(exampleStyle, {
+        materialColor: 0x562b00,
+        opacity: 0.5,
+      });
+      const exampleTextStyle = new DigitalBaconUI.Style({
+        color: '#ffffff',
+        fontSize: 0.055,
+        maxWidth: '100%',
+      });
+      const glassmorphismText = new DigitalBaconUI.Text('Setting glassmorphism to true will use a more expensive shader to provide a frosted glass look', exampleTextStyle);
+      const customMaterialText = new DigitalBaconUI.Text('You can also provide your own material for the background using the material property', exampleTextStyle);
+      const otherText = new DigitalBaconUI.Text('Other properties include materialColor and opacity', exampleTextStyle);
+
+      body.position.set(0, 1.7, -1);
+      scene.add(body);
+      body.add(text1);
+      body.add(glassmorphismExample);
+      body.add(customMaterialExample);
+      body.add(otherExample);
+      glassmorphismExample.add(glassmorphismText);
+      customMaterialExample.add(customMaterialText);
+      otherExample.add(otherText);
+
+      renderer.setAnimationLoop((time, frame) => {
+        stats.begin();
+        let timeDelta = clock.getDelta();
+        DigitalBaconUI.update(frame);
+        renderer.render(scene, camera);
+        stats.end();
+      });
+    </script>
+  </body>
+</html>

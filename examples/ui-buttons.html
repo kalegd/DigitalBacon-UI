@@ -1,6 +1,6 @@
 <html>
   <head>
-    <title>Examples - Color Wheel</title>
+    <title>Examples - UI Buttons</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="theme-color" content="#ffebfd"/>
     <link rel="apple-touch-icon" sizes="180x180" href="/images/favicons/apple-touch-icon.png">
@@ -27,6 +27,7 @@
     <script type="module">
       import * as ThreeBoilerplate from '/examples/scripts/ThreeBoilerplate.js';
       import * as DigitalBaconUI from 'DigitalBacon-UI';
+      import * as THREE from 'three';
 
       let { container, scene, camera, clock, stats, renderer }
         = await ThreeBoilerplate.init();
@@ -37,38 +38,56 @@
       const body = new DigitalBaconUI.Body({
         borderRadius: 0.06,
         borderWidth: 0.005,
-        glassmorphism: true,
-        justifyContent: 'start',
-        materialColor: '#dddddd',
+        justifyContent: 'spaceBetween',
+        materialColor: 0x000000,
+        opacity: 0.7,
         padding: 0.06,
         width: 1.5,
       });
-      const row1 = new DigitalBaconUI.Span({
-        height: 0.2,
-        width: '100%',
-      });
-      const row2 = new DigitalBaconUI.Span({
-        height: 0.7,
-        justifyContent: 'spaceBetween',
-        paddingRight: 0.1,
-        width: '65%',
-      });
-      const text = new DigitalBaconUI.Text('HSLColor objects have two properties that can be added to enable color input: hueSaturationWheel and lightnessBar', {
+      const text1 = new DigitalBaconUI.Text("You can assign a callback function to a Div or Span's onClick property to make it interactive like a button. The pointerInteractable property allows for more advanced capabilities like listening for hovered state changes", {
         color: '#ffffff',
         fontSize: 0.055,
         maxWidth: '100%',
       });
-      const hslColor = new DigitalBaconUI.HSLColor(0.3);
-      hslColor.onChange = (color) => {
-        body.materialColor = color;
-      };
+      const countDiv = new DigitalBaconUI.Div({
+        height: 0.2,
+        justifyContent: 'center',
+        width: '100%',
+      });
+      const button = new DigitalBaconUI.Div({
+        backgroundVisible: true,
+        borderRadius: 0.05,
+        height: 0.1,
+        justifyContent: 'center',
+        marginBottom: 0.2,
+        materialColor: 0x1db954,
+        width: 0.4,
+      });
+      const textStyle = new DigitalBaconUI.Style({
+        color: '#ffffff',
+        fontSize: 0.055,
+        maxWidth: '100%',
+      });
+      const countText = new DigitalBaconUI.Text('0', textStyle);
+      const buttonText = new DigitalBaconUI.Text('Click Me!', textStyle);
+
       body.position.set(0, 1.7, -1);
       scene.add(body);
-      body.add(row1);
-      body.add(row2);
-      row1.add(text);
-      row2.add(hslColor.hueSaturationWheel);
-      row2.add(hslColor.lightnessBar);
+      body.add(text1);
+      body.add(countDiv);
+      body.add(button);
+      countDiv.add(countText);
+      button.add(buttonText);
+
+      let count = 0;
+      button.onClick = () => {
+        count++;
+        countText.text = String(count);
+      };
+      button.pointerInteractable.setHoveredCallback((hovered) => {
+        //buttonText.position.z = (hovered) ? 0.01 : 0;
+        buttonText.scale.fromArray((hovered) ? [1.1, 1.1, 1.1] : [1, 1, 1]);
+      });
 
       renderer.setAnimationLoop((time, frame) => {
         stats.begin();
