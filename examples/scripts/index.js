@@ -8,3 +8,8 @@ function chooseExample(li) {
 }
 let items = document.querySelectorAll('.sidebar li');
 items.forEach((li) => li.addEventListener('click', () => chooseExample(li)));
+window.onmessage = function(e) {
+    if(typeof e.data == 'string') {
+        window.location.href = e.data;
+    }
+};

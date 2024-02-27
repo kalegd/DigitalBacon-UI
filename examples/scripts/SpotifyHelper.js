@@ -141,7 +141,11 @@ export async function authenticate() {
       redirect_uri: redirectUri,
     };
     authUrl.search = new URLSearchParams(params).toString();
-    window.location.href = authUrl.toString();
+    if(window != window.top) {
+        window.top.postMessage(authUrl.toString(), '*');
+    } else {
+        window.location.href = authUrl.toString();
+    }
 };
 
 async function genericAPICall(method, resource) {

@@ -71,6 +71,9 @@
           body.add(playbackController.getObject());
           body.add(mainContent.getObject());
         };
+        let script = document.createElement('script');
+        script.setAttribute('src', 'https://sdk.scdn.co/spotify-player.js');
+        document.body.appendChild(script);
       } else {
         let loginContent = new SpotifyLoginContent();
         body.add(loginContent.getObject());
@@ -84,6 +87,5 @@
         stats.end();
       });
     </script>
-    <script src="https://sdk.scdn.co/spotify-player.js" defer></script>
   </body>
 </html>
