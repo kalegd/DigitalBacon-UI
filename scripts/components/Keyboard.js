@@ -88,9 +88,7 @@ class Keyboard extends InteractableComponent {
         this._optionsPanel.add(languagesButton);
         languagesButton.add(languagesText);
         languagesButton.pointerInteractable.setHoveredCallback((hovered) => {
-            languagesText.position.z = (hovered)
-                ? HOVERED_Z_OFFSET
-                : 0.00000001;
+            languagesText.position.z = (hovered) ? HOVERED_Z_OFFSET : 0;
         });
         languagesButton.onClick = languagesButton.onTouch = () => {
             this._setLanguagesPage();
@@ -143,7 +141,7 @@ class Keyboard extends InteractableComponent {
                 keyDiv.add(text);
                 span.add(keyDiv);
                 keyDiv.pointerInteractable.setHoveredCallback((hovered) => {
-                    text.position.z = (hovered) ? HOVERED_Z_OFFSET : 0.00000001;
+                    text.position.z = (hovered) ? HOVERED_Z_OFFSET : 0;
                 });
                 if(typeof key != 'string' && key.additionalCharacters) {
                     this._addAdditionalCharacters(keyDiv, key);
@@ -285,7 +283,7 @@ class Keyboard extends InteractableComponent {
                 text.position.z = HOVERED_Z_OFFSET;
             });
             keyDiv.pointerInteractable.addEventListener('out', () => {
-                text.position.z = 0.00000001;
+                text.position.z = 0;
             });
             keyDiv.pointerInteractable.addEventListener('up', () => {
                 let eventKey = (this._shiftState == 'UNSHIFTED')
@@ -327,7 +325,7 @@ class Keyboard extends InteractableComponent {
             keyDiv.add(text);
             span.add(keyDiv);
             keyDiv.pointerInteractable.setHoveredCallback((hovered) => {
-                text.position.z = (hovered) ? HOVERED_Z_OFFSET : 0.00000001;
+                text.position.z = (hovered) ? HOVERED_Z_OFFSET : 0;
             });
             keyDiv.onClick = keyDiv.onTouch = () => {
                 this._setLayout(language);

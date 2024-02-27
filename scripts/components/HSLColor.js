@@ -185,7 +185,7 @@ export default class HSLColor {
             polygonOffsetUnits: -10,
         });
         this._colorCursor = new THREE.Mesh(geometry, material);
-        this._colorCursor.position.setZ(0.00000001);
+        this._colorCursor.position.setZ(0.00000002);
         this.hueSaturationWheel.add(this._colorCursor);
         this._colorCursor.visible = false;
 
@@ -198,6 +198,7 @@ export default class HSLColor {
             if(y < 0) positions.setY(i, y + this._radius / 20);
         }
         this._lightnessCursor = new THREE.Mesh(geometry, material);
+        this._lightnessCursor.position.setZ(0.00000002);
         this.lightnessBar.add(this._lightnessCursor);
         this._lightnessCursor.visible = false;
     }

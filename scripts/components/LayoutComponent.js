@@ -63,8 +63,8 @@ class LayoutComponent extends UIComponent {
         this.unpaddedWidth = 0;
         this._materialOffset = 0;
         this._content = new THREE.Object3D();
+        this._content.position.z = 0.00000001;
         this.add(this._content);
-        this.position.z = 0.00000001;
         if(this.overflow != 'visible') this._createClippingPlanes();
     }
 
