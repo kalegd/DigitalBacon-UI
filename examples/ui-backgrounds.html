@@ -50,7 +50,6 @@
       });
       const material = new THREE.MeshBasicMaterial({
         color: 0xaa6666,
-        opacity: 0.7,
         transparent: true,
       });
       new THREE.TextureLoader().load('/examples/images/magma.png', (texture) =>{
@@ -72,10 +71,11 @@
         glassmorphism: true,
       });
       const customMaterialExample = new DigitalBaconUI.Div(exampleStyle, {
+        height: 0.4,
         material: material,
       });
       const otherExample = new DigitalBaconUI.Div(exampleStyle, {
-        materialColor: 0x562b00,
+        materialColor: 0x006969,
         opacity: 0.5,
       });
       const exampleTextStyle = new DigitalBaconUI.Style({
@@ -92,9 +92,9 @@
       body.add(text1);
       body.add(glassmorphismExample);
       body.add(customMaterialExample);
-      body.add(otherExample);
       glassmorphismExample.add(glassmorphismText);
       customMaterialExample.add(customMaterialText);
+      customMaterialExample.add(otherExample);
       otherExample.add(otherText);
 
       renderer.setAnimationLoop((time, frame) => {

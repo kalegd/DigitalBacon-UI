@@ -71,10 +71,11 @@
         '/images/digital_bacon_pig_compressed.png', { height: '100%' });
       const image2 = new DigitalBaconUI.Image('/images/cute.jpeg',
         { borderRadius: 0.03, height: '90%' });
-      const text = new DigitalBaconUI.Text('Adding images is easy with\nDigitalBacon-UI', {
+      const text = new DigitalBaconUI.Text('Image components use a url and support a textureFit property of either fill or cover', {
         color: '#ffffff',
-        fontSize: 0.08,
+        fontSize: 0.06,
         textAlign: 'center',
+        maxWidth: '100%',
       });
       body.position.set(0, 1.7, -1);
       scene.add(body);

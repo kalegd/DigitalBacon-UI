@@ -105,6 +105,22 @@ class LayoutComponent extends UIComponent {
         this.updateLayout();
     }
 
+    _handleStyleUpdateForMarginBottom() {
+        this.updateLayout();
+    }
+
+    _handleStyleUpdateForMarginLeft() {
+        this.updateLayout();
+    }
+
+    _handleStyleUpdateForMarginRight() {
+        this.updateLayout();
+    }
+
+    _handleStyleUpdateForMarginTop() {
+        this.updateLayout();
+    }
+
     _handleStyleUpdateForMaxHeight() {
         this.updateLayout();
     }
@@ -122,6 +138,22 @@ class LayoutComponent extends UIComponent {
     }
 
     _handleStyleUpdateForPadding() {
+        this.updateLayout();
+    }
+
+    _handleStyleUpdateForPaddingBottom() {
+        this.updateLayout();
+    }
+
+    _handleStyleUpdateForPaddingLeft() {
+        this.updateLayout();
+    }
+
+    _handleStyleUpdateForPaddingRight() {
+        this.updateLayout();
+    }
+
+    _handleStyleUpdateForPaddingTop() {
         this.updateLayout();
     }
 
@@ -395,7 +427,8 @@ class LayoutComponent extends UIComponent {
                         + otherPaddingAfter * sign
                         + otherMarginAfter * sign;
                 } else {
-                    let offset = (otherPaddingAfter - otherPaddingPrior)*sign/2;
+                    let offset = (otherPaddingAfter - otherPaddingPrior
+                        + otherMarginAfter - otherMarginPrior) * sign / 2;
                     child.position[otherVec2Param] = offset;
                 }
             }

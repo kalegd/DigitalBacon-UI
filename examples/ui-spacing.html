@@ -1,6 +1,6 @@
 <html>
   <head>
-    <title>Examples - UI Spacing</title>
+    <title>Examples - UI Margins and Padding</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="theme-color" content="#ffebfd"/>
     <link rel="apple-touch-icon" sizes="180x180" href="/images/favicons/apple-touch-icon.png">
@@ -36,99 +36,80 @@
 
       const body = new DigitalBaconUI.Body({
         borderRadius: 0.05,
-        borderWidth: 0.001,
-        glassmorphism: true,
-        justifyContent: 'spaceBetween',
+        borderWidth: 0.005,
+        materialColor: 0x000000,
+        opacity: 0.7,
         width: 1.5,
       });
       const row1 = new DigitalBaconUI.Span({
-        backgroundVisible: true,
         borderTopLeftRadius: 0.05,
         borderTopRightRadius: 0.05,
-        glassmorphism: true,
-        materialColor: '#dddddd',
-        height: 1/3,
+        height: 0.3,
         width: '100%',
         justifyContent: 'center',
       });
       const row2 = new DigitalBaconUI.Span({
-        glassmorphism: true,
-        justifyContent: 'center',
-        materialColor: '#999999',
-        height: 1/3,
+        justifyContent: 'spaceEvenly',
+        height: 2/3,
         width: '100%',
       });
-      const row3 = new DigitalBaconUI.Span({
-        alignItems: 'start',
-        backgroundVisible: true,
-        borderBottomLeftRadius: 0.05,
-        borderBottomRightRadius: 0.05,
-        justifyContent: 'center',
-        materialColor: '#000000',
-        height: 1/3,
-        width: '100%',
+      const paddings = new DigitalBaconUI.Div({
+        height: '100%',
+        width: '35%',
       });
-      const text1 = new DigitalBaconUI.Text('Padding and Margins', {
+      const margins = new DigitalBaconUI.Div({
+        height: '100%',
+        width: '35%',
+      });
+      const text1 = new DigitalBaconUI.Text('Margins and Padding', {
         fontSize: 0.1,
         color: '#ffffff',
       });
-      function paddedDiv(padding, color) {
-        let div = new DigitalBaconUI.Div({
-          alignItems: 'start',
+      function propertyText(text, container) {
+        let p = new DigitalBaconUI.Div({
           backgroundVisible: true,
-          materialColor: color,
-          padding: padding,
-          height: '50%',
-          width: '11%',
+          borderWidth: 0.002,
+          height: '20%',
+          justifyContent: 'center',
+          materialColor: 0x000000,
+          width:'100%',
         });
-        div.add(new DigitalBaconUI.Div({
+        let textParent = new DigitalBaconUI.Div({
           backgroundVisible: true,
-          materialColor: '#000',
-          height: '50%',
-          width: '50%',
-        }));
-        return div;
-      }
-      function marginDiv(margin, color) {
-        return new DigitalBaconUI.Div({
-          backgroundVisible: true,
-          materialColor: color,
-          margin: margin,
-          height: '50%',
-          width: '11%',
+          materialColor: 0xffffff,
         });
+        let textComponent = new DigitalBaconUI.Text(text, {
+          fontSize: 0.06,
+        });
+        container.add(p);
+        p.add(textParent);
+        textParent.add(textComponent);
+        return textParent;
       }
-      let padded1 = paddedDiv(0.02, '#ff0000');
-      let padded2 = paddedDiv(0.02, '#00ff00');
-      let padded3 = paddedDiv(0.02, '#0000ff');
-      let margin1 = marginDiv(0.05, '#ff0000');
-      let margin2 = marginDiv(0.05, '#00ff00');
-      let margin3 = marginDiv(0.05, '#0000ff');
+      let properties = {};
+      for(let side of ['', 'Left', 'Right', 'Top', 'Bottom']) {
+        properties['padding' + side] = propertyText('padding' + side, paddings);
+        properties['margin' + side] = propertyText('margin' + side, margins);
+      }
       body.position.set(0, 1.7, -1);
       scene.add(body);
       body.add(row1);
       body.add(row2);
-      body.add(row3);
       row1.add(text1);
-      row2.add(padded1);
-      row2.add(padded2);
-      row2.add(padded3);
-      row3.add(margin1);
-      row3.add(margin2);
-      row3.add(margin3);
-      body.onClick = () => console.log("Nice menu isn't it?");
+      row2.add(margins);
+      row2.add(paddings);
 
       let t = 0;
+      let period = 2.5;
       renderer.setAnimationLoop((time, frame) => {
         stats.begin();
         let timeDelta = clock.getDelta();
         t += timeDelta;
-        padded1.padding = (Math.sin(t) + 1) / 24;
-        padded2.padding = (Math.sin(t + 0.5) + 1) / 24;
-        padded3.padding = (Math.sin(t + 1) + 1) / 24;
-        margin1.margin = (Math.sin(t) + 1) / 24;
-        margin2.margin = (Math.sin(t) + 1) / 24;
-        margin3.margin = (Math.sin(t) + 1) / 24;
+        for(let property in properties) {
+          let textComponent = properties[property];
+          textComponent[property] = (Math.sin(t * 2 * Math.PI / period) + 1)
+            / (property.length <= 7 ? 100 : 50);
+        }
         DigitalBaconUI.update(frame);
         renderer.render(scene, camera);
         stats.end();
