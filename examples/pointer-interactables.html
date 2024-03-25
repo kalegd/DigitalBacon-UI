@@ -35,11 +35,29 @@
       DigitalBaconUI.init(container, renderer, scene, camera);
       DigitalBaconUI.InputHandler.enableXRControllerManagement(scene);
 
+      const body = new DigitalBaconUI.Body({
+        borderRadius: 0.06,
+        justifyContent: 'spaceBetween',
+        materialColor: 0x000000,
+        opacity: 0.7,
+        padding: 0.04,
+        height: 0.15,
+        width: 1.2,
+      });
+      const text = new DigitalBaconUI.Text('Try clicking on the cube to change its color', {
+        color: '#ffffff',
+        fontSize: 0.055,
+        maxWidth: '100%',
+      });
+
       const geometry = new THREE.BoxGeometry(0.3, 0.3, 0.3);
       const material = new THREE.MeshStandardMaterial({ color: 0x00ff00 });
       const cube = new THREE.Mesh(geometry, material);
       cube.position.set(0, 1.7, -1);
       scene.add(cube);
+      body.position.set(0, 2.1, -1);
+      scene.add(body);
+      body.add(text);
 
       function randomSaturatedColor() {
         return "hsl(" + 360 * Math.random() + ',100%,'

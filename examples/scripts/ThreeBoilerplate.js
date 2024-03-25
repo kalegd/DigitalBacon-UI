@@ -17,10 +17,11 @@ export const init = async () => {
     stats.dom.style.left = '';
     stats.dom.style.position = 'absolute';
     container.appendChild(stats.dom, container.firstChild);
-    scene.background = new THREE.CubeTextureLoader()
+    let sceneBackground = new THREE.CubeTextureLoader()
         .setPath('/images/skyboxes/blue_sky/')
         .load(['skybox_right.jpg', 'skybox_left.jpg', 'skybox_up.jpg',
                'skybox_down.jpg', 'skybox_front.jpg', 'skybox_back.jpg']);
+    scene.background = sceneBackground;
     
     const renderer = new THREE.WebGLRenderer({ antialias : true });
     renderer.setSize(container.clientWidth, container.clientHeight);
@@ -36,6 +37,9 @@ export const init = async () => {
         vrButtonDiv.appendChild(vrButton);
         arButtonDiv.appendChild(arButton);
         renderer.xr.enabled = true;
+        arButton.addEventListener('click', () => scene.background = null);
+        vrButton.addEventListener('click',
+            () => scene.background = sceneBackground);
     }
 
     window.addEventListener('resize', () => { 
