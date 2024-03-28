@@ -1,31 +1,25 @@
 # Range
 
-Range class represents a slider component for selecting a value within a specified range.
+Slider component for selecting a value within 0 and 1
 
 ## Constructor
 
-### `constructor(...styles: any[])`
+### `constructor(...styles: Object[])`
 
-Creates a new instance of the Range class.
+Creates a new instance of Range
 
-- `...styles`: Optional. Additional styles to apply to the range slider.
+- `...styles`: Any number of styles to apply to the component. Can be made up of either [Style](/docs/Style.md) objects or generic objects. In the case of generic objects they will each be used to instatiate a new Style object based on their parameters
 
-## Properties
+## New Properties
 
-- `value`: Gets or sets the current value of the range slider.
+- `value`: Current value of the range slider
+- `onBlur`: Callback function that is called when the slider is released
+- `onChange`: Callback function that is called as the slider is moved
 
-## Events
+## Defaults
 
-- `onBlur`: Callback function for blur event.
-- `onChange`: Callback function for change event.
-
-## Methods
-
-None
-
-## Notes
-
-- The range slider allows users to select a value within a specified range by dragging a scrubber.
-- The `value` property represents the current value of the range slider, ranging from 0 to 1.
-- The range slider can be styled using additional styles passed to the constructor.
-
+- `backgroundVisible`: true
+- `borderWidth`: 0.002
+- `color`: 0xffffff
+- `height`: 0.02
+- `width`: 0.4

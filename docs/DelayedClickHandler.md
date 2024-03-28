@@ -1,22 +1,11 @@
 # DelayedClickHandler
 
-DelayedClickHandler class provides functionality for handling delayed click events.
-
-## Constructor
-
-### `constructor()`
-
-Creates a new instance of the DelayedClickHandler class.
+DelayedClickHandler provides functionality for triggering code that must occur in response to a pointer click. This is required due to pointer events being triggered via polling rather than event listeners
 
 ## Methods
 
-- `setup()`: Sets up the DelayedClickHandler by adding necessary event listeners based on the active device type. This method is called internally to initialize the handler.
-- `trigger(callback: Function)`: Triggers a delayed click event by adding a callback function to the list of listeners. The callback function will be executed after a short delay.
+- `trigger(callback: Function)`: Assumes a real click/touchend event has occurred within the last 30ms. The callback will be added to the queue to be processed 30ms after said event event
 
 ## Notes
 
-- The DelayedClickHandler class is designed to handle click events with a short delay, typically used to handle interactions such as button clicks.
-- It is primarily used to address browser compatibility issues, particularly with Safari, where certain elements like popups and file inputs cannot be triggered directly with a click event outside of an event listener.
-- The `setup()` method initializes the DelayedClickHandler by adding event listeners based on the active device type. For non-XR devices, it sets up event listeners for 'click' or 'touchend' events.
-- The `trigger()` method is used to trigger a delayed click event by adding a callback function to the list of listeners. The callback function will be executed after a short delay, allowing time for other event listeners to handle any immediate interactions.
-
+- This is primarily used to address browser compatibility issues, particularly with Safari, where certain elements like popups and file inputs cannot be triggered directly with a click event outside of an event listener

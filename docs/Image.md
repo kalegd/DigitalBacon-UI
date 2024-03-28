@@ -1,33 +1,26 @@
 # Image
 
-Image class represents an interactive component for displaying images.
+extends [InteractableComponent](/docs/InteractableComponent.md)
+
+Represents an interactive component that displays images
 
 ## Constructor
 
-### `constructor(url: string | Texture, ...styles: any[])`
+### `constructor(url: string | Texture, ...styles: Object[])`
 
-Creates a new instance of the Image class.
+Creates a new instance of Image
 
-- `url`: The URL of the image or a Three.js Texture object.
-- `...styles`: Optional. Additional styles to apply to the image.
+- `url`: The URL of the image or a Three.js Texture object
+- `...styles`: Any number of styles to apply to the component. Can be made up of either [Style](/docs/Style.md) objects or generic objects. In the case of generic objects they will each be used to instatiate a new Style object based on their parameters
 
-## Properties
+## Defaults
 
-- `textureFit`: Gets or sets the fit mode of the image texture.
+- `textureFit`: fill
 
 ## Methods
 
-### `updateLayout(): void`
-
-Updates the layout of the image.
-
 ### `updateTexture(url: string | Texture): void`
 
-Updates the texture of the image.
+Updates the texture of the image
 
-- `url`: The URL of the image or a Three.js Texture object.
-
-## Events
-
-None
-
+- `url`: The URL of the image or a three.js Texture

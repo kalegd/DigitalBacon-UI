@@ -1,43 +1,39 @@
 # TextArea
 
-TextArea class represents an interactive component for text input.
+extends [ScrollableComponent](/docs/ScrollableComponent.md)
+
+Component for multi-line text input
 
 ## Constructor
 
-### `constructor(...styles: any[])`
+### `constructor(...styles: Object[])`
 
-Creates a new instance of the TextArea class.
+Creates a new instance of TextArea
 
-- `...styles`: Optional. Additional styles to apply to the text area.
+- `...styles`: Any number of styles to apply to the component. Can be made up of either [Style](/docs/Style.md) objects or generic objects. In the case of generic objects they will each be used to instatiate a new Style object based on their parameters
 
-## Properties
+## New Properties
 
-- `onBlur`: Gets or sets the callback function for blur event.
-- `onChange`: Gets or sets the callback function for change event.
-- `onFocus`: Gets or sets the callback function for focus event.
-- `value`: Gets or sets the text value of the text area.
+- `onBlur`: Callback function that provides the text content when editing is finished
+- `onChange`: Callback function that provides the text content when editing is updated
+- `onFocus`: Callback function that is called when the user initiates editing for the component
+- `value`: The current text content
+
+## Defaults
+
+- `alignItems`: start
+- `backgroundVisible`: true
+- `borderWidth`: 0.002
+- `color`: 0x000000
+- `justifyContent`: start
+- `fontSize`: 0.06
+- `overflow`: scroll
+- `paddingLeft`: 0.01
+- `height`: 0.1
+- `width`: 0.4
 
 ## Methods
 
 ### `blur(): void`
 
-Removes focus from the text area.
-
-### `insertContent(content: string): void`
-
-Inserts content at the current caret position in the text area.
-
-- `content`: The content to insert.
-
-### `handleKey(key: string): void`
-
-Handles keyboard input for the text area.
-
-- `key`: The key pressed.
-
-## Events
-
-- `onBlur`: Callback function for blur event.
-- `onChange`: Callback function for change event.
-- `onFocus`: Callback function for focus event.
-
+Removes focus from the text area

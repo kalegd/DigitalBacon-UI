@@ -138,6 +138,7 @@ export { TouchInteractableHandler };
 export { DelayedClickHandler };
 export { InputHandler };
 export { UpdateHandler };
+export { DeviceTypes };
 export { ThreeMeshBVH };
 export { TroikaThreeText };
 export { addGripInteractable };

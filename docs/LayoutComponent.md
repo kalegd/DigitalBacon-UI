@@ -1,49 +1,38 @@
 # LayoutComponent Class
 
-## Description
-The `LayoutComponent` class represents a component that handles layout for UI elements.
+extends [UIComponent](/docs/UIComponent.md)
+
+Generic Component that provides ability to organize and display UI Components based on provided attributes and Style objects
 
 ## Constructor
-### `constructor(...styles)`
-- **Parameters:**
-  - `...styles`: Optional. Additional styles to apply.
-- **Description:** Constructs a new `LayoutComponent` instance.
 
-## Properties
-- `alignItems`: String. The alignment of items along the cross-axis.
-- `backgroundVisible`: Boolean. Indicates whether the background is visible.
-- `borderMaterial`: THREE.Material. The material for the border.
-- `borderRadius`: Number. The radius of the border.
-- `borderWidth`: Number. The width of the border.
-- `contentDirection`: String. The direction of content flow.
-- `justifyContent`: String. The alignment of items along the main axis.
-- `margin`: Number. The margin around the component.
-- `material`: THREE.Material. The material used for rendering.
-- `overflow`: String. The overflow behavior.
-- `padding`: Number. The padding around the content.
-- `height`: String. The height of the component.
-- `width`: String. The width of the component.
+### `constructor(...styles: Object[])`
+
+Creates a new instance of LayoutComponent
+
+- `...styles`: Any number of styles to apply to the component. Can be made up of either [Style](/docs/Style.md) objects or generic objects. In the case of generic objects they will each be used to instatiate a new Style object based on their parameters
+
+## New Properties
+
+- `bypassContentPositioning`: When added to another parent component, if this property is set to true the placement of this component will not be automatically determined by the parent. Defaults to false
+
+## Defaults
+
+- `alignItems`: center
+- `backgroundVisible`: false
+- `borderMaterial`: White double-sided THREE.MeshBasicMaterial
+- `borderRadius`: 0
+- `borderWidth`: 0
+- `contentDirection`: column
+- `justifyContent`: start
+- `margin`: 0
+- `material`: White double-sided THREE.MeshBasicMaterial. If glassmorphism is set to true, then a THREE.MeshPhysicalMaterial is used instead
+- `overflow`: visible
+- `padding`: 0
+- `height`: auto
+- `width`: auto
 
 ## Methods
-- `updateLayout()`: Updates the layout of the component and its children.
-- `updateClippingPlanes(recursive)`: Updates the clipping planes for the component.
-  - **Parameters:**
-    - `recursive`: Boolean. Indicates whether to update recursively.
-- `add(object)`: Adds an object to the component.
-  - **Parameters:**
-    - `object`: The object to add.
-- `remove(object)`: Removes an object from the component.
-  - **Parameters:**
-    - `object`: The object to remove.
-
-## Static Methods
-- `createShape(width, height, topLeftRadius, topRightRadius, bottomLeftRadius, bottomRightRadius)`: Creates a shape with rounded corners.
-  - **Parameters:**
-    - `width`: Number. The width of the shape.
-    - `height`: Number. The height of the shape.
-    - `topLeftRadius`: Number. The radius of the top-left corner.
-    - `topRightRadius`: Number. The radius of the top-right corner.
-    - `bottomLeftRadius`: Number. The radius of the bottom-left corner.
-    - `bottomRightRadius`: Number. The radius of the bottom-right corner.
-  - **Returns:** THREE.Shape. The created shape.
-
+- `add(object)`: Adds an object to the component. Inherited from [Object3D](https://threejs.org/docs/#api/en/core/Object3D)
+- `remove(object)`: Removes an object from the component. Inherited from [Object3D](https://threejs.org/docs/#api/en/core/Object3D)
+- `updateLayout()`: Updates the layout of the component and its children. This is called automatically when relevant changes are made

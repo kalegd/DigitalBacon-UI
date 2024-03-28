@@ -1,28 +1,26 @@
 # Checkbox
 
-Checkbox class extends the InteractableComponent class and represents a checkbox UI element.
+extends [InteractableComponent](/docs/InteractableComponent.md)
+
+Represents a checkbox UI element
 
 ## Constructor
 
-### `constructor(...styles: any[])`
+### `constructor(...styles: Object[])`
 
-Creates a new instance of the Checkbox class.
+Creates a new instance of Checkbox
 
-- `...styles`: Additional styles to apply to the checkbox.
+- `...styles`: Any number of styles to apply to the component. Can be made up of either [Style](/docs/Style.md) objects or generic objects. In the case of generic objects they will each be used to instatiate a new Style object based on their parameters
 
-## Properties
+## New Properties
 
-### `checked: boolean`
+- `checked`: The checked state of the checkbox
+- `onChange`: Callback function that can be set to handle checkbox state changes
 
-Gets or sets the checked state of the checkbox.
+## Defaults
 
-### `onChange: function`
-
-Gets or sets the callback function to be called when the checkbox state changes.
-
-## Methods
-
-### `updateLayout()`
-
-Updates the layout of the checkbox.
-
+- `backgroundVisible`: true
+- `borderWidth`: 0.002
+- `color`: 0xffffff
+- `height`: 0.08
+- `width`: 0.08

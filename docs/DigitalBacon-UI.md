@@ -1,71 +1,73 @@
-# DigitalBacon-UI.js Module
+# DigitalBacon-UI
 
-The DigitalBacon-UI.js module provides various UI components and interaction handlers for creating interactive 3D experiences.
+The DigitalBacon-UI module provides various UI components and interaction handlers for creating interactive 3D experiences
 
-## Components
+## UI Components
 
-- `Body`: Represents the body element of the UI.
-- `Checkbox`: Represents a checkbox input element.
-- `Div`: Represents a generic division container element.
-- `HSLColor`: Represents a color input element using HSL color model.
-- `Image`: Represents an image element.
-- `Keyboard`: Represents a virtual keyboard for input.
-- `NumberInput`: Represents a numeric input element.
-- `Radio`: Represents a radio input element.
-- `Range`: Represents a range input element.
-- `Select`: Represents a dropdown select element.
-- `Span`: Represents a generic span container element.
-- `Style`: Represents a style element for custom CSS.
-- `Text`: Represents a text element.
-- `TextArea`: Represents a multiline text input element.
-- `TextInput`: Represents a text input element.
-- `Toggle`: Represents a toggle switch element.
+- [Body](/docs/Body.md)
+- [Checkbox](/docs/Checkbox.md)
+- [Div](/docs/Div.md)
+- [HSLColor](/docs/HSLColor.md)
+- [Image](/docs/Image.md)
+- [Keyboard](/docs/Keyboard.md)
+- [NumberInput](/docs/NumberInput.md)
+- [Radio](/docs/Radio.md)
+- [Range](/docs/Range.md)
+- [Select](/docs/Select.md)
+- [Span](/docs/Span.md)
+- [Style](/docs/Style.md)
+- [Text](/docs/Text.md)
+- [TextArea](/docs/TextArea.md)
+- [TextInput](/docs/TextInput.md)
+- [Toggle](/docs/Toggle.md)
 
 ## Interactables
 
-- `GripInteractable`: Represents an interactable object for grip interaction.
-- `PointerInteractable`: Represents an interactable object for pointer interaction.
-- `TouchInteractable`: Represents an interactable object for touch interaction.
+- [GripInteractable](/docs/GripInteractable.md)
+- [PointerInteractable](/docs/PointerInteractable.md)
+- [TouchInteractable](/docs/TouchInteractable.md)
 
 ## Handlers
 
-- `GripInteractableHandler`: Handles grip interaction for interactable objects.
-- `PointerInteractableHandler`: Handles pointer interaction for interactable objects.
-- `TouchInteractableHandler`: Handles touch interaction for interactable objects.
-- `DelayedClickHandler`: Handles delayed click events.
+- [GripInteractableHandler](/docs/GripInteractableHandler.md)
+- [PointerInteractableHandler](/docs/PointerInteractableHandler.md)
+- [TouchInteractableHandler](/docs/TouchInteractableHandler.md)
+- [DelayedClickHandler](/docs/DelayedClickHandler.md)
+- [InputHandler](/docs/InputHandler.md)
+- [UpdateHandler](/docs/UpdateHandler.md)
 
 ## Utilities
 
-- `InputHandler`: Manages input events from various devices.
-- `UpdateHandler`: Manages update callbacks.
-- `utils`: Contains utility functions.
+- [utils](/docs/utils.md)
 
 ## Third-party Dependencies
 
-- `ThreeMeshBVH`: Provides bounding volume hierarchy support for Three.js meshes.
-- `TroikaThreeText`: Provides text rendering capabilities for Three.js.
+- [ThreeMeshBVH](https://github.com/gkjohnson/three-mesh-bvh): Provides bounding volume hierarchy support for Three.js meshes
+- [TroikaThreeText](https://github.com/protectwise/troika/tree/main/packages/troika-three-text): Provides text rendering capabilities for Three.js
 
 ## Functions
 
-- `addGripInteractable(interactable)`: Adds an interactable object for grip interaction.
-- `addPointerInteractable(interactable)`: Adds an interactable object for pointer interaction.
-- `addTouchInteractable(interactable)`: Adds an interactable object for touch interaction.
-- `removeGripInteractable(interactable)`: Removes an interactable object for grip interaction.
-- `removePointerInteractable(interactable)`: Removes an interactable object for pointer interaction.
-- `removeTouchInteractable(interactable)`: Removes an interactable object for touch interaction.
-- `init(container, renderer, scene, camera, deviceType, orbitTarget)`: Initializes the UI components and interaction handlers.
-- `update(frame)`: Updates the UI components and interaction handlers based on the frame.
-- `isXR()`: Checks if the current device supports XR (Extended Reality) features.
-- `isTouchDevice()`: Checks if the current device is a touch-enabled device.
+- `addGripInteractable(interactable)`: Adds a grip interactable object to the appropriate handler
+- `addPointerInteractable(interactable)`: Adds a pointer interactable object to the appropriate handler
+- `addTouchInteractable(interactable)`: Adds a touch interactable object to the appropriate handler
+- `removeGripInteractable(interactable)`: Removes a grip interactable object from the appropriate handler
+- `removePointerInteractable(interactable)`: Removes a pointer interactable object from the appropriate handler
+- `removeTouchInteractable(interactable)`: Removes a touch interactable object from the appropriate handler
+- `init(container, renderer, scene, camera, ?deviceType, ?orbitTarget)`: Initializes the UI components and interaction handlers. If device type is not provided, DigitalBacon-UI will determine device type using it's default mechanism
+- `update(frame)`: Updates the UI components and interaction handlers based on the frame
+- `isXR()`: Checks if the current device supports XR features
+- `isTouchDevice()`: Checks if the current device is a touch-enabled device
 
 ## Constants
 
-- `version`: The version of the DigitalBacon-UI.js module.
+- `DeviceTypes`: Enum with values of POINTER, TOUCH\_SCREEN, XR, and active
+- `version`: The release version of this library
 
 ## Notes
 
-- The DigitalBacon-UI.js module provides a comprehensive set of UI components and interaction handlers for creating immersive 3D experiences.
-- It supports various input devices such as XR controllers, pointers, and touch screens.
-- Developers can easily integrate UI elements and interaction handlers into their Three.js applications using this module.
-- The module also includes utilities and third-party dependencies for enhanced functionality.
+- The DigitalBacon-UI.js module provides a comprehensive set of UI components and interaction handlers for creating immersive 3D experiences
+- It supports various input devices such as XR controllers, pointers, and touch screens
+- Developers can easily integrate UI elements and interaction handlers into their Three.js applications using this module
+- The module also includes utilities and third-party dependencies for enhanced functionality
+- This documentation was originally written by ChatGPT
 

@@ -1,18 +1,17 @@
 # Span
 
-Span class extends the ScrollableComponent class and represents a span or inline container in a UI layout.
+extends [ScrollableComponent](/docs/ScrollableComponent.md)
+
+Represents a span in UI layout. Children are displayed horizontally by default
 
 ## Constructor
 
-### `constructor(...styles: any[])`
+### `constructor(...styles: Object[])`
 
-Creates a new instance of the Span class.
+Creates a new instance of Span
 
-- `...styles`: Additional styles to apply to the span.
+- `...styles`: Any number of styles to apply to the component. Can be made up of either [Style](/docs/Style.md) objects or generic objects. In the case of generic objects they will each be used to instatiate a new Style object based on their parameters
 
-## Methods
+## Defaults
 
-### `updateLayout()`
-
-Updates the layout of the span.
-
+- `contentDirection`: row

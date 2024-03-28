@@ -1,41 +1,13 @@
 # NumberInput
 
-NumberInput class represents an interactive component for inputting numerical values.
+extends [TextArea](/docs/TextArea.md)
+
+Component for single-line numerical input
 
 ## Constructor
 
-### `constructor(...styles: any[])`
+### `constructor(...styles: Object[])`
 
-Creates a new instance of the NumberInput class.
+Creates a new instance of NumberInput
 
-- `...styles`: Optional. Additional styles to apply to the number input.
-
-## Properties
-
-- `value`: Gets or sets the numerical value of the input.
-
-## Methods
-
-### `blur(): void`
-
-Removes focus from the number input.
-
-### `insertContent(content: string): void`
-
-Inserts content at the current caret position in the number input.
-
-- `content`: The content to insert.
-
-## Events
-
-- `onChange`: Callback function for change event.
-
-## Inherited Properties and Methods
-
-NumberInput class inherits properties and methods from the TextInput class.
-
-## Additional Notes
-
-- NumberInput class inherits behavior and appearance from the TextInput class but is optimized for numerical input.
-- NumberInput restricts input to numbers and the decimal point, handling keyboard input accordingly.
-
+- `...styles`: Any number of styles to apply to the component. Can be made up of either [Style](/docs/Style.md) objects or generic objects. In the case of generic objects they will each be used to instatiate a new Style object based on their parameters

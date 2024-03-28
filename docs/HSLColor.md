@@ -1,62 +1,39 @@
 # HSLColor
 
-HSLColor class represents a utility for working with HSL (Hue, Saturation, Lightness) color space.
+HSLColor objects provide 2 UI components for selecting colors with HSL (Hue, Saturation, Lightness) color space
 
 ## Constructor
 
 ### `constructor(radius?: number)`
 
-Creates a new instance of the HSLColor class.
+Creates a new instance of HSLColor
 
-- `radius`: Optional. The radius of the color wheel. Default is 0.1.
+- `radius`: Optional. The radius of the color wheel. Default is 0.1
 
 ## Properties
 
-- `onBlur`: Gets or sets the blur event handler.
-- `onChange`: Gets or sets the change event handler.
-- `radius`: Gets or sets the radius of the color wheel.
+- `hueSaturationWheel`: An [Image](/docs/Image.md) component with interactive handlers added to select the hue and saturation
+- `lightnessBar`: An [Image](/docs/Image.md) component with interactive handlers added to select the lightness
+- `onBlur`: The blur event handler that will be called if set when an interaction to select color ends
+- `onChange`: The change event handler that will be called if set during an interaction to select color
+- `radius`: The radius of the color wheel
 
 ## Methods
 
-### `getColorTexture(): Texture`
-
-Returns the color texture used in the HSLColor instance.
-
-### `getLightnessTexture(): Texture`
-
-Returns the lightness texture used in the HSLColor instance.
-
-### `getXY(radius: number): [number, number]`
-
-Returns the cartesian coordinates `[x, y]` from polar coordinates based on the specified radius.
-
-### `getLightness(): number`
-
-Returns the lightness value of the color.
-
 ### `setFromHSL(hsl: { h: number, s: number, l: number }): void`
 
-Sets the HSL values from an object with `h`, `s`, and `l` properties.
-
-### `selectColorFromXY(x: number, y: number): string | null`
-
-Selects a color based on the cartesian coordinates `(x, y)` on the color wheel.
-
-### `selectLightnessFromXY(x: number, y: number): string | null`
-
-Selects a lightness value based on the cartesian coordinates `(x, y)` on the lightness bar.
+Sets the HSL values from an object with `h`, `s`, and `l` properties
 
 ### `getColor(): string`
 
-Returns the current color as a hexadecimal string.
+Returns the current color as an integer that equals the hexadecimal value of the new color
 
 ## Events
 
 ### `onBlur(color: string)`
 
-Fired when the color selection is blurred. Returns the selected color as a hexadecimal string.
+Fired when the color selection is blurred. Returns the selected color as an integer that equals the hexadecimal value of the new color
 
 ### `onChange(color: string)`
 
-Fired when the color selection is changed. Returns the selected color as a hexadecimal string.
-
+Fired when the color selection is changed. Returns the selected color as an integer that equals the hexadecimal value of the new color

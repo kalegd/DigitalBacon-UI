@@ -1,23 +1,20 @@
 # Body
 
-Body class extends the ScrollableComponent class and represents the main body of a UI layout.
+extends [ScrollableComponent](/docs/ScrollableComponent.md)
+
+Represents the main body for a set of UI components
 
 ## Constructor
 
-### `constructor(...styles: any[])`
+### `constructor(...styles: Object[])`
 
-Creates a new instance of the Body class.
+Creates a new instance of Body
 
-- `...styles`: Additional styles to apply to the body.
+- `...styles`: Any number of styles to apply to the body. Can be made up of either [Style](/docs/Style.md) objects or generic objects. In the case of generic objects they will each be used to instatiate a new Style object based on their parameters
 
-## Properties
+## Defaults
 
-- `bypassContentPositioning: boolean`: Indicates whether to bypass content positioning.
-- `_defaults: object`: Default properties for the body.
-
-## Methods
-
-### `updateLayout()`
-
-Updates the layout of the body.
-
+- `backgroundVisible`: true
+- `bypassContentPositioning`: true
+- `height`: 1
+- `width`: 1

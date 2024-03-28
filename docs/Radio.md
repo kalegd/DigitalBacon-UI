@@ -1,33 +1,39 @@
 # Radio
 
-Radio class represents a selectable radio button component.
+extends [InteractableComponent](/docs/InteractableComponent.md)
+
+Selectable radio button component
 
 ## Constructor
 
-### `constructor(name: string, ...styles: any[])`
+### `constructor(name: string, ...styles: Object[])`
 
-Creates a new instance of the Radio class.
+Creates a new instance of Radio
 
-- `name`: The name of the radio group.
-- `...styles`: Optional. Additional styles to apply to the radio button.
+- `name`: The name of the radio group
+- `...styles`: Any number of styles to apply to the component. Can be made up of either [Style](/docs/Style.md) objects or generic objects. In the case of generic objects they will each be used to instatiate a new Style object based on their parameters
 
-## Properties
+## New Properties
 
-- `selected`: Gets or sets the selected state of the radio button.
+- `selected`: The selected state of the radio button
+- `onChange: Function(selected: boolean)`: Callback function for change event
+- `onSelect`: Callback function for select event
+
+## Defaults
+
+- `backgroundVisible`: true
+- `borderWidth`: 0.002
+- `color`: 0xffffff
+- `height`: 0.08
+- `width`: 0.08
 
 ## Methods
 
-- `select(): void`: Selects the radio button.
-- `unselect(): void`: Unselects the radio button.
-
-## Events
-
-- `onChange`: Callback function for change event.
-- `onSelect`: Callback function for select event.
+- `select(): void`: Selects the radio button
+- `unselect(): void`: Unselects the radio button
 
 ## Notes
 
-- Radio buttons are organized in groups based on the `name` parameter passed to the constructor.
-- When one radio button in a group is selected, all other radio buttons in the same group are automatically unselected.
-- Radio buttons can be styled using additional styles passed to the constructor.
+- Radio buttons are organized in groups based on the `name` parameter passed to the constructor
+- When one radio button in a group is selected, all other radio buttons in the same group are automatically unselected
 

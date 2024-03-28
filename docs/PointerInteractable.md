@@ -1,48 +1,39 @@
 # PointerInteractable
 
-PointerInteractable class extends the Interactable class to provide functionality specific to pointer interactions.
+extends [Interactable](/docs/Interactable.md)
+
+PointerInteractable objects provide functionality to make three.js Object3Ds interactable by the following events when triggered via pointer: `over`, `out`, `down`, `up`, `click`, `move`, and `drag`
 
 ## Constructor
 
-### `constructor(object: any)`
+### `constructor(object: Object3D)`
 
-Creates a new instance of the PointerInteractable class.
+Creates a new instance of PointerInteractable
 
-- `object`: The object to be associated with the PointerInteractable instance.
-
-## Properties
-
-- `_maxDistance: number`: The maximum distance for pointer interaction.
+- `object`: The [Object3D](https://threejs.org/docs/#api/en/core/Object3D) to be associated with the PointerInteractable instance
 
 ## Methods
 
 ### `addEventListener(type: string, callback: Function, options?: { tool?: string, maxDistance?: number })`
 
-Adds an event listener for a specific event type.
+Adds an event listener for a specific event type
 
-- `type`: The type of the event.
-- `callback`: The callback function to be executed when the event occurs.
-- `options`: An optional object containing additional options.
-  - `tool`: Specifies the interaction tool associated with the event listener.
-  - `maxDistance`: Specifies the maximum distance for the interaction.
+- `type`: The type of the event
+- `callback`: The callback function to be executed when the event occurs
+- `options`: An optional object containing additional options
+  - `tool`: Specifies the [interaction tool](/docs/InteractionTool.md) associated with the event listener
+  - `maxDistance`: Specifies the maximum distance for the interaction
 
 ### `removeEventListener(type: string, callback: Function)`
 
-Removes an event listener for a specific event type.
+Removes an event listener for a specific event type
 
-- `type`: The type of the event.
-- `callback`: The callback function to be removed.
-
-### `dispatchEvent(type: string, e: any)`
-
-Dispatches an event of the specified type.
-
-- `type`: The type of the event.
-- `e`: The event object to be dispatched.
+- `type`: The type of the event
+- `callback`: The callback function to be removed
 
 ### `isWithinReach(distance: number): boolean`
 
-Checks if a given distance is within reach of the pointer interaction.
+Checks if a given distance is within reach of any of the event listeners
 
-- `distance`: The distance to check.
+- `distance`: The distance to check
 

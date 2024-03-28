@@ -1,28 +1,26 @@
 # Toggle
 
-Toggle class represents a toggle component.
+extends [InteractableComponent](/docs/InteractableComponent.md)
+
+Represents a toggle component
 
 ## Constructor
 
-### `constructor(...styles: any[])`
+### `constructor(...styles: Object[])`
 
-Creates a new instance of the Toggle class.
+Creates a new instance of Toggle
 
-- `...styles`: Optional. Additional styles to apply to the toggle component.
+- `...styles`: Any number of styles to apply to the component. Can be made up of either [Style](/docs/Style.md) objects or generic objects. In the case of generic objects they will each be used to instatiate a new Style object based on their parameters
 
 ## Properties
 
-- `checked`: Gets or sets the state of the toggle (true for checked, false for unchecked).
-- `onChange`: Gets or sets the event handler function called when the toggle state changes.
+- `checked`: The checked state of the toggle
+- `onChange`: Callback function that can be set to handle toggle state changes
 
-## Methods
+## Defaults
 
-No additional methods are provided beyond the inherited methods from the InteractableComponent class.
-
-## Notes
-
-- The Toggle class represents a toggle component that allows users to switch between two states, typically checked and unchecked.
-- It inherits from the InteractableComponent class and provides methods and properties for managing the toggle state and appearance.
-- The `checked` property allows getting or setting the state of the toggle (true for checked, false for unchecked).
-- The `onChange` property allows registering an event handler function that is called when the toggle state changes.
-
+- `backgroundVisible`: true
+- `color`: 0xffffff
+- `materialColor`: 0xcccccc
+- `height`: 0.02
+- `width`: 0.14

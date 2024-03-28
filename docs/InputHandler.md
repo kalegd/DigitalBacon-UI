@@ -1,37 +1,39 @@
 # InputHandler
 
-InputHandler class provides polling for XR input sources, keyboard, or touch screen inputs.
+InputHandler class provides polling for XR input sources, keyboard, or touch screen inputs
 
 ## Methods
 
-- `init(container: HTMLElement, renderer: THREE.WebGLRenderer)`: Initializes the InputHandler with the specified container and renderer.
-- `createJoystick()`: Creates a joystick control for touch screen inputs.
-- `addExtraControlsButton(id: string, name: string)`: Adds an extra controls button to the interface.
-- `getExtraControlsButton(id: string)`: Retrieves an extra controls button by its ID.
-- `hideExtraControlsButton(id: string)`: Hides the extra controls button with the specified ID.
-- `showExtraControlsButton(id: string)`: Shows the extra controls button with the specified ID.
-- `update(frame: XRFrame)`: Updates XR controller states based on the provided XRFrame.
+- `addExtraControlsButton(id: string, name: string)`: Adds an html extra controls button to the webpage
+- `getExtraControlsButton(id: string)`: Retrieves an extra controls button by its ID
+- `hideExtraControlsButton(id: string)`: Hides the extra controls button with the specified ID
+- `showExtraControlsButton(id: string)`: Shows the extra controls button with the specified ID
+- `getPointerPosition()`: A Vector2 representing the position of the pointer on the canvas. Applys also for touch screen users
 
-## Properties
+### For Pointer Users
 
-- `_container`: The HTML container element associated with the InputHandler.
-- `_renderer`: The WebGLRenderer instance associated with the InputHandler.
-- `_xrInputDevices`: An object to store XR input devices by type and handedness.
-- `_pointerPosition`: A Vector2 representing the position of the pointer.
-- `_pointerPressed`: A boolean indicating whether the pointer is pressed.
-- `_keysPressed`: A Set containing keys that are currently pressed.
-- `_keyCodesPressed`: A Set containing key codes that are currently pressed.
-- `_screenTouched`: A boolean indicating whether the screen is touched.
-- `_joystickAngle`: The angle of the joystick control for touch screen inputs.
-- `_joystickDistance`: The distance of the joystick control for touch screen inputs.
-- `_extraControls`: An object to store extra controls buttons.
-- `_extraControlsDiv`: The HTML div element for displaying extra controls.
+- `isPointerPressed()`: Returns whether or not the primary button is currently pressed down (example: left-click on a mouse)
+- `isKeyPressed(key: string)`: Returns whether or not the [key](https://developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent/key) is currently pressed
+- `isKeyCodePressed(code: string)`: Returns whether or not the key associated with the provided [code](https://developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent/code) is currently pressed
+
+### For Touch Screen Users
+
+- `createJoystick()`: Creates a joystick control for touch screen inputs on the webpage
+- `getJoystickAngle()`: Returns angle of the joystick in radians
+- `getJoystickDistance()`: Returns the distance the joystick is pulled in the joystick angle's direction. Value returned will be between 0 and 1
+- `isScreenTouched()`: Returns whether or not the screen is currently touched
+
+### For XR Users
+
+- `disableXRControllerManagement()`: Disables management of XR Controllers
+- `enableXRControllerManagement(parent: Object3D)`: Enables the module to handle managing XR Controllers and updating them
+- `getXRInputSource(type: string, handedness: string)`: Returns the relevant [XRInputSource](https://developer.mozilla.org/en-US/docs/Web/API/XRInputSource) for the provided type (`HAND` or `CONTROLLER`) and handedness (`LEFT` or `RIGHT`)
+- `getXRGamepad(handedness: string)`: Returns the XRInputSource's [gamepad](https://developer.mozilla.org/en-US/docs/Web/API/XRInputSource/gamepad) for the controller corresponding to the provided handedness if it exists
+- `getXRController(type: string, handedness: string, space: string)`: Returns an Object3D representing the XR Input Device for the corresponding type, handedness and space (`targetRay` or `grip`) if it exists
+- `getXRControllerModel(type: string, handedness: string)`: Returns the Object3D model for the corresponding XR Input Device if it exists
+- `setXRControllerModel(type: string, handedness: string, model: Object3D)`: Sets the model for the corresponding XR Input Device if it exists
 
 ## Notes
 
-- The InputHandler class provides a unified interface for handling XR input sources, keyboard events, and touch screen inputs.
-- It supports XR controllers, hands, keyboard inputs, and touch screen gestures.
-- The class dynamically adds event listeners based on the active device type.
-- XR input sources are managed for both controllers and hands, with support for target ray and grip spaces.
-- Additional controls such as joysticks and buttons can be created and managed through the InputHandler class.
-
+- XRInputSources can be managed for both controllers and hands, with support for target ray and grip spaces
+- Additional controls such as joysticks and html buttons can be created and managed through the InputHandler class

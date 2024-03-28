@@ -13,7 +13,7 @@ class DelayedClickHandler {
 
     setup() {
         if(DeviceTypes.active != "XR") {
-            this._eventType = DeviceTypes.active == "MOBILE"
+            this._eventType = DeviceTypes.active == "TOUCH_SCREEN"
                 ? 'touchend'
                 : 'click';
             this._clickListener = () => {
