@@ -4,7 +4,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
-import { MeshBVHVisualizer, StaticGeometryGenerator } from '/node_modules/three-mesh-bvh/build/index.module.js';
+import { MeshBVHHelper, StaticGeometryGenerator } from '/node_modules/three-mesh-bvh/build/index.module.js';
 import * as THREE from 'three';
 
 export const numberOr = (number, defaultValue) =>
@@ -85,7 +85,7 @@ export const setupBVHForComplexObject = (object) => {
     }
     object.bvhGeometry.computeBoundsTree();
     if(object.parent) object.updateMatrixWorld(true);
-    //addBVHVisualizer(object);
+    //addBVHHelper(object);
     return true;
 };
 
@@ -103,9 +103,9 @@ export const updateBVHForComplexObject = (object) => {
     //if(object.bvhHelper) object.bvhHelper.update();
 };
 
-export const addBVHVisualizer = (object) => {
+export const addBVHHelper = (object) => {
     if(object.bvhGeometry && object.geomtry == object.bvhGeometry) {
-        object.parent.add(new MeshBVHVisualizer(object));
+        object.parent.add(new MeshBVHHelper(object));
         return;
     }
     let material = new THREE.MeshBasicMaterial( {
@@ -116,7 +116,7 @@ export const addBVHVisualizer = (object) => {
     });
     let meshHelper = new THREE.Mesh(object.bvhGeometry, material);
     object.parent.add(meshHelper);
-    let bvhHelper = new MeshBVHVisualizer(meshHelper, 10);
+    let bvhHelper = new MeshBVHHelper(meshHelper, 10);
     object.parent.add(bvhHelper);
     object.bvhHelper = bvhHelper;
 };
