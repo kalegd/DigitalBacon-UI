@@ -28,11 +28,11 @@ export default class HSLColor {
         this._saturation = 1;
         this._lightness = 0.5;
         this._radius = radius || 0.1;
-        this._createTextures(radius);
+        this._createTextures();
         this._createCursors();
     }
 
-    _createTextures(radius) {
+    _createTextures() {
         let diameter = this._radius * 2;
         let colorCanvas = document.createElement('canvas');
         let lightnessCanvas = document.createElement('canvas');
@@ -210,7 +210,6 @@ export default class HSLColor {
         this._colorCursor.position.setY(VEC3.y);
         let material = this._colorCursor.material;
         let materialOffset = this.hueSaturationWheel._materialOffset + 1;
-        let wheelMaterial = this.hueSaturationWheel.material;
         if(material.polygonOffsetFactor != -1 * materialOffset) {
             material.polygonOffsetFactor = -1 * materialOffset;
             material.polygonOffsetUnits = -1 * materialOffset;
@@ -258,7 +257,6 @@ export default class HSLColor {
 
         let hue = radiansToDegrees(-phi);
         let saturation = r / this._radius;
-        let lightness = this._lightness;
         this._hue = hue;
         this._saturation = saturation;
         this._updateLightnessBar();
@@ -268,8 +266,6 @@ export default class HSLColor {
 
     selectLightnessFromXY(x, y) {
         let height = this._radius * 2;
-        let hue = this._hue;
-        let saturation = this._saturation;
         let lightness = y / height + 0.5;
         if(lightness < 0) lightness = 0;
         if(lightness > 1) lightness = 1;

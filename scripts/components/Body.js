@@ -5,7 +5,6 @@
  */
 
 import ScrollableComponent from '/scripts/components/ScrollableComponent.js';
-import * as THREE from 'three';
 
 class Body extends ScrollableComponent {
     constructor(...styles) {

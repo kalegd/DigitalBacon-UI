@@ -9,6 +9,7 @@
     "ecmaVersion": "latest",
     "sourceType": "module"
   },
+  "ignorePatterns": ["/scripts/enums/KeyboardLayouts.js"],
   "rules": {
     "max-len": ["warn", {
         "code": 80,
@@ -30,6 +31,7 @@
         "vars": "all",
         "args": "after-used",
         "argsIgnorePattern": "^_",
+        "destructuredArrayIgnorePattern": "^_",
         "ignoreRestSiblings": false
     }]
   }

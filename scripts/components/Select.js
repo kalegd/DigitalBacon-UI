@@ -90,7 +90,7 @@ class Select extends ScrollableComponent {
     addOptions(...options) {
         for(let option of options) {
             let span = new Span(this._optionsStyle);
-            let text = new Text(option, this._optionsTextStyle)
+            let text = new Text(option, this._optionsTextStyle);
             span.onClick = span.onTouch = () => this._selectOption(text.text);
             span.add(text);
             span.pointerInteractable.setStateCallback((state) => {

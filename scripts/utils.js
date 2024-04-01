@@ -119,4 +119,4 @@ export const addBVHVisualizer = (object) => {
     let bvhHelper = new MeshBVHVisualizer(meshHelper, 10);
     object.parent.add(bvhHelper);
     object.bvhHelper = bvhHelper;
-}
+};

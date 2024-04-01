@@ -8,7 +8,6 @@ import InteractableComponent from '/scripts/components/InteractableComponent.js'
 import * as THREE from 'three';
 
 const RADIO_MAP = {};
-const TOPIC = 'DigitalBacon-UI-Radio-Selected-';
 
 const DEFAULT_MATERIAL = new THREE.MeshBasicMaterial({
     color: 0x0030ff,
@@ -47,7 +46,7 @@ class Radio extends InteractableComponent {
         this._background.add(this._toggleChild);
         this._toggleChild.scale.set(0.75, 0.75, 0.75);
         this._toggleChild.visible = (this._selected) ? true : false;
-        this.borderMaterial.color.set((this._selected) ? 0x0030ff : 0x4f4f4f)
+        this.borderMaterial.color.set((this._selected) ? 0x0030ff : 0x4f4f4f);
     }
 
     _updateMaterialOffset(parentOffset) {

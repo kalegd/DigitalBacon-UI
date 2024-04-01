@@ -332,7 +332,7 @@ class LayoutComponent extends UIComponent {
             (sum, child) => sum + (child instanceof LayoutComponent ? 1 : 0),0);
         let alignItems = this.alignItems;
         let justifyContent = this.justifyContent;
-        let p, dimension, dimensionName, unpaddedDimension, sign, paddingPrior,
+        let p, dimension, unpaddedDimension, sign, paddingPrior,
             otherPaddingPrior, otherPaddingAfter, otherDimension,
             contentDimension, computedDimensionName, otherComputedDimensionName,
             marginPriorName, marginAfterName, otherMarginPriorName,
@@ -658,7 +658,7 @@ class LayoutComponent extends UIComponent {
 
     //https://stackoverflow.com/a/65576761/11626958
     static createShape(width, height, topLeftRadius, topRightRadius,
-            bottomLeftRadius, bottomRightRadius) {
+                       bottomLeftRadius, bottomRightRadius) {
         let shape = new THREE.Shape();
         let halfWidth = width / 2;
         let halfHeight = height / 2;

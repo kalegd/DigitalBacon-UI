@@ -15,7 +15,7 @@ class PointerInteractable extends Interactable {
     }
 
     addEventListener(type, callback, options = {}) {
-        options = { ...options }
+        options = { ...options };
         if(options.maxDistance == null) options.maxDistance = Infinity;
         if(options.maxDistance > this._maxDistance)
             this._maxDistance = options.maxDistance;
@@ -33,7 +33,7 @@ class PointerInteractable extends Interactable {
         if(needsMaxDistanceUpdate) {
             this._maxDistance = -Infinity;
             for(let type in this._callbacks) {
-                for(let [key, value] of this._callbacks[type]) {
+                for(let [_key, value] of this._callbacks[type]) {
                     if(value.maxDistance > this._maxDistance)
                         this._maxDistance = value.maxDistance;
                 }

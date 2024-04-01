@@ -36,7 +36,7 @@ class Interactable {
     removeEventListener(type, callback) {
         if(type in this._callbacks && this._callbacks[type].has(callback)) {
             let options = this._callbacks[type].get(callback);
-            this._callbacks[type].delete(callback)
+            this._callbacks[type].delete(callback);
             this._callbacksLength--;
             let tool = options?.tool || 'none';
             this._toolCounts[tool]--;

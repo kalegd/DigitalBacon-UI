@@ -20,7 +20,7 @@ class Style {
         this._listeners.delete(callback);
     }
 
-    _genericGet(param, value) {
+    _genericGet(param) {
         return this['_' + param];
     }
 

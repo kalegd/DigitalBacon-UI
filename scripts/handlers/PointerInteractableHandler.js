@@ -18,7 +18,7 @@ class PointerInteractableHandler extends InteractableHandler {
     constructor() {
         super();
         this._cursors = {};
-        this._ignoredInteractables = new Set();;
+        this._ignoredInteractables = new Set();
     }
 
     init(renderer, scene, camera, orbitTarget) {
@@ -282,49 +282,6 @@ class PointerInteractableHandler extends InteractableHandler {
         }
         this._wasPressed.set(option, isPressed);
     }
-
-    //_updateInteractablesTouchScreen(controller) {
-    //    let option = controller['option'];
-    //    let isPressed = controller['isPressed'];
-    //    let selectedInteractable = this._selectedInteractables.get(option);
-    //    if(this._screenWasTouched) {
-    //        if(!selectedInteractable) {
-    //            this._screenWasTouched = isPressed;
-    //            return;
-    //        }
-
-    //        this._raycastInteractables(controller, this._interactables);
-    //        let userDistance = controller['userDistance'];
-    //        let closestInteractable = controller['closestInteractable'];
-    //        if(!isPressed) {
-    //            this._screenWasTouched = false;
-    //            if(closestInteractable == selectedInteractable) {
-    //                selectedInteractable.triggerActions(option,
-    //                    controller['closestPoint'], userDistance);
-    //            }
-    //            selectedInteractable.removeSelectedBy(option);
-    //            this._selectedInteractables.delete(option);
-    //        } else {
-    //            if(selectedInteractable == closestInteractable) {
-    //                selectedInteractable.triggerDragActions(option,
-    //                    controller['closestPoint'], userDistance);
-    //            } else {
-    //                selectedInteractable.triggerDragActions(option, null,
-    //                    Infinity);
-    //            }
-    //        }
-    //    } else if(isPressed) {
-    //        this._screenWasTouched = true;
-    //        this._raycastInteractables(controller, this._interactables);
-    //        let userDistance = controller['userDistance'];
-    //        let closestInteractable = controller['closestInteractable'];
-    //        if(closestInteractable) {
-    //            closestInteractable.addSelectedBy(option,
-    //                controller['closestPoint'], userDistance);
-    //            this._selectedInteractables.set(option, closestInteractable);
-    //        }
-    //    }
-    //}
 
     _updateCursor(controller) {
         let cursor = controller.cursor;

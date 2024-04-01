@@ -4,7 +4,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
-import Style from '/scripts/components/Style.js';
 import TextArea from '/scripts/components/TextArea.js';
 import DelayedClickHandler from '/scripts/handlers/DelayedClickHandler.js';
 import InputHandler from '/scripts/handlers/InputHandler.js';
@@ -58,7 +57,7 @@ class TextInput extends TextArea {
                 if(e.target != div) return;
                 this._text.text = input.value;
                 this.blur();
-            }
+            };
             input.onblur = () => {
                 this._text.text = input.value;
                 this.blur();
@@ -122,7 +121,7 @@ class TextInput extends TextArea {
         this._checkForCaretScroll();
     }
 
-    _checkForCaretScroll(isSync) {
+    _checkForCaretScroll() {
         if(!this._scrollable && this._content.position.x != 0) {
             this._content.position.x = 0;
             return;

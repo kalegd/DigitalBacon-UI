@@ -175,47 +175,6 @@ class GripInteractableHandler extends InteractableHandler {
         this._wasPressed.set(option, isPressed);
     }
 
-    //_updateInteractables(controller) {
-    //    let option = controller.option;
-    //    let isPressed = controller['isPressed'];
-    //    let hoveredInteractable = this._hoveredInteractables.get(option);
-    //    let selectedInteractable = this._selectedInteractables.get(option);
-    //    let closestInteractable = controller['closestInteractable'];
-    //    if(closestInteractable) {
-    //        if(isPressed) {
-    //            if(!selectedInteractable 
-    //                    && hoveredInteractable == closestInteractable)
-    //            {
-    //                closestInteractable.addSelectedBy(option);
-    //                this._selectedInteractables.set(option,closestInteractable);
-    //                closestInteractable.removeHoveredBy(option);
-    //                this._hoveredInteractables.delete(option);
-    //            }
-    //        } else {
-    //            if(hoveredInteractable != closestInteractable) {
-    //                if(hoveredInteractable) {
-    //                    hoveredInteractable.removeHoveredBy(option);
-    //                }
-    //                closestInteractable.addHoveredBy(option);
-    //                this._hoveredInteractables.set(option, closestInteractable);
-    //            }
-    //            if(selectedInteractable) {
-    //                selectedInteractable.removeSelectedBy(option);
-    //                this._selectedInteractables.delete(option);
-    //            }
-    //        }
-    //    } else if(!isPressed) {
-    //        if(hoveredInteractable) {
-    //            hoveredInteractable.removeHoveredBy(option);
-    //            this._hoveredInteractables.delete(option);
-    //        }
-    //        if(selectedInteractable) {
-    //            selectedInteractable.removeSelectedBy(option);
-    //            this._selectedInteractables.delete(option);
-    //        }
-    //    }
-    //}
-
     _updateForXR() {
         for(let handedness in Handedness) {
             let controllerExists = false;

@@ -4,7 +4,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
-import { numberOr } from '/scripts/utils.js';
 import Body from '/scripts/components/Body.js';
 import Div from '/scripts/components/Div.js';
 import Span from '/scripts/components/Span.js';
@@ -34,11 +33,9 @@ const DEFAULT_KEY_STYLE = {
 const DEFAULT_FONT_STYLE = {
     fontSize: 0.065,
 };
-const SHIFT_STATES = {
-    UNSHIFTED: 'UNSHIFTED',
-    SHIFTED: 'SHIFTED',
-    CAPS_LOCK: 'CAPS_LOCK',
-};
+const UNSHIFTED = 'UNSHIFTED';
+const SHIFTED = 'SHIFTED';
+const CAPS_LOCK = 'CAPS_LOCK';
 
 class Keyboard extends InteractableComponent {
     constructor(...styles) {
@@ -115,7 +112,7 @@ class Keyboard extends InteractableComponent {
         this._keyboardLayout = keyboardLayout;
         this._keyboardPageLayouts = [];
         this._keyboardPage = null;
-        this._shiftState = 'UNSHIFTED';
+        this._shiftState = UNSHIFTED;
         this._setPage(0);
     }
 
@@ -148,40 +145,40 @@ class Keyboard extends InteractableComponent {
                 }
                 let listener = () => {
                     if(typeof key == 'string') {
-                        let eventKey = (this._shiftState == 'UNSHIFTED')
+                        let eventKey = (this._shiftState == UNSHIFTED)
                             ? content
                             : content.toUpperCase();
                         this._registeredComponent.handleKey(eventKey);
-                        if(this._shiftState == 'SHIFTED' && eventKey !=content){
-                            this._shiftState = 'UNSHIFTED';
+                        if(this._shiftState == SHIFTED && eventKey !=content){
+                            this._shiftState = UNSHIFTED;
                             this._shiftCase(page, false);
                         }
                     } else {
                         if(key.type == 'key') {
-                            let eventKey = (this._shiftState == 'UNSHIFTED'
+                            let eventKey = (this._shiftState == UNSHIFTED
                                     || key.value.length > 1)
                                 ? key.value
                                 : key.value.toUpperCase();
                             this._registeredComponent.handleKey(eventKey);
-                            if(this._shiftState == 'SHIFTED'
+                            if(this._shiftState == SHIFTED
                                     && eventKey != key.value) {
-                                this._shiftState = 'UNSHIFTED';
+                                this._shiftState = UNSHIFTED;
                                 this._shiftCase(page, false);
                             }
                         } else if(key.type == 'page') {
-                            if(this._shiftState != 'UNSHIFTED'){
-                                this._shiftState = 'UNSHIFTED';
+                            if(this._shiftState != UNSHIFTED){
+                                this._shiftState = UNSHIFTED;
                                 this._shiftCase(page, false);
                             }
                             this._setPage(key.page);
                         } else if(key.type == 'shift') {
-                            if(this._shiftState == 'UNSHIFTED') {
-                                this._shiftState = 'SHIFTED';
+                            if(this._shiftState == UNSHIFTED) {
+                                this._shiftState = SHIFTED;
                                 this._shiftCase(page, true);
-                            } else if(this._shiftState == 'SHIFTED') {
-                                this._shiftState = 'CAPS_LOCK';
-                            } else if(this._shiftState == 'CAPS_LOCK') {
-                                this._shiftState = 'UNSHIFTED';
+                            } else if(this._shiftState == SHIFTED) {
+                                this._shiftState = CAPS_LOCK;
+                            } else if(this._shiftState == CAPS_LOCK) {
+                                this._shiftState = UNSHIFTED;
                                 this._shiftCase(page, false);
                             }
                         }
@@ -275,7 +272,7 @@ class Keyboard extends InteractableComponent {
             let keyDiv = new Div(DEFAULT_KEY_STYLE, key.style);
 
             let text = new Text(content, DEFAULT_FONT_STYLE);
-            if(this._shiftState != 'UNSHIFTED')
+            if(this._shiftState != UNSHIFTED)
                 text.text = text.text.toUpperCase();
             keyDiv.add(text);
             span.add(keyDiv);
@@ -286,12 +283,12 @@ class Keyboard extends InteractableComponent {
                 text.position.z = 0;
             });
             keyDiv.pointerInteractable.addEventListener('up', () => {
-                let eventKey = (this._shiftState == 'UNSHIFTED')
+                let eventKey = (this._shiftState == UNSHIFTED)
                     ? content
                     : content.toUpperCase();
                 this._registeredComponent.handleKey(eventKey);
-                if(this._shiftState == 'SHIFTED') {
-                    this._shiftState = 'UNSHIFTED';
+                if(this._shiftState == SHIFTED) {
+                    this._shiftState = UNSHIFTED;
                     this._shiftCase(this._keyboardPage, false);
                 }
             });
@@ -403,8 +400,8 @@ class Keyboard extends InteractableComponent {
     setupGripInteractable(scene) {
         this.gripInteractable = new GripInteractable(this);
         this.gripInteractable.addEventListener('down', (e) => {
-          e.owner.attach(this);
-          this.gripInteractable.capture(e.owner);
+            e.owner.attach(this);
+            this.gripInteractable.capture(e.owner);
         });
         this.gripInteractable.addEventListener('click', (e) => {
             if(this.parent == e.owner) scene.attach(this);
@@ -424,7 +421,7 @@ class Keyboard extends InteractableComponent {
     }
 
     get onPopup() { return this._onPopup; }
-    set onPopup(onPopup) { this._onPopup = onPopup }
+    set onPopup(onPopup) { this._onPopup = onPopup; }
 }
 
 function getComponentBody(component) {

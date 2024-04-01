@@ -6,9 +6,7 @@
 
 import InteractableComponent from '/scripts/components/InteractableComponent.js';
 import LayoutComponent from '/scripts/components/LayoutComponent.js';
-import PointerInteractable from '/scripts/interactables/PointerInteractable.js';
-import PointerInteractableHandler from '/scripts/handlers/PointerInteractableHandler.js';
-import { capitalizeFirstLetter, numberOr } from '/scripts/utils.js';
+import { capitalizeFirstLetter } from '/scripts/utils.js';
 import * as THREE from 'three';
 
 const VEC3 = new THREE.Vector3();
@@ -213,13 +211,13 @@ class ScrollableComponent extends InteractableComponent {
             if(!closestPoint) {
                 PLANE.set(VEC3.set(0, 0, 1), 0);
                 PLANE.applyMatrix4(this.matrixWorld);
-                closestPoint = owner.raycaster.ray.intersectPlane(PLANE, VEC3);     
+                closestPoint = owner.raycaster.ray.intersectPlane(PLANE, VEC3);
             } else {
                 closestPoint = VEC3.copy(closestPoint);
             }
             if(closestPoint) {
                 closestPoint = this.worldToLocal(closestPoint);
-                if(this._horizontallyScrollable) this._scroll('x',closestPoint);    
+                if(this._horizontallyScrollable) this._scroll('x',closestPoint);
                 if(this._verticallyScrollable) this._scroll('y', closestPoint);
             }
         }

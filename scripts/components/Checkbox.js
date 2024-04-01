@@ -6,7 +6,6 @@
 
 import InteractableComponent from '/scripts/components/InteractableComponent.js';
 import { Text } from '/node_modules/troika-three-text/dist/troika-three-text.esm.js';
-import * as THREE from 'three';
 
 class Checkbox extends InteractableComponent {
     constructor(...styles) {

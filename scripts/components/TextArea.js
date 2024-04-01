@@ -4,17 +4,15 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
-import Div from '/scripts/components/Div.js';
 import Keyboard from '/scripts/components/Keyboard.js';
 import ScrollableComponent from '/scripts/components/ScrollableComponent.js';
 import Style from '/scripts/components/Style.js';
 import Text from '/scripts/components/Text.js';
 import DeviceTypes from '/scripts/enums/DeviceTypes.js';
-import States from '/scripts/enums/InteractableStates.js';
 import DelayedClickHandler from '/scripts/handlers/DelayedClickHandler.js';
 import InputHandler from '/scripts/handlers/InputHandler.js';
 import PointerInteractableHandler from '/scripts/handlers/PointerInteractableHandler.js';
-import { getCaretAtPoint, Text as TroikaText } from '/node_modules/troika-three-text/dist/troika-three-text.esm.js';
+import { getCaretAtPoint } from '/node_modules/troika-three-text/dist/troika-three-text.esm.js';
 import { runes } from '/node_modules/runes2/dist/index.esm.mjs';
 import * as THREE from 'three';
 
@@ -77,7 +75,7 @@ class TextArea extends ScrollableComponent {
         this._syncCompleteListener = () => {
             this._updateCaret();
             this._checkForCaretScroll();
-        }
+        };
         this.updateLayout();
         if(this.overflow != 'visible' && !this.clippingPlanes)
             this._createClippingPlanes();
@@ -105,18 +103,17 @@ class TextArea extends ScrollableComponent {
     }
 
     _selectTouch(e) {
-        let { owner } = e;
-        let details = this.touchInteractable.getClosestPointTo(owner);
+        let details = this.touchInteractable.getClosestPointTo(e.owner);
         let object = details[1].object;
         let vertex = object.bvhGeometry.index.array[details[1].faceIndex * 3];
         let positionAttribute = object.bvhGeometry.getAttribute('position');
         VEC3.fromBufferAttribute(positionAttribute, vertex);
         object.localToWorld(VEC3);
-        this._select({ owner: owner, closestPoint: VEC3 });
+        this._select({ closestPoint: VEC3 });
     }
 
     _select(e) {
-        let { owner, closestPoint } = e;
+        let { closestPoint } = e;
         if(!closestPoint) return;
         if(this._textStyle.minHeight != this._caret.computedHeight)
             this._textStyle.minHeight = this._caret.computedHeight;
@@ -190,7 +187,7 @@ class TextArea extends ScrollableComponent {
                 if(e.target != div) return;
                 this._text.text = textArea.value;
                 this.blur();
-            }
+            };
             textArea.onblur = () => {
                 this._text.text = textArea.value;
                 this.blur();
@@ -333,7 +330,7 @@ class TextArea extends ScrollableComponent {
         if(this._onChange) this._onChange(this._text.text);
     }
 
-    _checkForCaretScroll(isSync) {
+    _checkForCaretScroll() {
         if(!this._scrollable && this._content.position.y != 0) {
             this._content.position.y = 0;
             return;

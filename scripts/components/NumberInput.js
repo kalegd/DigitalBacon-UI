@@ -5,7 +5,6 @@
  */
 
 import Keyboard from '/scripts/components/Keyboard.js';
-import Style from '/scripts/components/Style.js';
 import TextInput from '/scripts/components/TextInput.js';
 import DeviceTypes from '/scripts/enums/DeviceTypes.js';
 import DelayedClickHandler from '/scripts/handlers/DelayedClickHandler.js';
@@ -86,7 +85,7 @@ class NumberInput extends TextInput {
                 if(e.target != div) return;
                 this._text.text = input.value;
                 this.blur();
-            }
+            };
             input.onblur = () => {
                 this._text.text = input.value;
                 this.blur();
@@ -137,7 +136,7 @@ class NumberInput extends TextInput {
         e.preventDefault();
     }
     
-    _checkForCaretScroll(isSync) {
+    _checkForCaretScroll() {
         if(!this._scrollable && this._content.position.x != 0) {
             this._content.position.x = 0;
             return;
