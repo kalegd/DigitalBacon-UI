@@ -70,33 +70,33 @@ class Range extends InteractableComponent {
     }
 
     _select(e) {
-        let { owner, closestPoint } = e;
-        this._updateValue(owner, closestPoint);
+        let { owner, point } = e;
+        this._updateValue(owner, point);
         if(this._onBlur) this._onBlur(this._value);
     }
 
     _drag(e) {
-        let { owner, closestPoint } = e;
-        this._updateValue(owner, closestPoint);
+        let { owner, point } = e;
+        this._updateValue(owner, point);
         if(this._onChange) this._onChange(this._value);
     }
 
-    _updateValue(owner, closestPoint) {
+    _updateValue(owner, point) {
         if(!this._scrubbingOwner) {
             this._scrubbingOwner = owner;
         } else if(this._scrubbingOwner != owner) {
             return;
         }
-        if(closestPoint) {
-            closestPoint = VEC3.copy(closestPoint);
+        if(point) {
+            point = VEC3.copy(point);
         } else {
             PLANE.set(VEC3.set(0, 0, 1), 0);
             PLANE.applyMatrix4(this.matrixWorld);
-            closestPoint = owner.raycaster.ray.intersectPlane(PLANE, VEC3);
+            point = owner.raycaster.ray.intersectPlane(PLANE, VEC3);
         }
-        if(closestPoint) {
-            closestPoint = this.worldToLocal(closestPoint);
-            this._value = closestPoint.x / this.width + 0.5;
+        if(point) {
+            point = this.worldToLocal(point);
+            this._value = point.x / this.width + 0.5;
             this._value = Math.max(0, Math.min(this._value, 1));
             this._updateScrubber();
         }

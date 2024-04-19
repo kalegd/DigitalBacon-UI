@@ -17,6 +17,7 @@ Creates a new instance of TextArea
 - `onBlur`: Callback function that provides the text content when editing is finished
 - `onChange`: Callback function that provides the text content when editing is updated
 - `onFocus`: Callback function that is called when the user initiates editing for the component
+- `placeholder`: An optional short hint that describes the expected value of the TextArea
 - `value`: The current text content
 
 ## Defaults

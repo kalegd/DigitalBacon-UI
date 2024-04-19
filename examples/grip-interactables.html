@@ -61,13 +61,13 @@
 
       const interactable = new DigitalBaconUI.GripInteractable(cube);
       interactable.addEventListener('down', (e) => {
-        e.owner.attach(cube);
+        e.owner.object.attach(cube);
         interactable.capture(e.owner);
       });
       interactable.addEventListener('click', (e) => {
-        if(cube.parent == e.owner) scene.attach(cube);
+        if(cube.parent == e.owner.object) scene.attach(cube);
       });
-      interactable.setHoveredCallback((hovered) => {
+      interactable.addHoveredCallback((hovered) => {
         material.color.setHex((hovered) ? 0xff0000 : 0x00ff00);
       });
       DigitalBaconUI.addGripInteractable(interactable);

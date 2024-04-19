@@ -4,7 +4,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
-import InteractionTool from '/scripts/handlers/InteractionTool.js';
+import InteractionToolHandler from '/scripts/handlers/InteractionToolHandler.js';
 import Interactable from '/scripts/interactables/Interactable.js';
 
 class PointerInteractable extends Interactable {
@@ -12,6 +12,7 @@ class PointerInteractable extends Interactable {
         super(object);
         if(object) object.pointerInteractable = this;
         this._maxDistance = -Infinity;
+        this._hoveredCursor = 'pointer';
     }
 
     addEventListener(type, callback, options = {}) {
@@ -42,8 +43,8 @@ class PointerInteractable extends Interactable {
     }
 
     dispatchEvent(type, e) {
-        if(!(type in this._callbacks)) return;
-        let tool = InteractionTool.getTool();
+        if(this._disabled || !(type in this._callbacks)) return;
+        let tool = InteractionToolHandler.getTool();
         for(let [callback, options] of this._callbacks[type]) {
             let callbackTool = options.tool;
             if(callbackTool && callbackTool != tool) continue;
@@ -55,6 +56,12 @@ class PointerInteractable extends Interactable {
     isWithinReach(distance) {
         return distance < this._maxDistance;
     }
+
+    get hoveredCursor() {
+        return (this._disabled) ? 'not-allowed' : this._hoveredCursor;
+    }
+
+    set hoveredCursor(hoveredCursor) { this._hoveredCursor = hoveredCursor; }
 }
 
 export default PointerInteractable;

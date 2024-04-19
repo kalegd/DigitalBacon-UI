@@ -84,7 +84,7 @@ class Keyboard extends InteractableComponent {
         let languagesText = new Text('🌐', DEFAULT_FONT_STYLE);
         this._optionsPanel.add(languagesButton);
         languagesButton.add(languagesText);
-        languagesButton.pointerInteractable.setHoveredCallback((hovered) => {
+        languagesButton.pointerInteractable.addHoveredCallback((hovered) => {
             languagesText.position.z = (hovered) ? HOVERED_Z_OFFSET : 0;
         });
         languagesButton.onClick = languagesButton.onTouch = () => {
@@ -137,7 +137,7 @@ class Keyboard extends InteractableComponent {
                 let text = new Text(content, DEFAULT_FONT_STYLE);
                 keyDiv.add(text);
                 span.add(keyDiv);
-                keyDiv.pointerInteractable.setHoveredCallback((hovered) => {
+                keyDiv.pointerInteractable.addHoveredCallback((hovered) => {
                     text.position.z = (hovered) ? HOVERED_Z_OFFSET : 0;
                 });
                 if(typeof key != 'string' && key.additionalCharacters) {
@@ -184,8 +184,8 @@ class Keyboard extends InteractableComponent {
                         }
                     }
                 };
-                keyDiv.pointerInteractable.addEventListener('down', listener);
-                keyDiv.touchInteractable.addEventListener('down', listener);
+                keyDiv.pointerInteractable.addEventListener('click', listener);
+                keyDiv.touchInteractable.addEventListener('click', listener);
             }
             div.add(span);
         }
@@ -242,8 +242,8 @@ class Keyboard extends InteractableComponent {
     }
 
     _isXRControllerPressed(owner) {
-        let type = owner.xrInputDeviceType;
-        let handedness = owner.handedness;
+        let type = owner.object.xrInputDeviceType;
+        let handedness = owner.object.handedness;
         if(type == XRInputDeviceTypes.HAND) {
             let model = InputHandler.getXRControllerModel(type, handedness);
             return model?.motionController?.isPinching == true;
@@ -321,7 +321,7 @@ class Keyboard extends InteractableComponent {
             let text = new Text(language, DEFAULT_FONT_STYLE);
             keyDiv.add(text);
             span.add(keyDiv);
-            keyDiv.pointerInteractable.setHoveredCallback((hovered) => {
+            keyDiv.pointerInteractable.addHoveredCallback((hovered) => {
                 text.position.z = (hovered) ? HOVERED_Z_OFFSET : 0;
             });
             keyDiv.onClick = keyDiv.onTouch = () => {
@@ -400,11 +400,11 @@ class Keyboard extends InteractableComponent {
     setupGripInteractable(scene) {
         this.gripInteractable = new GripInteractable(this);
         this.gripInteractable.addEventListener('down', (e) => {
-            e.owner.attach(this);
+            e.owner.object.attach(this);
             this.gripInteractable.capture(e.owner);
         });
         this.gripInteractable.addEventListener('click', (e) => {
-            if(this.parent == e.owner) scene.attach(this);
+            if(this.parent == e.owner.object) scene.attach(this);
         });
     }
 

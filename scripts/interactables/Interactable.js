@@ -5,7 +5,7 @@
  */
 
 import States from '/scripts/enums/InteractableStates.js';
-import InteractionTool from '/scripts/handlers/InteractionTool.js';
+import InteractionToolHandler from '/scripts/handlers/InteractionToolHandler.js';
 
 class Interactable {
     constructor(object) {
@@ -15,10 +15,13 @@ class Interactable {
         this._hoveredOwners = new Set();
         this._selectedOwners = new Set();
         this._capturedOwners = new Set();
+        this._stateCallbacks = new Set();
+        this._hoveredCallbacks = new Set();
         this._callbacks = {};
         this._callbacksLength = 0;
         this._toolCounts = {};
         this._hoveredCallbackState = false;
+        this._disabled = false;
     }
 
     addEventListener(type, callback, options) {
@@ -33,6 +36,14 @@ class Interactable {
         this._toolCounts[tool]++;
     }
 
+    copyEventListenersTo(interactable) {
+        for(let type in this._callbacks) {
+            for(let [callback, options] of this._callbacks[type]) {
+                interactable.addEventListener(type, callback, options);
+            }
+        }
+    }
+
     removeEventListener(type, callback) {
         if(type in this._callbacks && this._callbacks[type].has(callback)) {
             let options = this._callbacks[type].get(callback);
@@ -44,8 +55,8 @@ class Interactable {
     }
 
     dispatchEvent(type, e) {
-        if(!(type in this._callbacks)) return;
-        let tool = InteractionTool.getTool();
+        if(this._disabled || !(type in this._callbacks)) return;
+        let tool = InteractionToolHandler.getTool();
         for(let [callback, options] of this._callbacks[type]) {
             let callbackTool = options?.tool;
             if(!callbackTool || callbackTool == tool) callback(e);
@@ -95,7 +106,7 @@ class Interactable {
     }
 
     supportsTool() {
-        let tool = InteractionTool.getTool();
+        let tool = InteractionToolHandler.getTool();
         return this._toolCounts['none'] || this._toolCounts[tool];
     }
 
@@ -103,45 +114,34 @@ class Interactable {
         return !this.supportsTool();
     }
 
-    getObject() {
-        return this._object;
+    addStateCallback(callback) {
+        this._stateCallbacks.add(callback);
     }
 
-    getState() {
-        return this._state;
+    addHoveredCallback(callback) {
+        this._hoveredCallbacks.add(callback);
     }
 
-    setObject(object) {
-        this._object = object;
+    removeStateCallback(callback) {
+        this._stateCallbacks.delete(callback);
     }
 
-    setState(newState) {
-        if(this._state != newState) {
-            this._state = newState;
-            if(this._stateCallback) this._stateCallback(newState);
-        }
-    }
-
-    setStateCallback(callback) {
-        this._stateCallback = callback;
-    }
-
-    setHoveredCallback(callback) {
-        this._hoveredCallback = callback;
+    removeHoveredCallback(callback) {
+        this._hoveredCallbacks.delete(callback);
     }
 
     _determineAndSetState() {
         if(this._selectedOwners.size > 0) {
-            this.setState(States.SELECTED);
+            this.state = States.SELECTED;
         } else if(this._hoveredOwners.size > 0) {
-            this.setState(States.HOVERED);
+            this.state = States.HOVERED;
         } else {
-            this.setState(States.IDLE);
+            this.state = States.IDLE;
         }
     }
 
     _determineHoveredCallbackState() {
-        if(!this._hoveredCallback) return;
+        if(this._disabled || this._hoveredCallbacks.size == 0) return;
         let newState = false;
         for(let owner of this._hoveredOwners) {
             if(!this._selectedOwners.has(owner)) {
@@ -151,7 +151,9 @@ class Interactable {
         }
         if(newState != this._hoveredCallbackState) {
             this._hoveredCallbackState = newState;
-            this._hoveredCallback(newState);
+            for(let callback of this._hoveredCallbacks) {
+                callback(newState);
+            }
         }
     }
 
@@ -160,7 +162,7 @@ class Interactable {
         this._hoveredOwners.add(owner);
         this._determineHoveredCallbackState();
         if(this._selectedOwners.size == 0)
-            this.setState(States.HOVERED);
+            this.state = States.HOVERED;
     }
 
     removeHoveredBy(owner) {
@@ -171,7 +173,7 @@ class Interactable {
 
     addSelectedBy(owner) {
         this._selectedOwners.add(owner);
-        this.setState(States.SELECTED);
+        this.state = States.SELECTED;
         this._determineHoveredCallbackState();
     }
 
@@ -184,7 +186,7 @@ class Interactable {
     reset() {
         this._hoveredOwners.clear();
         this._selectedOwners.clear();
-        this.setState(States.IDLE);
+        this.state = States.IDLE;
         this.children.forEach((interactable) => {
             interactable.reset();
         });
@@ -212,6 +214,34 @@ class Interactable {
         interactables.forEach((interactable) => {
             this.removeChild(interactable);
         });
+    }
+
+    get disabled() { return this._disabled; }
+    get object() { return this._object; }
+    get state() { return this._state; }
+
+    set disabled(disabled) {
+        if(disabled) {
+            if(this._hoveredCallbackState) {
+                this._hoveredCallbacks.forEach((callback) => callback(false));
+                this._hoveredCallbackState = false;
+            }
+            this.state = States.DISABLED;
+            this._disabled = disabled;
+        } else {
+            this._disabled = disabled;
+            this._determineAndSetState();
+            this._determineHoveredCallbackState();
+        }
+    }
+    set object(object) { this._object = object; }
+    set state(newState) {
+        if(!this._disabled && this._state != newState) {
+            this._state = newState;
+            for(let callback of this._stateCallbacks) {
+                callback(newState);
+            }
+        }
     }
 }
 

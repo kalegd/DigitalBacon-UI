@@ -27,8 +27,8 @@ class InteractableComponent extends LayoutComponent {
 
     _createBackground() {
         super._createBackground();
-        this.pointerInteractable.setObject(this._background);
-        this.touchInteractable.setObject(this._background);
+        this.pointerInteractable.object = this._background;
+        this.touchInteractable.object = this._background;
     }
 
     _pointerClick(e) {
@@ -57,7 +57,10 @@ class InteractableComponent extends LayoutComponent {
 
     _onAdded() {
         let p = this.parentComponent;
-        if(p instanceof InteractableComponent) {
+        if(this.parent?.pointerInteractable && this.parent?.touchInteractable) {
+            this.parent.pointerInteractable.addChild(this.pointerInteractable);
+            this.parent.touchInteractable.addChild(this.touchInteractable);
+        } else if(p instanceof InteractableComponent) {
             p.pointerInteractable.addChild(this.pointerInteractable);
             p.touchInteractable.addChild(this.touchInteractable);
         } else {

@@ -72,14 +72,13 @@ class Image extends InteractableComponent {
                 if(aspectRatio < imageAspectRatio) {
                     this._texture.repeat.x = aspectRatio / imageAspectRatio;
                     this._texture.repeat.y = 1;
-                    this._texture.offset.x = (aspectRatio -imageAspectRatio)/-2;
+                    this._texture.offset.x = (1 - this._texture.repeat.x) / 2;
                     this._texture.offset.y = 0;
                 } else {
                     this._texture.repeat.x = 1;
                     this._texture.repeat.y = imageAspectRatio / aspectRatio;
                     this._texture.offset.x = 0;
-                    this._texture.offset.y = (1 / aspectRatio
-                        - 1 / imageAspectRatio) / -2;
+                    this._texture.offset.y = (1 - this._texture.repeat.y) / 2;
                 }
             }
         } else {
@@ -91,8 +90,13 @@ class Image extends InteractableComponent {
     }
 
     updateTexture(url) {
-        if(url instanceof THREE.Texture) {
-            this._updateTexture(url);
+        if(!url) {
+            if(this._texture) this._texture.dispose();
+            this._texture = null;
+            this.material.map = null;
+            this.material.needsUpdate = true;
+        } else if(url instanceof THREE.Texture) {
+            this._updateTexture((url.bypassCloning) ? url : url.clone());
         } else {
             new THREE.TextureLoader().load(url, (texture) => {
                 texture.colorSpace = THREE.SRGBColorSpace;
@@ -104,6 +108,7 @@ class Image extends InteractableComponent {
     }
 
     _updateTexture(texture) {
+        let oldTexture = this._texture;
         this._texture = texture;
         this._imageWidth = texture.image.width;
         this._imageHeight = texture.image.height;
@@ -111,6 +116,7 @@ class Image extends InteractableComponent {
         this.material.needsUpdate = true;
         this.updateLayout();
         this._updateFit(-1, 1);
+        if(oldTexture) oldTexture.dispose();
     }
 
     _createBackground() {

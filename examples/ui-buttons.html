@@ -84,7 +84,7 @@
         count++;
         countText.text = String(count);
       };
-      button.pointerInteractable.setHoveredCallback((hovered) => {
+      button.pointerInteractable.addHoveredCallback((hovered) => {
         //buttonText.position.z = (hovered) ? 0.01 : 0;
         buttonText.scale.fromArray((hovered) ? [1.1, 1.1, 1.1] : [1, 1, 1]);
       });

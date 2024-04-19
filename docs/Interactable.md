@@ -72,18 +72,6 @@ Sets the associated object
 
 - `object`: The object to set
 
-### `setStateCallback(callback: Function)`
-
-Sets a callback function to be executed when the state changes
-
-- `callback`: The callback function
-
-### `setHoveredCallback(callback: Function)`
-
-Sets a callback function to be executed when hovered
-
-- `callback`: The callback function
-
 ### `addChild(interactable: Interactable)`
 
 Adds a child interactable object
@@ -96,6 +84,18 @@ Adds multiple child interactable objects
 
 - `interactables`: An array of child interactable objects to add
 
+### `addHoveredCallback(callback: Function)`
+
+Adds a callback function to be executed when hovered
+
+- `callback`: The callback function
+
+### `addStateCallback(callback: Function)`
+
+Adds a callback function to be executed when the state changes
+
+- `callback`: The callback function
+
 ### `removeChild(interactable: Interactable)`
 
 Removes a child interactable object
@@ -107,3 +107,15 @@ Removes a child interactable object
 Removes multiple child interactable objects
 
 - `interactables`: An array of child interactable objects to remove
+
+### `removeHoveredCallback(callback: Function)`
+
+Removes the callback function
+
+- `callback`: The callback function
+
+### `removeStateCallback(callback: Function)`
+
+Removes the callback function
+
+- `callback`: The callback function

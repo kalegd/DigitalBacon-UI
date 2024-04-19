@@ -27,7 +27,7 @@ export default class SpotifyLoginContent {
         loginButton.onClick = () => {
             SpotifyHelper.authenticate();
         }
-        loginButton.pointerInteractable.setHoveredCallback((hovered) => {
+        loginButton.pointerInteractable.addHoveredCallback((hovered) => {
             if(hovered) {
                 loginButton.materialColor = 0x189a46;
                 loginText.troikaText.position.z = 0.01;

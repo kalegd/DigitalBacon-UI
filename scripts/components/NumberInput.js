@@ -15,31 +15,23 @@ import * as THREE from 'three';
 
 const VEC3 = new THREE.Vector3();
 const ARROW_KEYS = new Set();
-const IGNORED_KEYS = new Set();
 const INVALID_NUMBER_KEYS = new Set();
 ARROW_KEYS.add('ArrowLeft');
 ARROW_KEYS.add('ArrowRight');
-IGNORED_KEYS.add('ArrowUp');
-IGNORED_KEYS.add('ArrowDown');
-IGNORED_KEYS.add('Alt');
-IGNORED_KEYS.add('Backspace');
-IGNORED_KEYS.add('CapsLock');
-IGNORED_KEYS.add('Control');
-IGNORED_KEYS.add('Enter');
-IGNORED_KEYS.add('Escape');
-IGNORED_KEYS.add('Meta');
-IGNORED_KEYS.add('Shift');
-IGNORED_KEYS.add('Tab');
 INVALID_NUMBER_KEYS.add('e');
 INVALID_NUMBER_KEYS.add('E');
-INVALID_NUMBER_KEYS.add('-');
 INVALID_NUMBER_KEYS.add('+');
 
 class NumberInput extends TextInput {
     constructor(...styles) {
         super(...styles);
+        this._defaults['alignItems'] = 'center';
+        this._latestValue['alignItems'] = null;
         this._text._overrideStyle.maxWidth = null;
         this._text._text.whiteSpace = 'nowrap';
+        this._minValue = -Infinity;
+        this._maxValue = Infinity;
+        this._lastValidValue = '';
         this.updateLayout();
     }
 
@@ -93,18 +85,18 @@ class NumberInput extends TextInput {
             input.onkeydown = (e) => {
                 if(INVALID_NUMBER_KEYS.has(e.key)
                         || (input.value.includes('.') && e.key == '.')
-                        || (!e.key.match(/^[0-9.]*$/) && e.key != 'Backspace'
+                        || (!e.key.match(/^[0-9.-]*$/) && e.key != 'Backspace'
                             && e.key != 'Enter'))
                     e.preventDefault();
             };
             input.onkeyup = (e) => {
                 if(e.key == 'Enter') {
-                    this.blur();
+                    if(this._onEnter) this._onEnter(this._text.text);
                     return;
                 }
                 if(this._text.text == input.value) return;
                 this._text.text = input.value;
-                if(this._onChange) this._onChange(this._text.text);
+                this._triggerChangeCallback();
             };
             this._mobileTextAreaParent = div;
             this._mobileTextArea = input;
@@ -121,10 +113,12 @@ class NumberInput extends TextInput {
         } else if(key == "Backspace") {
             this._deleteChar();
         } else if(key == "Enter") {
+            if(this._onEnter) this._onEnter(this._text.text);
+        } else if(key == "Escape") {
             this.blur();
         } else if(ARROW_KEYS.has(key)) {
             this._moveCaret(key);
-        } else if(key.match(/^[0-9.]*$/)) {
+        } else if(key.match(/^[0-9.-]*$/)) {
             this.insertContent(key);
         }
     }
@@ -153,17 +147,56 @@ class NumberInput extends TextInput {
         }
     }
 
+    _triggerBlurCallback() {
+        let value = Number.parseFloat(this._text.text)
+        if(isNaN(value)) {
+            this.value = this._lastValidValue;
+        } else if(typeof this._minValue == 'number' && value < this._minValue) {
+            this.value = this._minValue;
+        } else if(typeof this._maxValue == 'number' && value > this._maxValue) {
+            this.value = this._maxValue;
+        }
+        this._lastValidValue = this._text.text;
+        if(this._onBlur) this._onBlur(this._text.text);
+    }
+
+    _triggerChangeCallback() {
+        let value = Number.parseFloat(this._text.text)
+        if(isNaN(value)
+            || (typeof this._minValue == 'number' && value < this._minValue)
+            || (typeof this._maxValue == 'number' && value > this._maxValue)) {
+            return;
+        }
+        this._lastValidValue = this._text.text;
+        if(this._onChange) this._onChange(this._text.text);
+    }
+
     _sanitizeIncomingText(incoming, existing) {
         let hasDot = false;
-        incoming = incoming.replaceAll(/[^0-9.]/g, '');
-        if(existing && existing.indexOf('.') != -1) hasDot = true;
+        let isNegative = false;
+        incoming = incoming.replaceAll(/[^0-9.-]/g, '');
+        if(existing) {
+            if(existing.indexOf('.') != -1) hasDot = true;
+            if(existing.indexOf('-') != -1) isNegative = true;
+        }
         if(hasDot) {
             incoming = incoming.replaceAll('.', '');
         } else if(incoming.indexOf('.') != -1) {
             incoming = incoming.split(".")[0] + "." + incoming.split(".")
                 .slice(1).join("");
         }
+        if(isNegative) {
+            incoming = incoming.replaceAll('-', '');
+        } else if(incoming.indexOf('-') != -1) {
+            incoming = '-' + incoming.replaceAll('-', '');
+        }
         return incoming;
+    }
+
+    _sanitizeText() {
+        if(this._text.text.indexOf('-') > 0) {
+            this.value = '-' + this._text.text.replaceAll('-', '');
+        }
     }
 
     insertContent(content) {
@@ -171,12 +204,18 @@ class NumberInput extends TextInput {
         super.insertContent(content);
     }
 
-    get value() { return this._text.text; }
+    get maxValue() { return this._maxValue; }
+    get minValue() { return this._minValue; }
+    get onEnter() { return this._onEnter; }
+    get value() { return super.value; }
 
+    set maxValue(maxValue) { this._maxValue = maxValue; }
+    set minValue(minValue) { this._minValue = minValue; }
+    set onEnter(onEnter) { this._onEnter = onEnter; }
     set value(value) {
-        value = this._sanitizeIncomingText(value);
-        this._value = runes(value);
-        this._text.text = value;
+        value = this._sanitizeIncomingText(String(value));
+        super.value = value;
+        this._lastValidValue = this._text.text
     }
 }
 

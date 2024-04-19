@@ -5,7 +5,7 @@
  */
 
 import DeviceTypes from '/scripts/enums/DeviceTypes.js';
-import InteractionTool from '/scripts/handlers/InteractionTool.js';
+import InteractionToolHandler from '/scripts/handlers/InteractionToolHandler.js';
 
 export default class InteractableHandler {
     constructor() {
@@ -14,6 +14,9 @@ export default class InteractableHandler {
         this._selectedInteractables = new Map();
         this._capturedInteractables = new Map();
         this._overInteractables = new Map();
+        this._owners = new Map();
+        this._owners.set('POINTER', { id: 'POINTER' });
+        this._owners.set('TOUCH_SCREEN', { id: 'TOUCH_SCREEN' });
         this._wasPressed = new Map();
         this._listeners = {};
         this._tool = null;
@@ -21,7 +24,7 @@ export default class InteractableHandler {
     }
 
     _setupXRSubscription() {
-        InteractionTool.addUpdateListener((tool) => {
+        InteractionToolHandler.addUpdateListener((tool) => {
             for(let [option, interactable] of this._hoveredInteractables) {
                 if(interactable) interactable.removeHoveredBy(option);
                 this._hoveredInteractables.delete(option);
@@ -39,6 +42,12 @@ export default class InteractableHandler {
             }
             this._tool = tool;
         });
+    }
+
+    _getOwner(key) {
+        if(!this._owners.has(key))
+            this._owners.set(key, { id: key.uuid, object: key });
+        return this._owners.get(key);
     }
 
     init() {
@@ -67,7 +76,7 @@ export default class InteractableHandler {
         if(this._listeners[type]) {
             let eventCopy = { ...eventDetails };
             if(interactable) {
-                eventCopy.target = interactable.getObject();
+                eventCopy.target = interactable.object;
                 interactable[type](eventDetails);
             }
             if(!this._listeners[type]) return;

@@ -8,6 +8,7 @@ import Handedness from '/scripts/enums/Handedness.js';
 import XRInputDeviceTypes from '/scripts/enums/XRInputDeviceTypes.js';
 import InputHandler from '/scripts/handlers/InputHandler.js';
 import InteractableHandler from '/scripts/handlers/InteractableHandler.js';
+import InteractionToolHandler from '/scripts/handlers/InteractionToolHandler.js';
 import { isDescendant } from '/scripts/utils.js';
 import * as THREE from 'three';
 
@@ -25,6 +26,25 @@ class TouchInteractableHandler extends InteractableHandler {
     init(scene) {
         super.init();
         this._scene = scene;
+    }
+
+    _setupXRSubscription() {
+        InteractionToolHandler.addUpdateListener((tool) => {
+            for(let [option, interactables] of this._selectedInteractables) {
+                for(let interactable of interactables) {
+                    if(!interactable) continue;
+                    let count = 0;
+                    if(tool) count += interactable.getCallbacksLength(tool);
+                    if(this._tool) count += interactable.getCallbacksLength(
+                        this._tool);
+                    if(count) {
+                        interactable.removeSelectedBy(option);
+                        this._selectedInteractables.delete(option);
+                    }
+                }
+            }
+            this._tool = tool;
+        });
     }
 
     _getBoundingSphere(object) {
@@ -52,11 +72,12 @@ class TouchInteractableHandler extends InteractableHandler {
         for(let interactable of interactables) {
             if(interactable.children.size != 0)
                 this._scopeInteractables(controller, interactable.children);
-            let object = interactable.getObject();
+            let object = interactable.object;
             if(object == null || interactable.isOnlyGroup()) continue;
             let intersects = interactable.intersectsSphere(boundingSphere);
             if(intersects && !this._checkClipped(object)) {
-                let controllerObject = controller.model || controller.option;
+                let controllerObject = controller.model
+                    || controller.owner.object;
                 let frames = skipIntersectsCheck.get(interactable);
                 if(!frames) {
                     if(interactable.intersectsObject(controllerObject)) {
@@ -64,7 +85,7 @@ class TouchInteractableHandler extends InteractableHandler {
                     }
                     skipIntersectsCheck.set(interactable, FRAMES_TO_SKIP);
                 } else {
-                    if(this._selectedInteractables.get(controller.option)
+                    if(this._selectedInteractables.get(controller.owner)
                             .has(interactable)) {
                         controller['touchedInteractables'].add(interactable);
                     }
@@ -86,16 +107,16 @@ class TouchInteractableHandler extends InteractableHandler {
     }
 
     _updateInteractables(controller) {
-        let option = controller.option;
+        let owner = controller.owner;
         this._scopeInteractables(controller, this._interactables);
-        if(!this._selectedInteractables.get(option))
-            this._selectedInteractables.set(option, new Set());
-        let selectedInteractables = this._selectedInteractables.get(option);
+        if(!this._selectedInteractables.get(owner))
+            this._selectedInteractables.set(owner, new Set());
+        let selectedInteractables = this._selectedInteractables.get(owner);
         let touchedInteractables = controller['touchedInteractables'];
-        let basicEvent = { owner: option };
+        let basicEvent = { owner: owner };
         for(let interactable of selectedInteractables) {
             if(!touchedInteractables.has(interactable)) {
-                interactable.removeSelectedBy(option);
+                interactable.removeSelectedBy(owner);
                 selectedInteractables.delete(interactable);
                 interactable.drag(basicEvent);
                 this._trigger('up', basicEvent, interactable);
@@ -106,7 +127,7 @@ class TouchInteractableHandler extends InteractableHandler {
             if(selectedInteractables.has(interactable)) {
                 interactable.drag(basicEvent);
             } else {
-                interactable.addSelectedBy(option);
+                interactable.addSelectedBy(owner);
                 selectedInteractables.add(interactable);
                 this._trigger('down', basicEvent, interactable);
             }
@@ -123,6 +144,7 @@ class TouchInteractableHandler extends InteractableHandler {
                 let xrControllerModel = InputHandler.getXRControllerModel(type,
                     handedness);
                 if(!xrController) continue;
+                let owner = this._getOwner(xrController);
                 let active = isDescendant(this._scene, xrController);
                 if(active) {
                     if(type == XRInputDeviceTypes.CONTROLLER) {
@@ -140,7 +162,7 @@ class TouchInteractableHandler extends InteractableHandler {
                     skipIntersectsCheck = this._skipIntersectsCheck.get(object);
                 }
                 let controller = {
-                    option: xrController,
+                    owner: owner,
                     model: xrControllerModel,
                     boundingSphere: boundingSphere,
                     touchedInteractables: new Set(),

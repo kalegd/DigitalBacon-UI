@@ -41,6 +41,7 @@ class TextArea extends ScrollableComponent {
         this._defaults['borderMaterial'].color.set(0x4f4f4f);
         this._defaults['borderWidth'] = 0.002;
         this._defaults['color'] = 0x000000;
+        this._defaults['contentDirection'] = 'row';
         this._defaults['justifyContent'] = 'start';
         this._defaults['fontSize'] = 0.06;
         this._defaults['overflow'] = 'scroll';
@@ -58,7 +59,10 @@ class TextArea extends ScrollableComponent {
             minHeight: 0,
         });
         this._text = new Text('', this._textStyle);
+        this._placeholder = new Text('', this._textStyle, { color: 0x808080 });
+        this._placeholder.troikaText.material.opacity = 0.75;
         this._content.add(this._text);
+        this._content.add(this._placeholder);
         this._createCaret();
         this.onClick = (e) => this._select(e);
         this.onTouch = (e) => this._selectTouch(e);
@@ -103,23 +107,23 @@ class TextArea extends ScrollableComponent {
     }
 
     _selectTouch(e) {
-        let details = this.touchInteractable.getClosestPointTo(e.owner);
+        let details = this.touchInteractable.getClosestPointTo(e.owner.object);
         let object = details[1].object;
         let vertex = object.bvhGeometry.index.array[details[1].faceIndex * 3];
         let positionAttribute = object.bvhGeometry.getAttribute('position');
         VEC3.fromBufferAttribute(positionAttribute, vertex);
         object.localToWorld(VEC3);
-        this._select({ closestPoint: VEC3 });
+        this._select({ point: VEC3 });
     }
 
     _select(e) {
-        let { closestPoint } = e;
-        if(!closestPoint) return;
+        let { point } = e;
+        if(!point) return;
         if(this._textStyle.minHeight != this._caret.computedHeight)
             this._textStyle.minHeight = this._caret.computedHeight;
         this._text._content.add(this._caretParent);
         let troikaText = this._text._text;
-        troikaText.worldToLocal(VEC3.copy(closestPoint));
+        troikaText.worldToLocal(VEC3.copy(point));
         let caret = getCaretAtPoint(troikaText.textRenderInfo, VEC3.x, VEC3.y);
         this._setCaretIndexFromCharIndex(caret.charIndex);
         this._updateCaret();
@@ -162,7 +166,15 @@ class TextArea extends ScrollableComponent {
         this._text._text.removeEventListener('synccomplete',
             this._syncCompleteListener);
         this._text._content.remove(this._caretParent);
-        if(this._onBlur) this._onBlur(this._value);
+        this._triggerBlurCallback();
+    }
+
+    _triggerBlurCallback() {
+        if(this._onBlur) this._onBlur(this._text.text);
+    }
+
+    _triggerChangeCallback() {
+        if(this._onChange) this._onChange(this._text.text);
     }
 
     _displayMobileTextArea() {
@@ -195,12 +207,12 @@ class TextArea extends ScrollableComponent {
             textArea.addEventListener("compositionend", () => {
                 if(this._text.text == textArea.value) return;
                 this._text.text = textArea.value;
-                if(this._onChange) this._onChange(this._text.text);
+                this._triggerChangeCallback();
             });
             textArea.onkeyup = () => {
                 if(this._text.text == textArea.value) return;
                 this._text.text = textArea.value;
-                if(this._onChange) this._onChange(this._text.text);
+                this._triggerChangeCallback();
             };
             this._mobileTextAreaParent = div;
             this._mobileTextArea = textArea;
@@ -271,6 +283,8 @@ class TextArea extends ScrollableComponent {
             this._deleteChar();
         } else if(key == "Enter") {
             this.insertContent('\n');
+        } else if(key == "Escape") {
+            this.blur();
         } else if(ARROW_KEYS.has(key)) {
             this._moveCaret(key);
         } else if(!IGNORED_KEYS.has(key)) {
@@ -327,7 +341,9 @@ class TextArea extends ScrollableComponent {
         this._text.text = this._value.join('');
         this._caretIndex--;
         this._updateCaret();
-        if(this._onChange) this._onChange(this._text.text);
+        if(this._value.length == 0 && !this._placeholder.parentComponent)
+            this._content.add(this._placeholder);
+        this._triggerChangeCallback();
     }
 
     _checkForCaretScroll() {
@@ -347,6 +363,8 @@ class TextArea extends ScrollableComponent {
         }
     }
 
+    _sanitizeText() {}
+
     blur() {
         if(this._hasListeners) this._removeListeners();
     }
@@ -359,20 +377,35 @@ class TextArea extends ScrollableComponent {
             this._runeLengths.splice(this._caretIndex, 0, newRunes[i].length);
             this._caretIndex++;
         }
-        if(this._onChange) this._onChange(this._text.text);
+        this._sanitizeText();
+        if(this._placeholder.parentComponent)
+            this._content.remove(this._placeholder);
+        this._triggerChangeCallback();
     }
 
     get onBlur() { return this._onBlur; }
     get onChange() { return this._onChange; }
     get onFocus() { return this._onFocus; }
+    get placeholder() { return this._placeholder.text; }
     get value() { return this._text.text; }
 
     set onBlur(onBlur) { this._onBlur = onBlur; }
     set onChange(onChange) { this._onChange = onChange; }
     set onFocus(onFocus) { this._onFocus = onFocus; }
+    set placeholder(placeholder) { this._placeholder.text = placeholder; }
     set value(value) {
         this._value = runes(value);
         this._text.text = value;
+        this._runeLengths = [];
+        for(let i = 0; i < this._value.length; i++) {
+            this._runeLengths.push(this._value[i].length);
+        }
+        if(this._value.length == 0) {
+            if(!this._placeholder.parentComponent)
+                this._content.add(this._placeholder);
+        } else if(this._placeholder.parentComponent) {
+            this._content.remove(this._placeholder);
+        }
     }
 }
 

@@ -30,6 +30,8 @@ IGNORED_KEYS.add('Tab');
 class TextInput extends TextArea {
     constructor(...styles) {
         super(...styles);
+        this._defaults['alignItems'] = 'center';
+        this._latestValue['alignItems'] = null;
         this._text._overrideStyle.maxWidth = null;
         this._text._text.whiteSpace = 'nowrap';
         this.updateLayout();
@@ -65,16 +67,16 @@ class TextInput extends TextArea {
             input.addEventListener("compositionend", () => {
                 if(this._text.text == input.value) return;
                 this._text.text = input.value;
-                if(this._onChange) this._onChange(this._text.text);
+                this._triggerChangeCallback();
             });
             input.onkeyup = (e) => {
                 if(e.code == 'Enter') {
-                    this.blur();
+                    if(this._onEnter) this._onEnter(this._text.text);
                     return;
                 }
                 if(this._text.text == input.value) return;
                 this._text.text = input.value;
-                if(this._onChange) this._onChange(this._text.text);
+                this._triggerChangeCallback();
             };
             this._mobileTextAreaParent = div;
             this._mobileTextArea = input;
@@ -91,6 +93,8 @@ class TextInput extends TextArea {
         } else if(key == "Backspace") {
             this._deleteChar();
         } else if(key == "Enter") {
+            if(this._onEnter) this._onEnter(this._text.text);
+        } else if(key == "Escape") {
             this.blur();
         } else if(ARROW_KEYS.has(key)) {
             this._moveCaret(key);
@@ -138,12 +142,13 @@ class TextInput extends TextArea {
         }
     }
 
-    get value() { return this._text.text; }
+    get onEnter() { return this._onEnter; }
+    get value() { return super.value; }
 
+    set onEnter(onEnter) { this._onEnter = onEnter; }
     set value(value) {
         value = value.replaceAll('\n', ' ');
-        this._value = runes(value);
-        this._text.text = value;
+        super.value = value;
     }
 }
 

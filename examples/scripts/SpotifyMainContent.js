@@ -57,7 +57,7 @@ export default class SpotifyMainContent {
             span.add(textParent);
             textParent.add(text);
             span.onClick = onClick;
-            span.pointerInteractable.setHoveredCallback((hovered) => {
+            span.pointerInteractable.addHoveredCallback((hovered) => {
                 (hovered)
                     ? text.addStyle(Styles.homeSectionHovered)
                     : text.removeStyle(Styles.homeSectionHovered);
@@ -167,7 +167,7 @@ export default class SpotifyMainContent {
             span.add(album);
             span.add(text);
             span.onClick = () => this._loadPlaylist(item);
-            span.pointerInteractable.setHoveredCallback((hovered) => {
+            span.pointerInteractable.addHoveredCallback((hovered) => {
                 span.backgroundVisible = (hovered) ? true : false;
                 window.span = span;
             });
@@ -301,7 +301,7 @@ export default class SpotifyMainContent {
         span.add(albumSpan);
         span.add(durationSpan);
         span.onClick = () => this._playbackController.play(item.uri,contextUri);
-        span.pointerInteractable.setHoveredCallback((hovered) => {
+        span.pointerInteractable.addHoveredCallback((hovered) => {
             span.backgroundVisible = (hovered) ? true : false;
         });
         return span;

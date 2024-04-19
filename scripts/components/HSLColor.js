@@ -12,6 +12,7 @@ import {
     rgbToHex } from '/scripts/utils.js';
 import HueSaturationWheel from '/scripts/components/HueSaturationWheel.js';
 import Image from '/scripts/components/Image.js';
+import States from '/scripts/enums/InteractableStates.js';
 import * as THREE from 'three';
 
 const PLANE = new THREE.Plane();
@@ -46,8 +47,10 @@ export default class HSLColor {
         this._updateLightnessBar();
         this._colorTexture = new THREE.CanvasTexture(colorCanvas);
         this._colorTexture.colorSpace = THREE.SRGBColorSpace;
+        this._colorTexture.bypassCloning = true;
         this._lightnessTexture = new THREE.CanvasTexture(lightnessCanvas);
         this._lightnessTexture.colorSpace = THREE.SRGBColorSpace;
+        this._lightnessTexture.bypassCloning = true;
         this.hueSaturationWheel = new HueSaturationWheel(this._colorTexture,
             { height: diameter, width: diameter });
         this.lightnessBar = new Image(this._lightnessTexture, {
@@ -150,7 +153,6 @@ export default class HSLColor {
                 this._colorCursor.visible = true;
             }
         }
-        this._isDraggingColorCursor = true;
     }
 
     _handleLightnessCursorDrag(e) {
@@ -170,7 +172,6 @@ export default class HSLColor {
                 this._lightnessCursor.visible = true;
             }
         }
-        this._isDraggingLightnessCursor = true;
     }
 
     _createCursors() {
@@ -246,7 +247,9 @@ export default class HSLColor {
         this._saturation = hsl.s;
         this._lightness = hsl.l;
         this._updateColorWheel();
+        this._updateColorCursor();
         this._updateLightnessBar();
+        this._updateLightnessCursor();
         this._colorTexture.needsUpdate = true;
         this._lightnessTexture.needsUpdate = true;
     }
@@ -279,6 +282,12 @@ export default class HSLColor {
         let [red, green, blue] = hslToRGB(this._hue, this._saturation,
             this._lightness);
         return rgbToHex(red, green, blue);
+    }
+
+    isDragging() {
+        return this.hueSaturationWheel.pointerInteractable.state
+            == States.SELECTED || States.SELECTED
+            == this.lightnessBar.pointerInteractable.state;
     }
 
     get onBlur() { return this._onBlur; }

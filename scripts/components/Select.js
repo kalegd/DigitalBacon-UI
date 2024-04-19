@@ -22,10 +22,12 @@ class Select extends ScrollableComponent {
         this._defaults['width'] = 0.4;
         this._optionsDivStyle = new Style({
             backgroundVisible: this.backgroundVisible,
-            borderMaterial: this.borderMaterial,
+            borderMaterial: this.borderMaterial.clone(),
             borderWidth: this.borderWidth,
             overflow: 'scroll',
-            width: '100%',
+            paddingBottom: this.borderWidth,
+            paddingTop: this.borderWidth,
+            width: this.width,
         });
         this._optionsDiv = new Div(this._optionsDivStyle);
         this._optionsStyle = new Style({
@@ -72,9 +74,15 @@ class Select extends ScrollableComponent {
         }
     }
 
+    _handleStyleUpdateForWidth() {
+        super._handleStyleUpdateForWidth();
+        this._optionsDivStyle.width = this.width;
+    }
+
     _select() {
         this.remove(this._textSpan);
         this.add(this._optionsDiv);
+        this._optionsDiv._updateMaterialOffset(this._materialOffset + 1);
         this.onClick = this.onTouch = null;
         PointerInteractableHandler.addEventListener('down', this._downListener);
     }
@@ -93,7 +101,7 @@ class Select extends ScrollableComponent {
             let text = new Text(option, this._optionsTextStyle);
             span.onClick = span.onTouch = () => this._selectOption(text.text);
             span.add(text);
-            span.pointerInteractable.setStateCallback((state) => {
+            span.pointerInteractable.addStateCallback((state) => {
                 if(state == States.HOVERED) {
                     span.material.color.set(0x0075ff);
                 } else if(state == States.IDLE) {
@@ -112,7 +120,7 @@ class Select extends ScrollableComponent {
             this._downListener);
     }
 
-    getMaxDisplayOptions() { return this._maxDisplayOptions; }
+    get maxDisplayOptions() { return this._maxDisplayOptions; }
     get onChange() { return this._onChange; }
     get value() { return this._value; }
 

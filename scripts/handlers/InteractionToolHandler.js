@@ -4,7 +4,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
-class InteractionTool {
+class InteractionToolHandler {
     constructor() {
         this._tool = null;
         this._listeners = new Set();
@@ -30,5 +30,5 @@ class InteractionTool {
     }
 }
 
-let interactionTool = new InteractionTool();
-export default interactionTool;
+let interactionToolHandler = new InteractionToolHandler();
+export default interactionToolHandler;

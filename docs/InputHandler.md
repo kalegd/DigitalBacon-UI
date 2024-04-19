@@ -6,7 +6,9 @@ InputHandler class provides polling for XR input sources, keyboard, or touch scr
 
 - `addExtraControlsButton(id: string, name: string)`: Adds an html extra controls button to the webpage
 - `getExtraControlsButton(id: string)`: Retrieves an extra controls button by its ID
+- `hideExtraControls()`: Hides the whole extra controls panel
 - `hideExtraControlsButton(id: string)`: Hides the extra controls button with the specified ID
+- `showExtraControls()`: Shows the whole extra controls panel
 - `showExtraControlsButton(id: string)`: Shows the extra controls button with the specified ID
 - `getPointerPosition()`: A Vector2 representing the position of the pointer on the canvas. Applys also for touch screen users
 

@@ -37,6 +37,10 @@ class ScrollableComponent extends InteractableComponent {
         this._updateScrollable();
         if(wasScrollable == (this._scrollable || this._scrollableByAncestor))
             return;
+        for(let child of this._content.children) {
+            if(child instanceof ScrollableComponent)
+                child._updateScrollInteractables();
+        }
         let functionName = (wasScrollable)
             ? 'removeEventListener'
             : 'addEventListener';
@@ -48,7 +52,7 @@ class ScrollableComponent extends InteractableComponent {
             this.pointerInteractable[functionName]('drag', this._dragAction);
         if(!this._onTouch)
             this.touchInteractable[functionName]('click', this._touchAction);
-        if(!this._onDrag)
+        if(!this._onTouchDrag)
             this.touchInteractable[functionName]('drag', this._touchDragAction);
     }
 
@@ -127,12 +131,12 @@ class ScrollableComponent extends InteractableComponent {
     }
 
     _pointerClick(e) {
-        let { owner, closestPoint } = e;
+        let { owner, point } = e;
         if(this._scrollAncestor) {
             let clickEnabled = !this._scrollAncestor.scrollThresholdReached;
             this._scrollAncestor.clearScroll(owner);
             this._scrollAncestor = null;
-            if(this._onClick && clickEnabled && closestPoint)
+            if(this._onClick && clickEnabled && point)
                 this._onClick(e);
         } else if(this._onClick) {
             this._onClick(e);
@@ -141,18 +145,18 @@ class ScrollableComponent extends InteractableComponent {
     }
 
     _pointerDrag(e) {
-        let { owner, closestPoint } = e;
+        let { owner, point } = e;
         if(this._onDrag) {
             this._onDrag(e);
         } else if(this._scrollable) {
-            this.handleScroll(owner, closestPoint);
+            this.handleScroll(owner, point);
         } else if(this._scrollableByAncestor) {
             if(this._scrollAncestor) {
-                this._scrollAncestor.handleScroll(owner, closestPoint);
+                this._scrollAncestor.handleScroll(owner, point);
             } else {
                 this._scrollAncestor = this._getScrollableAncestor();
                 if(this._scrollAncestor)
-                    this._scrollAncestor.handleScroll(owner, closestPoint);
+                    this._scrollAncestor.handleScroll(owner, point);
             }
         }
     }
@@ -199,33 +203,33 @@ class ScrollableComponent extends InteractableComponent {
         }
     }
 
-    handleScroll(owner, closestPoint) {
+    handleScroll(owner, point) {
         if(!this._scrollStart) {
-            if(closestPoint) {
-                this._scrollStart = this.worldToLocal(closestPoint.clone());
+            if(point) {
+                this._scrollStart = this.worldToLocal(point.clone());
                 this._scrollStartPosition = this._content.position.clone();
                 this._scrollOwner = owner;
                 this._scrollType = 'POINTER';
             }
         } else if(owner == this._scrollOwner && this._scrollType == 'POINTER') {
-            if(!closestPoint) {
+            if(!point) {
                 PLANE.set(VEC3.set(0, 0, 1), 0);
                 PLANE.applyMatrix4(this.matrixWorld);
-                closestPoint = owner.raycaster.ray.intersectPlane(PLANE, VEC3);
+                point = owner.raycaster.ray.intersectPlane(PLANE, VEC3);
             } else {
-                closestPoint = VEC3.copy(closestPoint);
+                point = VEC3.copy(point);
             }
-            if(closestPoint) {
-                closestPoint = this.worldToLocal(closestPoint);
-                if(this._horizontallyScrollable) this._scroll('x',closestPoint);
-                if(this._verticallyScrollable) this._scroll('y', closestPoint);
+            if(point) {
+                point = this.worldToLocal(point);
+                if(this._horizontallyScrollable) this._scroll('x', point);
+                if(this._verticallyScrollable) this._scroll('y', point);
             }
         }
     }
 
     handleTouchScroll(owner, interactable) {
         if(!this._scrollStart) {
-            let details = interactable.getClosestPointTo(owner);
+            let details = interactable.getClosestPointTo(owner.object);
             this._scrollController = details[1].object;
             this._scrollVertex = this._scrollController.bvhGeometry.index.array[
                 details[1].faceIndex * 3];
@@ -256,10 +260,10 @@ class ScrollableComponent extends InteractableComponent {
         }
     }
 
-    _scroll(axis, closestPoint) {
+    _scroll(axis, point) {
         let currentPosition = this._content.position[axis];
         this._content.position[axis] = this._scrollStartPosition[axis]
-            - this._scrollStart[axis] + closestPoint[axis];
+            - this._scrollStart[axis] + point[axis];
         this._boundScrollPosition(axis);
         if(!this.scrollThresholdReached) {
             let diff = Math.abs(currentPosition - this._content.position[axis]);
@@ -269,7 +273,7 @@ class ScrollableComponent extends InteractableComponent {
                 : this.computedHeight;
             if(!this._scrollStartThresholdReached) {
                 this._content.position[axis] = currentPosition;
-                this._scrollStart[axis] = closestPoint[axis];
+                this._scrollStart[axis] = point[axis];
                 if(this.scrollAmount >= SCROLL_START_THRESHOLD * computed) {
                     this._scrollStartThresholdReached = true;
                     this.scrollAmount = 0;

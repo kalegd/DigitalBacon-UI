@@ -59,7 +59,7 @@ export default class SpotifyPlaybackController {
                 marginRight: 0.01,
                 materialColor: 0xaaaaaa,
             });
-            button.pointerInteractable.setHoveredCallback((hovered) => {
+            button.pointerInteractable.addHoveredCallback((hovered) => {
                 (hovered)
                     ? button.addStyle(Styles.buttonHovered)
                     : button.removeStyle(Styles.buttonHovered);

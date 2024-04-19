@@ -279,7 +279,7 @@ class InputHandler {
         this._extraControls = {};
         this._extraControlsDiv = document.createElement('div');
         this._extraControlsDiv.style.position = 'absolute';
-        this._extraControlsDiv.style.top = '10px';
+        this._extraControlsDiv.style.bottom = '10px';
         this._extraControlsDiv.style.right = '10px';
         this._container.appendChild(this._extraControlsDiv);
     }
@@ -332,9 +332,17 @@ class InputHandler {
         return this._extraControls[id];
     }
 
+    hideExtraControls() {
+        this._extraControlsDiv.style.display = 'none';
+    }
+
     hideExtraControlsButton(id) {
         let button = this._extraControls[id];
         if(button) button.style.display = 'none';
+    }
+
+    showExtraControls() {
+        this._extraControlsDiv.style.display = 'block';
     }
 
     showExtraControlsButton(id) {
