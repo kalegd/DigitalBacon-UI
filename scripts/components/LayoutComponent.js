@@ -64,6 +64,8 @@ class LayoutComponent extends UIComponent {
         this._materialOffset = 0;
         this._content = new THREE.Object3D();
         this._content.position.z = 0.00000001;
+        this.addEventListener('added', () => this._onAdded());
+        this.addEventListener('removed', () => this._onRemoved());
         this.add(this._content);
         if(this.overflow != 'visible') this._createClippingPlanes();
     }
@@ -598,6 +600,14 @@ class LayoutComponent extends UIComponent {
         if(this._border) this._border.renderOrder = order;
     }
 
+    _onAdded() {
+        this._addClippingPlanesUpdateListener();
+    }
+
+    _onRemoved() {
+        this._removeClippingPlanesUpdateListener();
+    }
+
     add(object) {
         if(arguments.length > 1) {
             for(let argument of arguments) {
@@ -611,7 +621,6 @@ class LayoutComponent extends UIComponent {
             object.updateClippingPlanes(true);
             this.updateLayout();
         } else {
-            this._addClippingPlanesUpdateListener();
             super.add(object);
         }
     }
@@ -625,7 +634,6 @@ class LayoutComponent extends UIComponent {
                 && !object.bypassContentPositioning) {
             this._content.remove(object);
         } else {
-            this._removeClippingPlanesUpdateListener();
             super.remove(object);
         }
     }

@@ -21,8 +21,6 @@ class InteractableComponent extends LayoutComponent {
         this._dragAction = (e) => this._pointerDrag(e);
         this._touchAction = (e) => this._touch(e);
         this._touchDragAction = (e) => this._touchDrag(e);
-        this.addEventListener('added', () => this._onAdded());
-        this.addEventListener('removed', () => this._onRemoved());
     }
 
     _createBackground() {
@@ -56,6 +54,7 @@ class InteractableComponent extends LayoutComponent {
     }
 
     _onAdded() {
+        super._onAdded();
         let p = this.parentComponent;
         if(this.parent?.pointerInteractable && this.parent?.touchInteractable) {
             this.parent.pointerInteractable.addChild(this.pointerInteractable);
@@ -82,6 +81,7 @@ class InteractableComponent extends LayoutComponent {
     }
 
     _onRemoved() {
+        super._onRemoved();
         if(this.pointerInteractable.parent) {
             this.pointerInteractable.parent.removeChild(
                 this.pointerInteractable);

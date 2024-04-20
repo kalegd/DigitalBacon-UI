@@ -60,8 +60,9 @@ class XRControllerModel extends Object3D {
 
         if ( ! this.motionController ) return;
 
+        let gamepad = this.motionController.xrInputSource?.gamepad;
 		// Cause the MotionController to poll the Gamepad for data
-        this.motionController.updateFromGamepad();
+        if(gamepad) this.motionController.updateFromGamepad();
 
 		// Update the 3D model to reflect the button, thumbstick, and touchpad
         // state
