@@ -7,6 +7,7 @@
 import Body from '/scripts/components/Body.js';
 import Div from '/scripts/components/Div.js';
 import Span from '/scripts/components/Span.js';
+import Style from '/scripts/components/Style.js';
 import Text from '/scripts/components/Text.js';
 import InteractableComponent from '/scripts/components/InteractableComponent.js';
 import LayoutComponent from '/scripts/components/LayoutComponent.js';
@@ -20,7 +21,7 @@ import GripInteractable from '/scripts/interactables/GripInteractable.js';
 import * as THREE from 'three';
 
 const HOVERED_Z_OFFSET = 0.01;
-const DEFAULT_KEY_STYLE = {
+const DEFAULT_KEY_STYLE = new Style({
     backgroundVisible: true,
     borderRadius: 0.01,
     height: 0.1,
@@ -29,7 +30,17 @@ const DEFAULT_KEY_STYLE = {
     paddingLeft: 0.02,
     paddingRight: 0.02,
     width: 0.1,
-};
+});
+const HOVERED_KEY_STYLE = new Style({
+    material: new THREE.MeshBasicMaterial({
+        color: 0xf0f0f0,
+        side: THREE.DoubleSide,
+        transparent: true,
+        polygonOffset: true,
+        polygonOffsetFactor: 1,
+        polygonOffsetUnits: 1,
+    }),
+});
 const DEFAULT_FONT_STYLE = {
     fontSize: 0.065,
 };
@@ -85,7 +96,11 @@ class Keyboard extends InteractableComponent {
         this._optionsPanel.add(languagesButton);
         languagesButton.add(languagesText);
         languagesButton.pointerInteractable.addHoveredCallback((hovered) => {
-            languagesText.position.z = (hovered) ? HOVERED_Z_OFFSET : 0;
+            if(hovered) {
+                languagesButton.addStyle(HOVERED_KEY_STYLE);
+            } else {
+                languagesButton.removeStyle(HOVERED_KEY_STYLE);
+            }
         });
         languagesButton.onClick = languagesButton.onTouch = () => {
             this._setLanguagesPage();
@@ -138,13 +153,19 @@ class Keyboard extends InteractableComponent {
                 keyDiv.add(text);
                 span.add(keyDiv);
                 keyDiv.pointerInteractable.addHoveredCallback((hovered) => {
-                    text.position.z = (hovered) ? HOVERED_Z_OFFSET : 0;
+                    if(hovered) {
+                        keyDiv.addStyle(HOVERED_KEY_STYLE);
+                    } else {
+                        keyDiv.removeStyle(HOVERED_KEY_STYLE);
+                    }
                 });
                 if(typeof key != 'string' && key.additionalCharacters) {
                     this._addAdditionalCharacters(keyDiv, key);
                 }
                 let listener = () => {
-                    if(typeof key == 'string') {
+                    if(!this._registeredComponent) {
+                        return;
+                    } else if(typeof key == 'string') {
                         let eventKey = (this._shiftState == UNSHIFTED)
                             ? content
                             : content.toUpperCase();
@@ -277,10 +298,18 @@ class Keyboard extends InteractableComponent {
             keyDiv.add(text);
             span.add(keyDiv);
             keyDiv.pointerInteractable.addEventListener('over', () => {
-                text.position.z = HOVERED_Z_OFFSET;
+                if(hovered) {
+                    keyDiv.addStyle(HOVERED_KEY_STYLE);
+                } else {
+                    keyDiv.removeStyle(HOVERED_KEY_STYLE);
+                }
             });
             keyDiv.pointerInteractable.addEventListener('out', () => {
-                text.position.z = 0;
+                if(hovered) {
+                    keyDiv.addStyle(HOVERED_KEY_STYLE);
+                } else {
+                    keyDiv.removeStyle(HOVERED_KEY_STYLE);
+                }
             });
             keyDiv.pointerInteractable.addEventListener('up', () => {
                 let eventKey = (this._shiftState == UNSHIFTED)
@@ -322,7 +351,11 @@ class Keyboard extends InteractableComponent {
             keyDiv.add(text);
             span.add(keyDiv);
             keyDiv.pointerInteractable.addHoveredCallback((hovered) => {
-                text.position.z = (hovered) ? HOVERED_Z_OFFSET : 0;
+                if(hovered) {
+                    keyDiv.addStyle(HOVERED_KEY_STYLE);
+                } else {
+                    keyDiv.removeStyle(HOVERED_KEY_STYLE);
+                }
             });
             keyDiv.onClick = keyDiv.onTouch = () => {
                 this._setLayout(language);
@@ -363,8 +396,9 @@ class Keyboard extends InteractableComponent {
         if(!this._onPopup && this._registeredComponent) {
             let body = getComponentBody(this._registeredComponent);
             if(!body) body = this._registeredComponent;
-            this.position.set(0, (-body.computedHeight - this.computedHeight)
-                / 2 - 0.025, 0);
+            this.position.set(0,
+                (-body.computedHeight - this.computedHeight * this.scale.y) / 2
+                - 0.025, 0);
         }
     }
 
@@ -379,8 +413,10 @@ class Keyboard extends InteractableComponent {
             this._onPopup(component, body);
         } else {
             if(!body) body = component;
-            this.position.set(0, (-body.computedHeight - this.computedHeight)
-                / 2 - 0.025, 0);
+            this.position.set(0,
+                (-body.computedHeight - this.computedHeight * this.scale.y) / 2
+                - 0.025, 0);
+            this.rotation.set(0, 0, 0);
             body.add(this);
             this._updateMaterialOffset(component._materialOffset);
         }
