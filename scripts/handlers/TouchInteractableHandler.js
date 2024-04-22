@@ -74,6 +74,7 @@ class TouchInteractableHandler extends InteractableHandler {
                 this._scopeInteractables(controller, interactable.children);
             let object = interactable.object;
             if(object == null || interactable.isOnlyGroup()) continue;
+            controller['activeInteractables'].add(interactable);
             let intersects = interactable.intersectsSphere(boundingSphere);
             if(intersects && !this._checkClipped(object)) {
                 let controllerObject = controller.model
@@ -113,14 +114,17 @@ class TouchInteractableHandler extends InteractableHandler {
             this._selectedInteractables.set(owner, new Set());
         let selectedInteractables = this._selectedInteractables.get(owner);
         let touchedInteractables = controller['touchedInteractables'];
+        let activeInteractables = controller['activeInteractables'];
         let basicEvent = { owner: owner };
         for(let interactable of selectedInteractables) {
             if(!touchedInteractables.has(interactable)) {
                 interactable.removeSelectedBy(owner);
                 selectedInteractables.delete(interactable);
-                interactable.drag(basicEvent);
-                this._trigger('up', basicEvent, interactable);
-                interactable.click(basicEvent);
+                if(activeInteractables.has(interactable)) {
+                    interactable.drag(basicEvent);
+                    this._trigger('up', basicEvent, interactable);
+                    interactable.click(basicEvent);
+                }
             }
         }
         for(let interactable of touchedInteractables) {
@@ -165,6 +169,7 @@ class TouchInteractableHandler extends InteractableHandler {
                     owner: owner,
                     model: xrControllerModel,
                     boundingSphere: boundingSphere,
+                    activeInteractables: new Set(),
                     touchedInteractables: new Set(),
                     skipIntersectsCheck: skipIntersectsCheck,
                 };

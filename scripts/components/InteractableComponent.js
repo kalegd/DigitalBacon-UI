@@ -117,6 +117,10 @@ class InteractableComponent extends LayoutComponent {
     set onClick(v) {
         this._setCallback(this.pointerInteractable, 'click', 'click', v);
     }
+    set onClickAndTouch(v) {
+        this._setCallback(this.pointerInteractable, 'click', 'click', v);
+        this._setCallback(this.touchInteractable, 'click', 'touch', v);
+    }
     set onDrag(v) {
         this._setCallback(this.pointerInteractable, 'drag', 'drag', v);
     }
