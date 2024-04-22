@@ -24,9 +24,3 @@ Registers a component for the keyboard to control input of
 Unregisters a component from the keyboard
 
 - `component`: The component to unregister
-
-### `setupGripInteractable(scene: Object3D): void`
-
-Sets up grip interactable functionality for the keyboard
-
-- `scene`: The scene to attach the keyboard to upon release

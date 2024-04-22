@@ -101,9 +101,7 @@ const init = async (container, renderer, scene, camera, deviceType, orbitTarget)
     PointerInteractableHandler.init(renderer, scene, camera, orbitTarget);
     GripInteractableHandler.init(scene);
     TouchInteractableHandler.init(scene);
-    if(deviceType == 'XR') {
-        Keyboard.setupGripInteractable(scene);
-    } else {
+    if(deviceType != 'XR') {
         DelayedClickHandler.setup();
     }
 };

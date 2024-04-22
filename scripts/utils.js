@@ -81,7 +81,12 @@ export const setupBVHForComplexObject = (object) => {
         object.bvhGeometry = object.geometry;
     } else {
         object.staticGeometryGenerator = new StaticGeometryGenerator([object]);
-        object.bvhGeometry = object.staticGeometryGenerator.generate();
+        try {
+            object.bvhGeometry = object.staticGeometryGenerator.generate();
+        } catch(error) {
+            console.error(error);
+            return false;
+        }
     }
     object.bvhGeometry.computeBoundsTree();
     if(object.parent) object.updateMatrixWorld(true);

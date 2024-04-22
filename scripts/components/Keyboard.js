@@ -14,10 +14,8 @@ import LayoutComponent from '/scripts/components/LayoutComponent.js';
 import DeviceTypes from '/scripts/enums/DeviceTypes.js';
 import KeyboardLayouts from '/scripts/enums/KeyboardLayouts.js';
 import XRInputDeviceTypes from '/scripts/enums/XRInputDeviceTypes.js';
-import GripInteractableHandler from '/scripts/handlers/GripInteractableHandler.js';
 import InputHandler from '/scripts/handlers/InputHandler.js';
 import UpdateHandler from '/scripts/handlers/UpdateHandler.js';
-import GripInteractable from '/scripts/interactables/GripInteractable.js';
 import * as THREE from 'three';
 
 const HOVERED_Z_OFFSET = 0.01;
@@ -58,6 +56,7 @@ class Keyboard extends InteractableComponent {
         this._keyboardPageLayouts = [];
         this._timeoutIds = new Map();
         this._updateListeners = new Map();
+        this._setupGrabBar();
         this._createOptionsPanel();
         this._addLayout(KeyboardLayouts.ENGLISH);
         this._addLayout(KeyboardLayouts.RUSSIAN);
@@ -393,9 +392,11 @@ class Keyboard extends InteractableComponent {
     }
 
     _reposition() {
+        this._placeGrabBar();
         if(!this._onPopup && this._registeredComponent) {
             let body = getComponentBody(this._registeredComponent);
             if(!body) body = this._registeredComponent;
+            if(this.parent != body) return;
             this.position.set(0,
                 (-body.computedHeight - this.computedHeight * this.scale.y) / 2
                 - 0.025, 0);
@@ -409,6 +410,7 @@ class Keyboard extends InteractableComponent {
         if(type == this.types.NUMBER) {
             this._setNumberPage();
         }
+        this._placeGrabBar();
         if(this._onPopup) {
             this._onPopup(component, body);
         } else {
@@ -426,6 +428,7 @@ class Keyboard extends InteractableComponent {
         if(this._registeredComponent == component) {
             this._registeredComponent = null;
             if(this.parent) this.parent.remove(this);
+            this._grabBarOwner = this._priorParent = null;
         }
         if(this._lastKeyboardLayout) {
             this._setLayout(this._lastKeyboardLayout);
@@ -433,27 +436,41 @@ class Keyboard extends InteractableComponent {
         }
     }
 
-    setupGripInteractable(scene) {
-        this.gripInteractable = new GripInteractable(this);
-        this.gripInteractable.addEventListener('down', (e) => {
+    _placeGrabBar() {
+        this._grabBar.position.y = -this.computedHeight / 2 - 0.025;
+    }
+
+    _setupGrabBar() {
+        this._grabBar = new Body({
+            backgroundVisible: false,
+            borderRadius: 0.025,
+            height: 0.05,
+            justifyContent: 'center',
+            width: 0.21,
+        });
+        let div = new Div({
+            backgroundVisible: true,
+            borderRadius: 0.01,
+            height: 0.02,
+            materialColor: 0xc0c5ce,
+            width: 0.2,
+        });
+        this._grabBar.pointerInteractable.addHoveredCallback((hovered) => {
+            div.material.color.set((hovered) ? 0xffffff : 0xc0c5ce);
+        });
+        this._grabBar.pointerInteractable.addEventListener('down', (e) => {
+            if(!this._grabBarOwner) this._priorParent = this.parent;
+            this._grabBarOwner = e.owner;
             e.owner.object.attach(this);
-            this.gripInteractable.capture(e.owner);
+            this._grabBar.pointerInteractable.capture(e.owner);
         });
-        this.gripInteractable.addEventListener('click', (e) => {
-            if(this.parent == e.owner.object) scene.attach(this);
+        this._grabBar.pointerInteractable.addEventListener('click', (e) => {
+            if(this.parent != e.owner.object) return;
+            this._priorParent.attach(this);
+            this._grabBarOwner = this._priorParent = null;
         });
-    }
-
-    _onAdded() {
-        super._onAdded();
-        if(this.gripInteractable)
-            GripInteractableHandler.addInteractable(this.gripInteractable);
-    }
-
-    _onRemoved() {
-        super._onRemoved();
-        if(this.gripInteractable)
-            GripInteractableHandler.removeInteractable(this.gripInteractable);
+        this._grabBar.add(div);
+        this.add(this._grabBar);
     }
 
     get onPopup() { return this._onPopup; }
