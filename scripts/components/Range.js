@@ -32,8 +32,10 @@ class Range extends InteractableComponent {
         this._scrubbingOwner;
         this.pointerInteractable.addEventListener('down',
             (e) => this.pointerInteractable.capture(e.owner));
-        this.onClick = this.onTouch = (e) => this._select(e);
-        this.onDrag = this.onTouchDrag = (e) => this._drag(e);
+        this.onClick = (e) => this._select(e);
+        this.onTouch = (e) => this._touchSelect(e);
+        this.onDrag = (e) => this._drag(e);
+        this.onTouchDrag = (e) => this._touchDrag(e);
         this.updateLayout();
     }
 
@@ -71,21 +73,37 @@ class Range extends InteractableComponent {
 
     _select(e) {
         let { owner, point } = e;
-        this._updateValue(owner, point);
-        if(this._onBlur) this._onBlur(this._value);
+        if(this._scrubbingOwner == owner) {
+            this._updateValue(owner, point);
+            this._scrubbingOwner = null;
+            if(this._onBlur) this._onBlur(this._value);
+        }
+    }
+
+    _touchSelect(e) {
+        if(this._scrubbingOwner == e.owner) {
+            this._scrubbingOwner = null;
+            if(this._onBlur) this._onBlur(this._value);
+        }
     }
 
     _drag(e) {
         let { owner, point } = e;
-        this._updateValue(owner, point);
-        if(this._onChange) this._onChange(this._value);
+        let changed = this._updateValue(owner, point);
+        if(changed && this._onChange) this._onChange(this._value);
+    }
+
+    _touchDrag(e) {
+        let owner = e.owner;
+        let changed = this._updateValueFromTouch(owner);
+        if(changed && this._onChange) this._onChange(this._value);
     }
 
     _updateValue(owner, point) {
         if(!this._scrubbingOwner) {
             this._scrubbingOwner = owner;
         } else if(this._scrubbingOwner != owner) {
-            return;
+            return false;
         }
         if(point) {
             point = VEC3.copy(point);
@@ -96,10 +114,38 @@ class Range extends InteractableComponent {
         }
         if(point) {
             point = this.worldToLocal(point);
-            this._value = point.x / this.width + 0.5;
-            this._value = Math.max(0, Math.min(this._value, 1));
-            this._updateScrubber();
+            let newValue = point.x / this.width + 0.5;
+            newValue = Math.max(0, Math.min(newValue, 1));
+            let changed = this._value != newValue;
+            this._value = newValue;
+            if(changed) this._updateScrubber();
+            return changed;
         }
+        return false;
+    }
+
+    _updateValueFromTouch(owner, point) {
+        if(!this._scrubbingOwner) {
+            this._scrubbingOwner = owner;
+            let details = this.touchInteractable.getClosestPointTo(
+                owner.object);
+            this._touchController = details[1].object;
+            this._scrollVertex = this._touchController.bvhGeometry.index.array[
+                details[1].faceIndex * 3];
+        } else if(this._scrubbingOwner != owner) {
+            return false;
+        }
+        let positionAttribute = this._touchController.bvhGeometry
+            .getAttribute('position');
+        VEC3.fromBufferAttribute(positionAttribute, this._scrollVertex);
+        this._touchController.localToWorld(VEC3);
+        this.worldToLocal(VEC3);
+        let newValue = VEC3.x / this.width + 0.5;
+        newValue = Math.max(0, Math.min(newValue, 1));
+        let changed = this._value != newValue;
+        this._value = newValue;
+        if(changed) this._updateScrubber();
+        return changed;
     }
 
     get onBlur() { return this._onBlur; }
