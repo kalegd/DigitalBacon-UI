@@ -380,7 +380,7 @@ class LayoutComponent extends UIComponent {
             p += paddingPrior * sign;
         } else if(justifyContent == 'end') {
             p = dimension / -2 + contentDimension;
-            p += paddingPrior * sign;
+            p -= paddingPrior * sign;
         } else if(justifyContent == 'center') {
             p = contentDimension / 2;
         } else if(Math.abs(unpaddedDimension) - Math.abs(contentDimension) < 0){

@@ -213,6 +213,7 @@ class NumberInput extends TextInput {
     set minValue(minValue) { this._minValue = minValue; }
     set onEnter(onEnter) { this._onEnter = onEnter; }
     set value(value) {
+        if(value == null) value = Math.max(this._minValue, 0);
         value = this._sanitizeIncomingText(String(value));
         super.value = value;
         this._lastValidValue = this._text.text

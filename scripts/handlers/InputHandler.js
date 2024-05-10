@@ -49,11 +49,11 @@ class InputHandler {
             });
         } else if(DeviceTypes.active == "POINTER") {
             //POINTER Event Listeners
-            this._renderer.domElement.addEventListener('keydown', (event) => {
+            this._container.addEventListener('keydown', (event) => {
                 this._keysPressed.add(event.key);
                 this._keyCodesPressed.add(event.code);
             });
-            this._renderer.domElement.addEventListener('keyup', (event) => {
+            this._container.addEventListener('keyup', (event) => {
                 this._keysPressed.delete(event.key);
                 this._keyCodesPressed.delete(event.code);
             });
@@ -139,6 +139,7 @@ class InputHandler {
     }
 
     _addXRInputSource(inputSource) {
+        if(inputSource.targetRayMode != 'tracked-pointer') return;
         let type = (inputSource.hand != null)
             ? XRInputDeviceTypes.HAND
             : XRInputDeviceTypes.CONTROLLER;
@@ -185,6 +186,7 @@ class InputHandler {
     }
 
     _deleteXRInputSource(inputSource) {
+        if(inputSource.targetRayMode != 'tracked-pointer') return;
         let type = (inputSource.hand != null)
             ? XRInputDeviceTypes.HAND
             : XRInputDeviceTypes.CONTROLLER;

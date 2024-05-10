@@ -68,6 +68,8 @@ class Select extends ScrollableComponent {
         super.updateLayout();
         if(this._optionsStyle.minHeight != this.computedHeight)
             this._optionsStyle.minHeight = this.computedHeight;
+        if(this._optionsTextStyle.minWidth != this.unpaddedWidth * 0.9)
+            this._optionsTextStyle.minWidth = this.unpaddedWidth * 0.9;
         if(this._optionsTextStyle.fontSize != this.unpaddedHeight * 0.55) {
             this._optionsTextStyle.fontSize = this.unpaddedHeight * 0.55;
             this._caret.fontSize = this.unpaddedHeight * 0.8;

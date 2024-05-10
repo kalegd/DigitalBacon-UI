@@ -394,6 +394,7 @@ class TextArea extends ScrollableComponent {
     set onFocus(onFocus) { this._onFocus = onFocus; }
     set placeholder(placeholder) { this._placeholder.text = placeholder; }
     set value(value) {
+        if(!value) value = '';
         this._value = runes(value);
         this._text.text = value;
         this._runeLengths = [];

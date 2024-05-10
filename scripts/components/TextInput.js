@@ -147,6 +147,7 @@ class TextInput extends TextArea {
 
     set onEnter(onEnter) { this._onEnter = onEnter; }
     set value(value) {
+        if(!value) value = '';
         value = value.replaceAll('\n', ' ');
         super.value = value;
     }

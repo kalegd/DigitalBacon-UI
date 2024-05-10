@@ -17,7 +17,6 @@ class TextComponent extends LayoutComponent {
         this._text = new Text();
         this._content.add(this._text);
         if(this.font) this._text.font = this.font;
-        this._text.text = text || '';
         this._text.color = this.color;
         this._text.fontSize = this.fontSize;
         this._text.textAlign = this.textAlign;
@@ -26,6 +25,8 @@ class TextComponent extends LayoutComponent {
         this._text.overflowWrap = 'break-word';
         if(typeof this.maxWidth == Number) this._text.maxWidth = this.maxWidth;
         this._text.addEventListener('synccomplete', () => this.updateLayout());
+        this._text.sync();
+        this._text.text = text || '';
         this._text.sync();
         if(this.overflow != 'visible')
             this._text.material.clippingPlanes = this._getClippingPlanes();
@@ -45,6 +46,10 @@ class TextComponent extends LayoutComponent {
         if(this.width == 'auto' || this.height == 'auto') this.updateLayout();
     }
 
+    _handleStyleUpdateForTextAlign() {
+        this._text.textAlign = this.textAlign;
+    }
+
     _handleStyleUpdateForMaxWidth() {
         if(this.maxWidth != null) {
             if(typeof this.maxWidth == 'number')
@@ -57,8 +62,11 @@ class TextComponent extends LayoutComponent {
 
     _computeDimension(dimensionName, overrideParam) {
         let dimension = this[(overrideParam) ? overrideParam : dimensionName];
-        if(dimension != 'auto') return super._computeDimension(dimensionName,
-            overrideParam);
+        if(dimension != 'auto') {
+            let value = super._computeDimension(dimensionName, overrideParam);
+            if(dimensionName == 'width') this._text.maxWidth = value;
+            return value;
+        }
         let capitalizedDimensionName = capitalizeFirstLetter(dimensionName);
         let computedParam = 'computed' + capitalizedDimensionName;
         let maxParam = 'max' + capitalizedDimensionName;
