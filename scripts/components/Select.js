@@ -45,7 +45,10 @@ class Select extends ScrollableComponent {
             overflow: 'hidden',
             width: '90%',
         });
-        this._text = new Text(' ', this._optionsTextStyle, { maxWidth: '85%' });
+        this._text = new Text(' ', this._optionsTextStyle, {
+            maxWidth: '85%',
+            minWidth: '85%',
+        });
         this._text._text.lineHeight = 1 / 0.55;
         this._caret = new Text('⌄');
         this._caret._text.anchorY = '85%';

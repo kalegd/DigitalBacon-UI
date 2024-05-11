@@ -297,18 +297,10 @@ class Keyboard extends InteractableComponent {
             keyDiv.add(text);
             span.add(keyDiv);
             keyDiv.pointerInteractable.addEventListener('over', () => {
-                if(hovered) {
-                    keyDiv.addStyle(HOVERED_KEY_STYLE);
-                } else {
-                    keyDiv.removeStyle(HOVERED_KEY_STYLE);
-                }
+                keyDiv.addStyle(HOVERED_KEY_STYLE);
             });
             keyDiv.pointerInteractable.addEventListener('out', () => {
-                if(hovered) {
-                    keyDiv.addStyle(HOVERED_KEY_STYLE);
-                } else {
-                    keyDiv.removeStyle(HOVERED_KEY_STYLE);
-                }
+                keyDiv.removeStyle(HOVERED_KEY_STYLE);
             });
             keyDiv.pointerInteractable.addEventListener('up', () => {
                 let eventKey = (this._shiftState == UNSHIFTED)
