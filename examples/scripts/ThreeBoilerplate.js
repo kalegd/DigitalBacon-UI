@@ -18,7 +18,7 @@ export const init = async () => {
     stats.dom.style.position = 'absolute';
     container.appendChild(stats.dom, container.firstChild);
     let sceneBackground = new THREE.CubeTextureLoader()
-        .setPath('/images/skyboxes/blue_sky/')
+        .setPath('../images/skyboxes/blue_sky/')
         .load(['skybox_right.jpg', 'skybox_left.jpg', 'skybox_up.jpg',
                'skybox_down.jpg', 'skybox_front.jpg', 'skybox_back.jpg']);
     scene.background = sceneBackground;

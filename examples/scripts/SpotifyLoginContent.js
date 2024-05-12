@@ -1,5 +1,5 @@
-import * as SpotifyHelper from '/examples/scripts/SpotifyHelper.js';
-import * as Styles from '/examples/scripts/SpotifyStyles.js';
+import * as SpotifyHelper from './SpotifyHelper.js';
+import * as Styles from './SpotifyStyles.js';
 import { Div, Text } from 'digitalbacon-ui';
 
 export default class SpotifyLoginContent {
