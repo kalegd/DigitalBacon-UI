@@ -11,7 +11,7 @@
     <script src="/examples/scripts/index.js" defer></script>
   </head>
   <body>
-    <div class="sidebar">
+    <div id="sidebar" class="sidebar">
       <h1>DigitalBacon-UI</h1>
       <div class="sidebar-list">
         <a class="github-link" href="https://github.com/kalegd/DigitalBacon-UI"><i class="fa fa-github" style="font-size:28px; padding-right: 12px;"></i>Github Repo</a>
@@ -42,7 +42,10 @@
         </ul>
       </div>
     </div>
-    <iframe id="viewer" name="viewer" allow="fullscreen; xr-spatial-tracking;" src="/iframe-default"></iframe>
+    <div id="iframe-parent">
+      <button id="sidebar-slider-button">&gt;</button>
+      <iframe id="viewer" name="viewer" allow="fullscreen; xr-spatial-tracking;" src="/iframe-default"></iframe>
+    </div>
     <a class="hidden" id="example-code-link" href="https://github.com/kalegd/DigitalBacon-UI/blob/main">
       <img src="/examples/images/ic_code_black_24dp.svg">
     </a>
