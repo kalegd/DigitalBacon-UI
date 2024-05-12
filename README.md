@@ -1,5 +1,5 @@
 # DigitalBacon-UI
-### [Examples](https://tbd.com/) &nbsp;|	&nbsp;[Documentation](https://github.com/kalegd/DigitalBacon-UI/blob/main/docs/DigitalBacon-UI.md)	&nbsp;|	&nbsp;[npm](https://www.npmjs.com/package/digitalbacon-ui)
+### [Examples](https://kalegd.github.io/DigitalBacon-UI/) &nbsp;|	&nbsp;[Documentation](https://github.com/kalegd/DigitalBacon-UI/blob/main/docs/DigitalBacon-UI.md)	&nbsp;|	&nbsp;[npm](https://www.npmjs.com/package/digitalbacon-ui)
 
 JavaScript 3D UI library for three.js that supports touch screen, mouse, and XR hardware inputs
 
