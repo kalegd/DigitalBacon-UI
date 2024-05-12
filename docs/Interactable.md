@@ -13,6 +13,9 @@ Creates a new instance of Interactable
 ## Properties
 
 - `children: Set`: A set containing child interactables
+- `disabled: Boolean`: Whether or not this interactable is disabled
+- `object: Object3D`: The object this interactable pertains to
+- `state: InteractableState`: The state of the interactable
 
 ## Methods
 
@@ -57,20 +60,6 @@ Checks if the interactable object supports the current interaction tool
 ### `isOnlyGroup(): boolean`
 
 Checks if the interactable object is only a group with no callbacks
-
-### `getObject(): Object3D`
-
-Gets the associated Object3D
-
-### `getState(): string`
-
-Gets the current state of the interactable object
-
-### `setObject(object: Object3D)`
-
-Sets the associated object
-
-- `object`: The object to set
 
 ### `addChild(interactable: Interactable)`
 

@@ -13,8 +13,8 @@ Creates a new instance of Range
 ## New Properties
 
 - `value`: Current value of the range slider
-- `onBlur`: Callback function that is called when the slider is released
-- `onChange`: Callback function that is called as the slider is moved
+- `onBlur: Function(value: Number)`: Callback function that is called when the slider is released
+- `onChange: Function(value: Number)`: Callback function that is called as the slider is moved
 
 ## Defaults
 

@@ -34,6 +34,7 @@ InputHandler class provides polling for XR input sources, keyboard, or touch scr
 - `getXRController(type: string, handedness: string, space: string)`: Returns an Object3D representing the XR Input Device for the corresponding type, handedness and space (`targetRay` or `grip`) if it exists
 - `getXRControllerModel(type: string, handedness: string)`: Returns the Object3D model for the corresponding XR Input Device if it exists
 - `setXRControllerModel(type: string, handedness: string, model: Object3D)`: Sets the model for the corresponding XR Input Device if it exists
+- `update(frame)`: Updates the XR Controllers based on the provided frame. Called internally by [DigitalBacon-UI](/docs/DigitialBacon-UI.md)
 
 ## Notes
 

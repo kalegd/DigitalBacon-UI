@@ -23,4 +23,4 @@ Creates a new instance of Image
 
 Updates the texture of the image
 
-- `url`: The URL of the image or a three.js Texture
+- `url`: The URL of the image or a three.js Texture. If three.js texture, a clone will be made of the texture unless it has the property bypassCloning set to true

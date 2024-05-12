@@ -1,6 +1,6 @@
-# InteractionTool
+# InteractionToolHandler
 
-InteractionTool manages the current interaction tool and provides functionality to listen for tool updates
+InteractionToolHandler manages the current interaction tool and provides functionality to listen for tool updates
 
 ## Methods
 

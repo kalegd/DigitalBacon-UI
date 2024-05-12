@@ -34,6 +34,7 @@ The DigitalBacon-UI module provides various UI components and interaction handle
 - [TouchInteractableHandler](/docs/TouchInteractableHandler.md)
 - [DelayedClickHandler](/docs/DelayedClickHandler.md)
 - [InputHandler](/docs/InputHandler.md)
+- [InteractionToolHandler](/docs/InteractionToolHandler.md)
 - [UpdateHandler](/docs/UpdateHandler.md)
 
 ## Utilities
@@ -55,19 +56,19 @@ The DigitalBacon-UI module provides various UI components and interaction handle
 - `removeTouchInteractable(interactable)`: Removes a touch interactable object from the appropriate handler
 - `init(container, renderer, scene, camera, ?deviceType, ?orbitTarget)`: Initializes the UI components and interaction handlers. If device type is not provided, DigitalBacon-UI will determine device type using it's default mechanism
 - `update(frame)`: Updates the UI components and interaction handlers based on the frame
-- `isXR()`: Checks if the current device supports XR features
-- `isTouchDevice()`: Checks if the current device is a touch-enabled device
 
 ## Constants
 
 - `DeviceTypes`: Enum with values of POINTER, TOUCH\_SCREEN, XR, and active
+- `Handedness`: Enum with values of LEFT and RIGHT. Also has helper function otherHand(hand) that returns the other value
+- `InteractableStates`: Enum with values of IDLE, DISABLED, HOVERED, and SELECTED
+- `XRInputDeviceTypes`: Enum with values of CONTROLLER, HAND, and OTHER
 - `version`: The release version of this library
 
 ## Notes
 
 - The DigitalBacon-UI.js module provides a comprehensive set of UI components and interaction handlers for creating immersive 3D experiences
 - It supports various input devices such as XR controllers, pointers, and touch screens
-- Developers can easily integrate UI elements and interaction handlers into their Three.js applications using this module
+- Developers can easily integrate UI elements and interaction handlers into their three.js applications using this module
 - The module also includes utilities and third-party dependencies for enhanced functionality
 - This documentation was originally written by ChatGPT
-
