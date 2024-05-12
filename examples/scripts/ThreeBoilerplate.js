@@ -26,7 +26,13 @@ export const init = async () => {
     const renderer = new THREE.WebGLRenderer({ antialias : true });
     renderer.setSize(container.clientWidth, container.clientHeight);
     container.appendChild(renderer.domElement);
-    if('xr' in navigator
+    let isMobile = false;
+    if(navigator.userAgent) {
+        let userAgent = navigator.userAgent.toLowerCase();
+        if(userAgent.indexOf('iphone') >= 0 || userAgent.indexOf('ipad') >= 0)
+            isMobile = true;
+    }
+    if(!isMobile && 'xr' in navigator
             && (await navigator.xr.isSessionSupported('immersive-vr')
                 || await navigator.xr.isSessionSupported('immersive-ar'))) {
         let features = ['local-floor', 'bounded-floor', 'hand-tracking',
@@ -36,7 +42,6 @@ export const init = async () => {
             { optionalFeatures: features });
         vrButtonDiv.appendChild(vrButton);
         arButtonDiv.appendChild(arButton);
-        renderer.xr.enabled = true;
         arButton.addEventListener('click', () => scene.background = null);
         vrButton.addEventListener('click',
             () => scene.background = sceneBackground);

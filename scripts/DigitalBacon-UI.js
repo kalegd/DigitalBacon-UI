@@ -73,6 +73,11 @@ const removeTouchInteractable = (interactable) => {
 };
 
 async function isXR() {
+    if(navigator.userAgent) {
+        let userAgent = navigator.userAgent.toLowerCase();
+        if(userAgent.indexOf('iphone') >= 0 || userAgent.indexOf('ipad') >= 0)
+            return false;
+    }
     return 'xr' in navigator
         && (await navigator.xr.isSessionSupported('immersive-vr')
             || await navigator.xr.isSessionSupported('immersive-ar'));
@@ -89,6 +94,7 @@ const init = async (container, renderer, scene, camera, deviceType, orbitTarget)
     if(!deviceType) {
         if(await isXR()) {
             deviceType = 'XR';
+            if(!renderer.xr.enabled) renderer.xr.enabled = true;
         } else if(isTouchDevice()) {
             deviceType = 'TOUCH_SCREEN';
         } else {
