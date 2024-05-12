@@ -1,5 +1,5 @@
 const clientId = '6ba70a27e1074901a50411a6b6a7c0d3';
-const redirectUri = 'http://localhost:8000/examples/spotify';
+const redirectUri = 'https://kalegd.github.io/DigitalBacon-UI/examples/spotify';
 const scope = 'user-read-playback-state user-modify-playback-state user-read-currently-playing streaming playlist-read-private playlist-read-collaborative playlist-modify-private playlist-modify-public user-top-read user-read-recently-played user-library-modify user-library-read user-read-email user-read-private';
 
 let accessToken, getTokenPromise, getRefreshTokenPromise;
