@@ -25,11 +25,11 @@
     <div id="vr-button"></div>
     <div id="ar-button"></div>
     <script type="module">
-      import * as ThreeBoilerplate from '/examples/scripts/ThreeBoilerplate.js';
-      import * as SpotifyHelper from '/examples/scripts/SpotifyHelper.js';
-      import SpotifyLoginContent from '/examples/scripts/SpotifyLoginContent.js';
-      import SpotifyMainContent from '/examples/scripts/SpotifyMainContent.js';
-      import SpotifyPlaybackController from '/examples/scripts/SpotifyPlaybackController.js';
+      import * as ThreeBoilerplate from './scripts/ThreeBoilerplate.js';
+      import * as SpotifyHelper from './scripts/SpotifyHelper.js';
+      import SpotifyLoginContent from './scripts/SpotifyLoginContent.js';
+      import SpotifyMainContent from './scripts/SpotifyMainContent.js';
+      import SpotifyPlaybackController from './scripts/SpotifyPlaybackController.js';
       import * as DigitalBaconUI from 'digitalbacon-ui';
       import * as THREE from 'three';
 
@@ -54,7 +54,7 @@
         width: '100%',
       });
       let logo = new DigitalBaconUI.Image(
-        '/images/spotify-logo.png', { height: '45%' });
+        '../images/spotify-logo.png', { height: '45%' });
 
       //Main UI
       let navBar = new DigitalBaconUI.Span({ height: 0.09, width: '100%' });

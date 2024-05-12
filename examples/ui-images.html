@@ -25,7 +25,7 @@
     <div id="vr-button"></div>
     <div id="ar-button"></div>
     <script type="module">
-      import * as ThreeBoilerplate from '/examples/scripts/ThreeBoilerplate.js';
+      import * as ThreeBoilerplate from './scripts/ThreeBoilerplate.js';
       import * as DigitalBaconUI from 'DigitalBacon-UI';
 
       let { container, scene, camera, clock, stats, renderer }
@@ -68,8 +68,8 @@
         width: '100%',
       });
       const image1 = new DigitalBaconUI.Image(
-        '/images/digital_bacon_pig_compressed.png', { height: '100%' });
-      const image2 = new DigitalBaconUI.Image('/images/cute.jpeg',
+        '../images/digital_bacon_pig_compressed.png', { height: '100%' });
+      const image2 = new DigitalBaconUI.Image('../images/cute.jpeg',
         { borderRadius: 0.03, height: '90%' });
       const text = new DigitalBaconUI.Text('Image components use a url and support a textureFit property of either fill or cover', {
         color: '#ffffff',

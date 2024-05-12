@@ -1,5 +1,5 @@
-import * as SpotifyHelper from '/examples/scripts/SpotifyHelper.js';
-import * as Styles from '/examples/scripts/SpotifyStyles.js';
+import * as SpotifyHelper from './SpotifyHelper.js';
+import * as Styles from './SpotifyStyles.js';
 import * as DigitalBaconUI from 'digitalbacon-ui';
 const { Div, Span, Text, TextInput } = DigitalBaconUI;
 
@@ -46,7 +46,7 @@ export default class SpotifyMainContent {
             { height: 0.15, padding: 0.01, width: '100%' });
         let createHomeSectionButton = (title, onClick) => {
             let span = new Span({ height: 0.065, width: '100%' });
-            let iconUrl = `/examples/images/${title.toLowerCase()}-icon.png`;
+            let iconUrl = `./images/${title.toLowerCase()}-icon.png`;
             let image = new DigitalBaconUI.Image(iconUrl,
                 { height: '50%', margin: 0.0125 });
             let textParent = new Span({ paddingTop: 0.005 });
@@ -127,7 +127,7 @@ export default class SpotifyMainContent {
             width: '100%',
         });
         let searchIcon = new DigitalBaconUI.Image(
-            '/examples/images/search-icon.png',
+            './images/search-icon.png',
             { height: '60%', marginLeft: 0.015 }
         );
         this._searchInput = new TextInput({

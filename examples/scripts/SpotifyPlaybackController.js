@@ -1,5 +1,5 @@
-import * as SpotifyHelper from '/examples/scripts/SpotifyHelper.js';
-import * as Styles from '/examples/scripts/SpotifyStyles.js';
+import * as SpotifyHelper from './SpotifyHelper.js';
+import * as Styles from './SpotifyStyles.js';
 import * as DigitalBaconUI from 'digitalbacon-ui';
 const { Div, Span, Text } = DigitalBaconUI;
 
@@ -52,7 +52,7 @@ export default class SpotifyPlaybackController {
         let controlsSpan = new Span({ paddingTop: 0.015, paddingRight: 0.17 });
         let controls = {};
         function createControlsButton(name, onClick) {
-            let url = `/examples/images/${name}-icon.png`;
+            let url = `./images/${name}-icon.png`;
             let button = new DigitalBaconUI.Image(url, {
                 height: 0.05,
                 marginLeft: 0.01,
