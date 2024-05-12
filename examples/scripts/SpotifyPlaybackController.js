@@ -38,6 +38,11 @@ export default class SpotifyPlaybackController {
             console.error(message);
         });
         this._player.connect();
+        let listener = () => {
+            this._player.activateElement();
+            document.removeEventListener('click', listener);
+        };
+        document.addEventListener('click', listener);
     }
 
     _createContent() {
