@@ -129,7 +129,7 @@ iframe {
     color: white;
 }
 
-@media only screen and (max-width: 750px) {
+@media only screen and (max-width: 800px) {
     #iframe-parent {
         padding-left: 0;
     }

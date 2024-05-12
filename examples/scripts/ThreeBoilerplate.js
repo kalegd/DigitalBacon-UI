@@ -48,6 +48,11 @@ export const init = async () => {
         camera.aspect = container.clientWidth
             / container.clientHeight;
         camera.updateProjectionMatrix();
+        if(camera.aspect < 0.8) {
+            camera.position.z = (0.8 - camera.aspect) * 3;
+        } else {
+            camera.position.z = 0;
+        }
     });
 
     const ambientLight = new THREE.AmbientLight(0x404040, 1);
