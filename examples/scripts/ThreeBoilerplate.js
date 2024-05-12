@@ -1,4 +1,4 @@
-import Stats from '/node_modules/three/examples/jsm/libs/stats.module.js';
+import Stats from 'https://cdn.jsdelivr.net/npm/three@0.164.1/examples/jsm/libs/stats.module.js';
 import { VRButton } from 'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/webxr/VRButton.js';
 import { ARButton } from 'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/webxr/ARButton.js';
 import * as THREE from 'three';
