@@ -18,7 +18,6 @@ import InputHandler from '/scripts/handlers/InputHandler.js';
 import UpdateHandler from '/scripts/handlers/UpdateHandler.js';
 import * as THREE from 'three';
 
-const HOVERED_Z_OFFSET = 0.01;
 const DEFAULT_KEY_STYLE = new Style({
     backgroundVisible: true,
     borderRadius: 0.01,
