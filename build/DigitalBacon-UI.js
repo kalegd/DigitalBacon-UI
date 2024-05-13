@@ -23917,6 +23917,7 @@ const KeyboardLayouts = {
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
+
 const DEFAULT_KEY_STYLE = new Style({
     backgroundVisible: true,
     borderRadius: 0.01,
@@ -25487,7 +25488,7 @@ class Range extends InteractableComponent {
         return false;
     }
 
-    _updateValueFromTouch(owner, point) {
+    _updateValueFromTouch(owner) {
         if(!this._scrubbingOwner) {
             this._scrubbingOwner = owner;
             let details = this.touchInteractable.getClosestPointTo(
