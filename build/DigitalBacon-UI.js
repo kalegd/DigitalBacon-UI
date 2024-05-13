@@ -26040,7 +26040,7 @@ THREE.BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
 THREE.BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
 THREE.Mesh.prototype.raycast = acceleratedRaycast;
 
-const version = '0.0.2';
+const version = '0.1.0';
 
 const addGripInteractable = (interactable) => {
     gripInteractableHandler.addInteractable(interactable);
