@@ -4,7 +4,7 @@
 JavaScript 3D UI library for three.js that supports touch screen, mouse, and XR hardware inputs
 
 
-<p align="center"><img src="/images/readme-text-input.gif" title="Spotify Demo" height="300"> &nbsp;&nbsp;&nbsp;<img src="/images/readme-spotify.gif" title="text input demo" height="300"></p>
+<p align="center"><img src="/images/readme-text-input.gif" title="Spotify Demo" height="300" width="300"> &nbsp;&nbsp;&nbsp;<img src="/images/readme-spotify.gif" title="text input demo" height="300"width="300"></p>
 
 ### Usage
 ```javascript
