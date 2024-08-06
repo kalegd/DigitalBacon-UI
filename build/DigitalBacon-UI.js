@@ -78,6 +78,9 @@ class Style {
     get paddingLeft() { return this._genericGet('paddingLeft'); }
     get paddingRight() { return this._genericGet('paddingRight'); }
     get paddingTop() { return this._genericGet('paddingTop'); }
+    get pointerInteractableClassOverride() {
+        return this._genericGet('pointerInteractableClassOverride');
+    }
     get textAlign() { return this._genericGet('textAlign'); }
     get textureFit() { return this._genericGet('textureFit'); }
     get width() { return this._genericGet('width'); }
@@ -120,6 +123,9 @@ class Style {
     set paddingLeft(v) { this._genericSet('paddingLeft', v); }
     set paddingRight(v) { this._genericSet('paddingRight', v); }
     set paddingTop(v) { this._genericSet('paddingTop', v); }
+    set pointerInteractableClassOverride(v) {
+        this._genericSet('pointerInteractableClassOverride', v);
+    }
     set textAlign(v) { this._genericSet('textAlign', v); }
     set textureFit(v) { this._genericSet('textureFit', v); }
     set width(v) { this._genericSet('width', v); }
@@ -157,6 +163,7 @@ class Style {
         'paddingLeft',
         'paddingRight',
         'paddingTop',
+        'pointerInteractableClassOverride',
         'opacity',
         'overflow',
         'textAlign',
@@ -8530,6 +8537,9 @@ class UIComponent extends THREE.Object3D {
     get paddingLeft() { return this._genericGet('paddingLeft'); }
     get paddingRight() { return this._genericGet('paddingRight'); }
     get paddingTop() { return this._genericGet('paddingTop'); }
+    get pointerInteractableClassOverride() {
+        return this._genericGet('pointerInteractableClassOverride');
+    }
     get textAlign() { return this._genericGet('textAlign'); }
     get textureFit() { return this._genericGet('textureFit'); }
     get width() { return this._genericGet('width'); }
@@ -8572,6 +8582,9 @@ class UIComponent extends THREE.Object3D {
     set paddingLeft(v) { this._genericSet('paddingLeft', v); }
     set paddingRight(v) { this._genericSet('paddingRight', v); }
     set paddingTop(v) { this._genericSet('paddingTop', v); }
+    set pointerInteractableClassOverride(v) {
+        this._genericSet('pointerInteractableClassOverride', v);
+    }
     set textAlign(v) { this._genericSet('textAlign', v); }
     set textureFit(v) { this._genericSet('textureFit', v); }
     set width(v) { this._genericSet('width', v); }
@@ -8916,6 +8929,7 @@ class LayoutComponent extends UIComponent {
     updateClippingPlanes(recursive) {
         let clippingPlanes = this._getClippingPlanes();
         this.material.clippingPlanes = clippingPlanes;
+        this.borderMaterial.clippingPlanes = clippingPlanes;
         if(this._text) this._text.material.clippingPlanes = clippingPlanes;
         if(!recursive) return;
         for(let child of this._content.children) {
@@ -15523,9 +15537,15 @@ class InputHandler {
             if(this._xrControllerParent) {
                 this._xrControllerParent.add(
                     xrInputDevice.controllers.targetRay);
-                this._xrControllerParent.add(xrInputDevice.controllers.grip);
-                xrInputDevice.controllers.grip.add(xrInputDevice.model);
-                xrInputDevice.controllers.grip.model = xrInputDevice.model;
+                let controllers = xrInputDevice.controllers;
+                if(inputSource.gripSpace) {
+                    this._xrControllerParent.add(controllers.grip);
+                    controllers.grip.add(xrInputDevice.model);
+                    controllers.grip.model = xrInputDevice.model;
+                } else {
+                    controllers.targetRay.add(xrInputDevice.model);
+                    controllers.targetRay.model = xrInputDevice.model;
+                }
             }
         }
     }
@@ -15577,10 +15597,20 @@ class InputHandler {
     setXRControllerModel(type, handedness, model) {
         let xrInputDevice = this._getXRInputDevice(type, handedness);
         if(xrInputDevice) {
-            if(xrInputDevice.model)
-                xrInputDevice.controllers.grip.remove(xrInputDevice.model);
+            if(xrInputDevice.model) {
+                if(xrInputDevice.controllers.grip) {
+                    xrInputDevice.controllers.grip.remove(xrInputDevice.model);
+                } else {
+                    xrInputDevice.controllers.targetRay.remove(
+                        xrInputDevice.model);
+                }
+            }
             xrInputDevice.model = model;
-            xrInputDevice.controllers.grip.add(model);
+            if(xrInputDevice.controllers.grip) {
+                xrInputDevice.controllers.grip.add(model);
+            } else {
+                xrInputDevice.controllers.targetRay.add(model);
+            }
             return true;
         }
         return false;
@@ -15701,9 +15731,8 @@ class InputHandler {
         let xrInputSource = xrInputDevice.inputSource;
         let xrControllers = xrInputDevice.controllers;
         if(xrInputSource) {
-            let targetRayPose = frame.getPose(
-                xrInputSource.targetRaySpace, referenceSpace
-            );
+            let targetRayPose = frame.getPose(xrInputSource.targetRaySpace,
+                referenceSpace);
             if(targetRayPose != null) {
                 xrControllers.targetRay.matrix.fromArray(
                     targetRayPose.transform.matrix
@@ -15715,23 +15744,28 @@ class InputHandler {
                 );
             }
 
-            let gripPose = frame.getPose(
-                xrInputSource.gripSpace, referenceSpace
-            );
-            if(gripPose != null) {
-                xrControllers.grip.matrix.fromArray(gripPose.transform.matrix);
-                xrControllers.grip.matrix.decompose(
-                    xrControllers.grip.position,
-                    xrControllers.grip.rotation,
-                    xrControllers.grip.scale
-                );
+            if(xrInputSource.gripSpace) {
+                let gripPose = frame.getPose(xrInputSource.gripSpace,
+                    referenceSpace);
+                if(gripPose != null) {
+                    xrControllers.grip.matrix.fromArray(
+                        gripPose.transform.matrix);
+                    xrControllers.grip.matrix.decompose(
+                        xrControllers.grip.position,
+                        xrControllers.grip.rotation,
+                        xrControllers.grip.scale
+                    );
+                }
             }
 
             if(xrInputSource.hand && xrInputDevice.model) {
+                let controllerMatrix = (xrControllers.grip)
+                    ? xrControllers.grip.matrix
+                    : xrControllers.targetRay.matrix;
                 let motionController = xrInputDevice.model.motionController;
                 if(motionController){
                     motionController.updateMesh(frame, referenceSpace,
-                        xrControllers.grip.matrix);
+                        controllerMatrix);
                     if(xrInputDevice.model.children.length)
                         updateBVHForComplexObject(xrInputDevice.model);
                 }
@@ -16169,6 +16203,8 @@ class PointerInteractableHandler extends InteractableHandler {
                              XRInputDeviceTypes.CONTROLLER]) {
                 let xrController = inputHandler.getXRController(type,
                     handedness, 'grip');
+                if(!xrController) xrController = inputHandler.getXRController(
+                    type, handedness, 'targetRay');
                 if(!xrController) continue;
                 let owner = this._getOwner(xrController);
                 let active = isDescendant(this._scene, xrController);
@@ -16314,16 +16350,6 @@ class TouchInteractableHandler extends InteractableHandler {
         return this._sphere;
     }
 
-    _isXRControllerPressed(type, handedness) {
-        if(type == XRInputDeviceTypes.HAND) {
-            let model = inputHandler.getXRControllerModel(type, handedness);
-            return model?.motionController?.isGrabbing != null;
-        } else {
-            let gamepad = inputHandler.getXRGamepad(handedness);
-            return gamepad?.buttons != null && gamepad.buttons[1].pressed;
-        }
-    }
-
     _scopeInteractables(controller, interactables) {
         let boundingSphere = controller['boundingSphere'];
         let skipIntersectsCheck = controller['skipIntersectsCheck'];
@@ -16406,6 +16432,8 @@ class TouchInteractableHandler extends InteractableHandler {
                     handedness, 'grip');
                 let xrControllerModel = inputHandler.getXRControllerModel(type,
                     handedness);
+                if(!xrController) xrController = inputHandler.getXRController(
+                    type, handedness, 'targetRay');
                 if(!xrController) continue;
                 let owner = this._getOwner(xrController);
                 let active = isDescendant(this._scene, xrController);
@@ -16454,7 +16482,9 @@ let touchInteractableHandler = new TouchInteractableHandler();
 class InteractableComponent extends LayoutComponent {
     constructor(...styles) {
         super(...styles);
-        this.pointerInteractable = new PointerInteractable(this);
+        this.pointerInteractable = (this.pointerInteractableClassOverride)
+            ? new this.pointerInteractableClassOverride(this)
+            : new PointerInteractable(this);
         this.touchInteractable = new TouchInteractable(this);
         this._clickAction = (e) => this._pointerClick(e);
         this._dragAction = (e) => this._pointerDrag(e);
@@ -25553,6 +25583,9 @@ class Select extends ScrollableComponent {
             backgroundVisible: this.backgroundVisible,
             width: '90%'
         });
+        if(this.pointerInteractableClassOverride)
+            this._optionsStyle.pointerInteractableClassOverride =
+                this.pointerInteractableClassOverride;
         this._optionsTextStyle = new Style({ maxWidth: '100%' });
         if(this.padding) this._optionsTextStyle.padding = this.padding;
         this._value;
@@ -25986,6 +26019,8 @@ class GripInteractableHandler extends InteractableHandler {
                     handedness, 'grip');
                 let xrControllerModel = inputHandler.getXRControllerModel(type,
                     handedness);
+                if(!xrController) xrController = inputHandler.getXRController(
+                    type, handedness, 'targetRay');
                 if(!xrController) continue;
                 let owner = this._getOwner(xrController);
                 let active = isDescendant(this._scene, xrController);
@@ -26040,7 +26075,7 @@ THREE.BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
 THREE.BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
 THREE.Mesh.prototype.raycast = acceleratedRaycast;
 
-const version = '0.1.0';
+const version = '0.1.1';
 
 const addGripInteractable = (interactable) => {
     gripInteractableHandler.addInteractable(interactable);

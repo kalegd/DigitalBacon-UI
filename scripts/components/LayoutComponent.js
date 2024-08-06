@@ -313,6 +313,7 @@ class LayoutComponent extends UIComponent {
     updateClippingPlanes(recursive) {
         let clippingPlanes = this._getClippingPlanes();
         this.material.clippingPlanes = clippingPlanes;
+        this.borderMaterial.clippingPlanes = clippingPlanes;
         if(this._text) this._text.material.clippingPlanes = clippingPlanes;
         if(!recursive) return;
         for(let child of this._content.children) {

@@ -15,7 +15,9 @@ import * as THREE from 'three';
 class InteractableComponent extends LayoutComponent {
     constructor(...styles) {
         super(...styles);
-        this.pointerInteractable = new PointerInteractable(this);
+        this.pointerInteractable = (this.pointerInteractableClassOverride)
+            ? new this.pointerInteractableClassOverride(this)
+            : new PointerInteractable(this);
         this.touchInteractable = new TouchInteractable(this);
         this._clickAction = (e) => this._pointerClick(e);
         this._dragAction = (e) => this._pointerDrag(e);

@@ -44,6 +44,7 @@ Creates a new Style object with the provided style properties
 - `paddingLeft`: (Number) Left padding of the element
 - `paddingRight`: (Number) Right padding of the element
 - `paddingTop`: (Number) Top padding of the element
+- `pointerInteractableClassOverride`: (Class) Class that extends PointerInteractable and should be used in place of it for InteractableComponents
 - `textAlign`: (String) Alignment of text within the element. Valid values are _left_, _center_, and _right_
 - `textureFit`: (String) Determines how a texture is displayed on a material. Valid values are _cover_ and _fill_
 - `width`: (Number) Width of the element. Can be a number, _auto_, or a percentage like _40%_

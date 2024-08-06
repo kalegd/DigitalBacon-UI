@@ -55,16 +55,6 @@ class TouchInteractableHandler extends InteractableHandler {
         return this._sphere;
     }
 
-    _isXRControllerPressed(type, handedness) {
-        if(type == XRInputDeviceTypes.HAND) {
-            let model = InputHandler.getXRControllerModel(type, handedness);
-            return model?.motionController?.isGrabbing != null;
-        } else {
-            let gamepad = InputHandler.getXRGamepad(handedness);
-            return gamepad?.buttons != null && gamepad.buttons[1].pressed;
-        }
-    }
-
     _scopeInteractables(controller, interactables) {
         let boundingSphere = controller['boundingSphere'];
         let skipIntersectsCheck = controller['skipIntersectsCheck'];
@@ -147,6 +137,8 @@ class TouchInteractableHandler extends InteractableHandler {
                     handedness, 'grip');
                 let xrControllerModel = InputHandler.getXRControllerModel(type,
                     handedness);
+                if(!xrController) xrController = InputHandler.getXRController(
+                    type, handedness, 'targetRay');
                 if(!xrController) continue;
                 let owner = this._getOwner(xrController);
                 let active = isDescendant(this._scene, xrController);

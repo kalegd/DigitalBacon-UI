@@ -34,6 +34,9 @@ class Select extends ScrollableComponent {
             backgroundVisible: this.backgroundVisible,
             width: '90%'
         });
+        if(this.pointerInteractableClassOverride)
+            this._optionsStyle.pointerInteractableClassOverride =
+                this.pointerInteractableClassOverride;
         this._optionsTextStyle = new Style({ maxWidth: '100%' });
         if(this.padding) this._optionsTextStyle.padding = this.padding;
         this._value;

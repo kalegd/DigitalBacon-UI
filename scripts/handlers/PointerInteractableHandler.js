@@ -291,6 +291,8 @@ class PointerInteractableHandler extends InteractableHandler {
                              XRInputDeviceTypes.CONTROLLER]) {
                 let xrController = InputHandler.getXRController(type,
                     handedness, 'grip');
+                if(!xrController) xrController = InputHandler.getXRController(
+                    type, handedness, 'targetRay');
                 if(!xrController) continue;
                 let owner = this._getOwner(xrController);
                 let active = isDescendant(this._scene, xrController);
