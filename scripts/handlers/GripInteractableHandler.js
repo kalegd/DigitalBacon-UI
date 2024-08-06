@@ -184,6 +184,8 @@ class GripInteractableHandler extends InteractableHandler {
                     handedness, 'grip');
                 let xrControllerModel = InputHandler.getXRControllerModel(type,
                     handedness);
+                if(!xrController) xrController = InputHandler.getXRController(
+                    type, handedness, 'targetRay');
                 if(!xrController) continue;
                 let owner = this._getOwner(xrController);
                 let active = isDescendant(this._scene, xrController);

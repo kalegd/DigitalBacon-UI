@@ -178,9 +178,15 @@ class InputHandler {
             if(this._xrControllerParent) {
                 this._xrControllerParent.add(
                     xrInputDevice.controllers.targetRay);
-                this._xrControllerParent.add(xrInputDevice.controllers.grip);
-                xrInputDevice.controllers.grip.add(xrInputDevice.model);
-                xrInputDevice.controllers.grip.model = xrInputDevice.model;
+                let controllers = xrInputDevice.controllers;
+                if(inputSource.gripSpace) {
+                    this._xrControllerParent.add(controllers.grip);
+                    controllers.grip.add(xrInputDevice.model);
+                    controllers.grip.model = xrInputDevice.model;
+                } else {
+                    controllers.targetRay.add(xrInputDevice.model);
+                    controllers.targetRay.model = xrInputDevice.model;
+                }
             }
         }
     }
@@ -232,10 +238,20 @@ class InputHandler {
     setXRControllerModel(type, handedness, model) {
         let xrInputDevice = this._getXRInputDevice(type, handedness);
         if(xrInputDevice) {
-            if(xrInputDevice.model)
-                xrInputDevice.controllers.grip.remove(xrInputDevice.model);
+            if(xrInputDevice.model) {
+                if(xrInputDevice.controllers.grip) {
+                    xrInputDevice.controllers.grip.remove(xrInputDevice.model);
+                } else {
+                    xrInputDevice.controllers.targetRay.remove(
+                        xrInputDevice.model);
+                }
+            }
             xrInputDevice.model = model;
-            xrInputDevice.controllers.grip.add(model);
+            if(xrInputDevice.controllers.grip) {
+                xrInputDevice.controllers.grip.add(model);
+            } else {
+                xrInputDevice.controllers.targetRay.add(model);
+            }
             return true;
         }
         return false;
@@ -356,9 +372,8 @@ class InputHandler {
         let xrInputSource = xrInputDevice.inputSource;
         let xrControllers = xrInputDevice.controllers;
         if(xrInputSource) {
-            let targetRayPose = frame.getPose(
-                xrInputSource.targetRaySpace, referenceSpace
-            );
+            let targetRayPose = frame.getPose(xrInputSource.targetRaySpace,
+                referenceSpace);
             if(targetRayPose != null) {
                 xrControllers.targetRay.matrix.fromArray(
                     targetRayPose.transform.matrix
@@ -370,23 +385,28 @@ class InputHandler {
                 );
             }
 
-            let gripPose = frame.getPose(
-                xrInputSource.gripSpace, referenceSpace
-            );
-            if(gripPose != null) {
-                xrControllers.grip.matrix.fromArray(gripPose.transform.matrix);
-                xrControllers.grip.matrix.decompose(
-                    xrControllers.grip.position,
-                    xrControllers.grip.rotation,
-                    xrControllers.grip.scale
-                );
+            if(xrInputSource.gripSpace) {
+                let gripPose = frame.getPose(xrInputSource.gripSpace,
+                    referenceSpace);
+                if(gripPose != null) {
+                    xrControllers.grip.matrix.fromArray(
+                        gripPose.transform.matrix);
+                    xrControllers.grip.matrix.decompose(
+                        xrControllers.grip.position,
+                        xrControllers.grip.rotation,
+                        xrControllers.grip.scale
+                    );
+                }
             }
 
             if(xrInputSource.hand && xrInputDevice.model) {
+                let controllerMatrix = (xrControllers.grip)
+                    ? xrControllers.grip.matrix
+                    : xrControllers.targetRay.matrix;
                 let motionController = xrInputDevice.model.motionController;
                 if(motionController){
                     motionController.updateMesh(frame, referenceSpace,
-                        xrControllers.grip.matrix);
+                        controllerMatrix);
                     if(xrInputDevice.model.children.length)
                         updateBVHForComplexObject(xrInputDevice.model);
                 }

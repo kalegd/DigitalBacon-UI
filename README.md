@@ -4,7 +4,7 @@
 JavaScript 3D UI library for three.js that supports touch screen, mouse, and XR hardware inputs
 
 
-<p align="center"><img src="/images/readme-text-input.gif" title="Spotify Demo" height="300"> &nbsp;&nbsp;&nbsp;<img src="/images/readme-spotify.gif" title="text input demo" height="300"></p>
+<p align="center"><img src="/images/readme-text-input.gif" title="Spotify Demo" height="300" width="300"> &nbsp;&nbsp;&nbsp;<img src="/images/readme-spotify.gif" title="text input demo" height="300"width="300"></p>
 
 ### Usage
 ```javascript
@@ -46,3 +46,7 @@ renderer.setAnimationLoop((time, frame) => {
     renderer.render(scene, camera);
 });
 ```
+
+## Local Network Testing
+
+If you want to test your changes with another device on your local network, you can run `npm run start-ssl`. Before doing this you'll need to create both cert.pem and key.pem files. Mac Users can generate these files via `openssl req -newkey rsa:2048 -new -nodes -x509 -days 3650 -keyout key.pem -out cert.pem`

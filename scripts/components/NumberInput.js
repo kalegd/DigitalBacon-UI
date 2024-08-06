@@ -10,7 +10,6 @@ import DeviceTypes from '/scripts/enums/DeviceTypes.js';
 import DelayedClickHandler from '/scripts/handlers/DelayedClickHandler.js';
 import InputHandler from '/scripts/handlers/InputHandler.js';
 import PointerInteractableHandler from '/scripts/handlers/PointerInteractableHandler.js';
-import { runes } from '/node_modules/runes2/dist/index.esm.mjs';
 import * as THREE from 'three';
 
 const VEC3 = new THREE.Vector3();
@@ -148,7 +147,7 @@ class NumberInput extends TextInput {
     }
 
     _triggerBlurCallback() {
-        let value = Number.parseFloat(this._text.text)
+        let value = Number.parseFloat(this._text.text);
         if(isNaN(value)) {
             this.value = this._lastValidValue;
         } else if(typeof this._minValue == 'number' && value < this._minValue) {
@@ -161,7 +160,7 @@ class NumberInput extends TextInput {
     }
 
     _triggerChangeCallback() {
-        let value = Number.parseFloat(this._text.text)
+        let value = Number.parseFloat(this._text.text);
         if(isNaN(value)
             || (typeof this._minValue == 'number' && value < this._minValue)
             || (typeof this._maxValue == 'number' && value > this._maxValue)) {
@@ -216,7 +215,7 @@ class NumberInput extends TextInput {
         if(value == null) value = Math.max(this._minValue, 0);
         value = this._sanitizeIncomingText(String(value));
         super.value = value;
-        this._lastValidValue = this._text.text
+        this._lastValidValue = this._text.text;
     }
 }
 

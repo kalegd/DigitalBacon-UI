@@ -11,7 +11,7 @@ function chooseExample(li) {
     selectedItem = li;
     selectedItem.classList.add('selected');
     exampleCodeLink.classList.remove('selected');
-    exampleCodeLink.href = 'https://github.com/kalegd/DigitalBacon-UI/blob/main'
+    exampleCodeLink.href = 'https://github.com/kalegd/DigitalBacon-UI/blob/main/'
         + li.getAttribute('href') + '.html';
 }
 let items = document.querySelectorAll('.sidebar li');

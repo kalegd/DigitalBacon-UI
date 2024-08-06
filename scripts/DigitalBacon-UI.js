@@ -39,6 +39,7 @@ import * as utils from '/scripts/utils.js';
 import * as TroikaThreeText from '/node_modules/troika-three-text/dist/troika-three-text.esm.js';
 import * as ThreeMeshBVH from '/node_modules/three-mesh-bvh/build/index.module.js';
 import * as THREE from 'three';
+import '/node_modules/nipplejs/dist/nipplejs.js';
 
 const {computeBoundsTree, disposeBoundsTree, acceleratedRaycast} = ThreeMeshBVH;
 
@@ -46,7 +47,7 @@ THREE.BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
 THREE.BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
 THREE.Mesh.prototype.raycast = acceleratedRaycast;
 
-const version = '0.0.1';
+const version = '0.1.1';
 
 const addGripInteractable = (interactable) => {
     GripInteractableHandler.addInteractable(interactable);

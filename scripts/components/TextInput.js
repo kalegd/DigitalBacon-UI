@@ -7,7 +7,6 @@
 import TextArea from '/scripts/components/TextArea.js';
 import DelayedClickHandler from '/scripts/handlers/DelayedClickHandler.js';
 import InputHandler from '/scripts/handlers/InputHandler.js';
-import { runes } from '/node_modules/runes2/dist/index.esm.mjs';
 import * as THREE from 'three';
 
 const VEC3 = new THREE.Vector3();

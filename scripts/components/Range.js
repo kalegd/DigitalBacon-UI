@@ -124,7 +124,7 @@ class Range extends InteractableComponent {
         return false;
     }
 
-    _updateValueFromTouch(owner, point) {
+    _updateValueFromTouch(owner) {
         if(!this._scrubbingOwner) {
             this._scrubbingOwner = owner;
             let details = this.touchInteractable.getClosestPointTo(

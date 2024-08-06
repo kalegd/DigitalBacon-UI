@@ -134,6 +134,9 @@ class UIComponent extends THREE.Object3D {
     get paddingLeft() { return this._genericGet('paddingLeft'); }
     get paddingRight() { return this._genericGet('paddingRight'); }
     get paddingTop() { return this._genericGet('paddingTop'); }
+    get pointerInteractableClassOverride() {
+        return this._genericGet('pointerInteractableClassOverride');
+    }
     get textAlign() { return this._genericGet('textAlign'); }
     get textureFit() { return this._genericGet('textureFit'); }
     get width() { return this._genericGet('width'); }
@@ -176,6 +179,9 @@ class UIComponent extends THREE.Object3D {
     set paddingLeft(v) { this._genericSet('paddingLeft', v); }
     set paddingRight(v) { this._genericSet('paddingRight', v); }
     set paddingTop(v) { this._genericSet('paddingTop', v); }
+    set pointerInteractableClassOverride(v) {
+        this._genericSet('pointerInteractableClassOverride', v);
+    }
     set textAlign(v) { this._genericSet('textAlign', v); }
     set textureFit(v) { this._genericSet('textureFit', v); }
     set width(v) { this._genericSet('width', v); }
