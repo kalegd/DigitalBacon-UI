@@ -8831,7 +8831,7 @@ class LayoutComponent extends UIComponent {
             borderRadius);
         let height = this.computedHeight;
         let width = this.computedWidth;
-        let renderOrder = 100 + this._materialOffset;
+        let renderOrder = this._materialOffset;
         if(borderWidth) {
             let borderShape = LayoutComponent.createShape(width, height,
                 topLeftRadius, topRightRadius, bottomLeftRadius,
@@ -9212,7 +9212,7 @@ class LayoutComponent extends UIComponent {
             if(child instanceof LayoutComponent)
                 child._updateMaterialOffset(this._materialOffset);
         }
-        let order = 100 + this._materialOffset;
+        let order = this._materialOffset;
         if(this._background) this._background.renderOrder = order;
         if(this._border) this._border.renderOrder = order;
     }
@@ -12376,18 +12376,24 @@ class GLTFParser {
 		// expensive work of uploading a texture to the GPU off the main thread.
 
 		let isSafari = false;
+		let safariVersion = - 1;
 		let isFirefox = false;
 		let firefoxVersion = - 1;
 
 		if ( typeof navigator !== 'undefined' ) {
 
-			isSafari = /^((?!chrome|android).)*safari/i.test( navigator.userAgent ) === true;
-			isFirefox = navigator.userAgent.indexOf( 'Firefox' ) > - 1;
-			firefoxVersion = isFirefox ? navigator.userAgent.match( /Firefox\/([0-9]+)\./ )[ 1 ] : - 1;
+			const userAgent = navigator.userAgent;
+
+			isSafari = /^((?!chrome|android).)*safari/i.test( userAgent ) === true;
+			const safariMatch = userAgent.match( /Version\/(\d+)/ );
+			safariVersion = isSafari && safariMatch ? parseInt( safariMatch[ 1 ], 10 ) : - 1;
+
+			isFirefox = userAgent.indexOf( 'Firefox' ) > - 1;
+			firefoxVersion = isFirefox ? userAgent.match( /Firefox\/([0-9]+)\./ )[ 1 ] : - 1;
 
 		}
 
-		if ( typeof createImageBitmap === 'undefined' || isSafari || ( isFirefox && firefoxVersion < 98 ) ) {
+		if ( typeof createImageBitmap === 'undefined' || ( isSafari && safariVersion < 17 ) || ( isFirefox && firefoxVersion < 98 ) ) {
 
 			this.textureLoader = new TextureLoader( this.options.manager );
 
@@ -13112,6 +13118,8 @@ class GLTFParser {
 				URL.revokeObjectURL( sourceURI );
 
 			}
+
+			assignExtrasToUserData( texture, sourceDef );
 
 			texture.userData.mimeType = sourceDef.mimeType || getImageURIMimeType( sourceDef.uri );
 
@@ -23178,7 +23186,7 @@ class Checkbox extends InteractableComponent {
     _updateMaterialOffset(parentOffset) {
         super._updateMaterialOffset(parentOffset);
         this._text.depthOffset = -1 * this._materialOffset - 1;
-        this._text.renderOrder = 100 + this._materialOffset + 1;
+        this._text.renderOrder = this._materialOffset + 1;
     }
 
     _change() {
@@ -23583,7 +23591,7 @@ class HSLColor {
         if(material.polygonOffsetFactor != -1 * materialOffset) {
             material.polygonOffsetFactor = -1 * materialOffset;
             material.polygonOffsetUnits = -1 * materialOffset;
-            this._colorCursor.renderOrder = 100 + materialOffset;
+            this._colorCursor.renderOrder = materialOffset;
         }
     }
 
@@ -23779,7 +23787,7 @@ class TextComponent extends LayoutComponent {
     _updateMaterialOffset(parentOffset) {
         super._updateMaterialOffset(parentOffset);
         this._text.depthOffset = -1 * this._materialOffset - 1;
-        this._text.renderOrder = 100 + this._materialOffset + 1;
+        this._text.renderOrder = this._materialOffset + 1;
     }
 
     get text() { return this._text.text; }
@@ -25351,7 +25359,7 @@ class Radio extends InteractableComponent {
             = this._toggleMaterial.polygonOffsetUnits
             = -1 * this._materialOffset - 1;
         if(this._toggleChild)
-            this._toggleChild.renderOrder = 100 + this._materialOffset + 1;
+            this._toggleChild.renderOrder = this._materialOffset + 1;
     }
 
     _select(ignoreOnChange) {
@@ -25462,7 +25470,7 @@ class Range extends InteractableComponent {
             = this._scrubberMaterial.polygonOffsetUnits
             = -1 * this._materialOffset - 1;
         if(this._scrubberChild)
-            this._scrubberChild.renderOrder = 100 + this._materialOffset + 1;
+            this._scrubberChild.renderOrder = this._materialOffset + 1;
     }
 
     _select(e) {
@@ -25579,6 +25587,7 @@ class Select extends ScrollableComponent {
             width: this.width,
         });
         this._optionsDiv = new Div(this._optionsDivStyle);
+        this._optionsDiv._content.position.z *= 3;
         this._optionsStyle = new Style({
             backgroundVisible: this.backgroundVisible,
             width: '90%'
@@ -25639,7 +25648,7 @@ class Select extends ScrollableComponent {
     _select() {
         this.remove(this._textSpan);
         this.add(this._optionsDiv);
-        this._optionsDiv._updateMaterialOffset(this._materialOffset + 1);
+        this._optionsDiv._updateMaterialOffset(this._materialOffset + 3);
         this.onClick = this.onTouch = null;
         pointerInteractableHandler.addEventListener('down', this._downListener);
     }
@@ -25744,7 +25753,7 @@ class Toggle extends InteractableComponent {
         topRightRadius = Math.max(topRightRadius - padding / 2, 0);
         bottomLeftRadius = Math.max(bottomLeftRadius - padding / 2, 0);
         bottomRightRadius = Math.max(bottomRightRadius - padding / 2, 0);
-        let renderOrder = 100 + this._materialOffset + 1;
+        let renderOrder = this._materialOffset + 1;
         let shape = Toggle.createShape(width, height, topLeftRadius,
             topRightRadius, bottomLeftRadius, bottomRightRadius);
         let geometry = new THREE.ShapeGeometry(shape);
@@ -25764,7 +25773,7 @@ class Toggle extends InteractableComponent {
             = this._toggleMaterial.polygonOffsetUnits
             = -1 * this._materialOffset - 1;
         if(this._toggleChild)
-            this._toggleChild.renderOrder = 100 + this._materialOffset + 1;
+            this._toggleChild.renderOrder = this._materialOffset + 1;
     }
 
     _change() {
@@ -26075,7 +26084,7 @@ THREE.BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
 THREE.BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
 THREE.Mesh.prototype.raycast = acceleratedRaycast;
 
-const version = '0.1.1';
+const version = '0.1.2';
 
 const addGripInteractable = (interactable) => {
     gripInteractableHandler.addInteractable(interactable);
