@@ -30,6 +30,7 @@ class Select extends ScrollableComponent {
             width: this.width,
         });
         this._optionsDiv = new Div(this._optionsDivStyle);
+        this._optionsDiv._content.position.z *= 3;
         this._optionsStyle = new Style({
             backgroundVisible: this.backgroundVisible,
             width: '90%'
@@ -90,7 +91,7 @@ class Select extends ScrollableComponent {
     _select() {
         this.remove(this._textSpan);
         this.add(this._optionsDiv);
-        this._optionsDiv._updateMaterialOffset(this._materialOffset + 1);
+        this._optionsDiv._updateMaterialOffset(this._materialOffset + 3);
         this.onClick = this.onTouch = null;
         PointerInteractableHandler.addEventListener('down', this._downListener);
     }
