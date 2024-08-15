@@ -215,7 +215,7 @@ class LayoutComponent extends UIComponent {
             borderRadius);
         let height = this.computedHeight;
         let width = this.computedWidth;
-        let renderOrder = 100 + this._materialOffset;
+        let renderOrder = this._materialOffset;
         if(borderWidth) {
             let borderShape = LayoutComponent.createShape(width, height,
                 topLeftRadius, topRightRadius, bottomLeftRadius,
@@ -596,7 +596,7 @@ class LayoutComponent extends UIComponent {
             if(child instanceof LayoutComponent)
                 child._updateMaterialOffset(this._materialOffset);
         }
-        let order = 100 + this._materialOffset;
+        let order = this._materialOffset;
         if(this._background) this._background.renderOrder = order;
         if(this._border) this._border.renderOrder = order;
     }

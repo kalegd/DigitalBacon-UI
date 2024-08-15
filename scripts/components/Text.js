@@ -97,7 +97,7 @@ class TextComponent extends LayoutComponent {
     _updateMaterialOffset(parentOffset) {
         super._updateMaterialOffset(parentOffset);
         this._text.depthOffset = -1 * this._materialOffset - 1;
-        this._text.renderOrder = 100 + this._materialOffset + 1;
+        this._text.renderOrder = this._materialOffset + 1;
     }
 
     get text() { return this._text.text; }

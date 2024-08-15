@@ -68,7 +68,7 @@ class Range extends InteractableComponent {
             = this._scrubberMaterial.polygonOffsetUnits
             = -1 * this._materialOffset - 1;
         if(this._scrubberChild)
-            this._scrubberChild.renderOrder = 100 + this._materialOffset + 1;
+            this._scrubberChild.renderOrder = this._materialOffset + 1;
     }
 
     _select(e) {

@@ -49,7 +49,7 @@ class Toggle extends InteractableComponent {
         topRightRadius = Math.max(topRightRadius - padding / 2, 0);
         bottomLeftRadius = Math.max(bottomLeftRadius - padding / 2, 0);
         bottomRightRadius = Math.max(bottomRightRadius - padding / 2, 0);
-        let renderOrder = 100 + this._materialOffset + 1;
+        let renderOrder = this._materialOffset + 1;
         let shape = Toggle.createShape(width, height, topLeftRadius,
             topRightRadius, bottomLeftRadius, bottomRightRadius);
         let geometry = new THREE.ShapeGeometry(shape);
@@ -69,7 +69,7 @@ class Toggle extends InteractableComponent {
             = this._toggleMaterial.polygonOffsetUnits
             = -1 * this._materialOffset - 1;
         if(this._toggleChild)
-            this._toggleChild.renderOrder = 100 + this._materialOffset + 1;
+            this._toggleChild.renderOrder = this._materialOffset + 1;
     }
 
     _change() {

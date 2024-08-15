@@ -55,7 +55,7 @@ class Radio extends InteractableComponent {
             = this._toggleMaterial.polygonOffsetUnits
             = -1 * this._materialOffset - 1;
         if(this._toggleChild)
-            this._toggleChild.renderOrder = 100 + this._materialOffset + 1;
+            this._toggleChild.renderOrder = this._materialOffset + 1;
     }
 
     _select(ignoreOnChange) {

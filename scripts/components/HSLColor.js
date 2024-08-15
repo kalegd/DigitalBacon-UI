@@ -214,7 +214,7 @@ export default class HSLColor {
         if(material.polygonOffsetFactor != -1 * materialOffset) {
             material.polygonOffsetFactor = -1 * materialOffset;
             material.polygonOffsetUnits = -1 * materialOffset;
-            this._colorCursor.renderOrder = 100 + materialOffset;
+            this._colorCursor.renderOrder = materialOffset;
         }
     }
 
