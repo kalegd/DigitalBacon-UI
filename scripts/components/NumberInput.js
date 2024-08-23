@@ -115,6 +115,8 @@ class NumberInput extends TextInput {
             if(this._onEnter) this._onEnter(this._text.text);
         } else if(key == "Escape") {
             this.blur();
+        } else if(key == "±") {
+            this._negate();
         } else if(ARROW_KEYS.has(key)) {
             this._moveCaret(key);
         } else if(key.match(/^[0-9.-]*$/)) {
@@ -128,7 +130,7 @@ class NumberInput extends TextInput {
         this.insertContent(data);
         e.preventDefault();
     }
-    
+
     _checkForCaretScroll() {
         if(!this._scrollable && this._content.position.x != 0) {
             this._content.position.x = 0;
@@ -190,6 +192,16 @@ class NumberInput extends TextInput {
             incoming = '-' + incoming.replaceAll('-', '');
         }
         return incoming;
+    }
+
+    _negate() {
+        if(this._text.text.indexOf('-') >= 0) {
+            this.value = this._text.text.replaceAll('-', '');
+            this._moveCaret('ArrowLeft');
+        } else {
+            this.value = '-' + this.value;
+            this._moveCaret('ArrowRight');
+        }
     }
 
     _sanitizeText() {

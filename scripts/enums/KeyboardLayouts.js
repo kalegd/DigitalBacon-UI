@@ -49,6 +49,8 @@ const NUMBERS = {
             keys: ['7', '8', '9'],
         }, {
             keys: ['.', '0', { text: '⌫', type: 'key', value: 'Backspace' }],
+        }, {
+            keys: ['±', { text: '⏎', type: 'key', value: 'Enter', style: { width: 0.21 } }], 
         }],
     }]
 };
