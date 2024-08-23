@@ -23850,6 +23850,8 @@ const NUMBERS = {
             keys: ['7', '8', '9'],
         }, {
             keys: ['.', '0', { text: '⌫', type: 'key', value: 'Backspace' }],
+        }, {
+            keys: ['±', { text: '⏎', type: 'key', value: 'Enter', style: { width: 0.21 } }], 
         }],
     }]
 };
@@ -25200,6 +25202,8 @@ class NumberInput extends TextInput {
             if(this._onEnter) this._onEnter(this._text.text);
         } else if(key == "Escape") {
             this.blur();
+        } else if(key == "±") {
+            this._negate();
         } else if(ARROW_KEYS.has(key)) {
             this._moveCaret(key);
         } else if(key.match(/^[0-9.-]*$/)) {
@@ -25213,7 +25217,7 @@ class NumberInput extends TextInput {
         this.insertContent(data);
         e.preventDefault();
     }
-    
+
     _checkForCaretScroll() {
         if(!this._scrollable && this._content.position.x != 0) {
             this._content.position.x = 0;
@@ -25275,6 +25279,16 @@ class NumberInput extends TextInput {
             incoming = '-' + incoming.replaceAll('-', '');
         }
         return incoming;
+    }
+
+    _negate() {
+        if(this._text.text.indexOf('-') >= 0) {
+            this.value = this._text.text.replaceAll('-', '');
+            this._moveCaret('ArrowLeft');
+        } else {
+            this.value = '-' + this.value;
+            this._moveCaret('ArrowRight');
+        }
     }
 
     _sanitizeText() {
@@ -26084,7 +26098,7 @@ THREE.BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
 THREE.BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
 THREE.Mesh.prototype.raycast = acceleratedRaycast;
 
-const version = '0.1.2';
+const version = '0.1.3';
 
 const addGripInteractable = (interactable) => {
     gripInteractableHandler.addInteractable(interactable);
