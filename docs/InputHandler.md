@@ -20,10 +20,11 @@ InputHandler class provides polling for XR input sources, keyboard, or touch scr
 
 ### For Touch Screen Users
 
-- `createJoystick()`: Creates a joystick control for touch screen inputs on the webpage
 - `getJoystickAngle()`: Returns angle of the joystick in radians
 - `getJoystickDistance()`: Returns the distance the joystick is pulled in the joystick angle's direction. Value returned will be between 0 and 1
+- `hideJoystick()`: Hides the joystick
 - `isScreenTouched()`: Returns whether or not the screen is currently touched
+- `showJoystick()`: Shows the joystick
 
 ### For XR Users
 

@@ -204,6 +204,17 @@ class NumberInput extends TextInput {
         }
     }
 
+    _sanitizeScientificNotation(number) {
+        let numChunks = number.toString().split('e');
+        let coefficient = numChunks[0].replaceAll('.', '');
+        let zeroCount = Math.abs(numChunks[1]) - 1;
+        let zeroes = '0'.repeat(zeroCount);
+        let value = '0.' + zeroes + coefficient;
+        if(value.indexOf('-') > -1) value = '-' + value.replace('-','');
+        return value;
+        
+    }
+
     _sanitizeText() {
         if(this._text.text.indexOf('-') > 0) {
             this.value = '-' + this._text.text.replaceAll('-', '');
@@ -225,7 +236,11 @@ class NumberInput extends TextInput {
     set onEnter(onEnter) { this._onEnter = onEnter; }
     set value(value) {
         if(value == null) value = Math.max(this._minValue, 0);
-        value = this._sanitizeIncomingText(String(value));
+        if(Math.abs(value) <= 0.0000001) {
+            value = this._sanitizeScientificNotation(value);
+        } else {
+            value = this._sanitizeIncomingText(String(value));
+        }
         super.value = value;
         this._lastValidValue = this._text.text;
     }

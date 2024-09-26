@@ -303,15 +303,24 @@ class InputHandler {
     }
 
     createJoystick() {
-        let joystickParent = document.createElement('div');
-        joystickParent.style.position = 'absolute';
-        joystickParent.style.width = '100px';
-        joystickParent.style.height = '100px';
-        joystickParent.style.left = '10px';
-        joystickParent.style.bottom = '10px';
-        this._container.appendChild(joystickParent);
+        console.warn('InputHandler.createJoystick() is deprecated, please use InputHandler.showJoystick() instead');
+        this._createJoystick();
+    }
+
+    _createJoystick() {
+        if(this._joystickParent) {
+            this.showJoystick();
+            return;
+        }
+        this._joystickParent = document.createElement('div');
+        this._joystickParent.style.position = 'absolute';
+        this._joystickParent.style.width = '100px';
+        this._joystickParent.style.height = '100px';
+        this._joystickParent.style.left = '10px';
+        this._joystickParent.style.bottom = '10px';
+        this._container.appendChild(this._joystickParent);
         let options = {
-            zone: joystickParent,
+            zone: this._joystickParent,
             mode: 'static',
             position: {left: '50%', top: '50%'},
         };
@@ -324,6 +333,22 @@ class InputHandler {
         joystick.on('end', () => {
             this._joystickDistance = 0;
         });
+    }
+
+    showJoystick() {
+        if(!this._joystickParent) {
+            this.createJoystick();
+        } else if(!this._container.contains(this._joystickParent)) {
+            this._container.appendChild(this._joystickParent);
+        }
+        //nipplejs needs a resize event in the case of absolute positioning
+        window.dispatchEvent(new Event("resize"));
+    }
+
+    hideJoystick() {
+        if(!this._joystickParent) return;
+        if(this._container.contains(this._joystickParent))
+            this._container.removeChild(this._joystickParent);
     }
 
     addExtraControlsButton(id, name) {
