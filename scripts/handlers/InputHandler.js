@@ -337,7 +337,7 @@ class InputHandler {
 
     showJoystick() {
         if(!this._joystickParent) {
-            this.createJoystick();
+            this._createJoystick();
         } else if(!this._container.contains(this._joystickParent)) {
             this._container.appendChild(this._joystickParent);
         }

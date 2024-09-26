@@ -1,6 +1,6 @@
 {
   "name": "digitalbacon-ui",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "type": "module",
   "description": "UI library for three.js that supports touch screen, mouse, and WebXR hardware",
   "main": "/build/DigitalBacon-UI.min.js",
