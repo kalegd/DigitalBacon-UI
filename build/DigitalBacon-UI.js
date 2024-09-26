@@ -15901,7 +15901,7 @@ class InputHandler {
 
     showJoystick() {
         if(!this._joystickParent) {
-            this.createJoystick();
+            this._createJoystick();
         } else if(!this._container.contains(this._joystickParent)) {
             this._container.appendChild(this._joystickParent);
         }
@@ -26335,7 +26335,7 @@ THREE.BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
 THREE.BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
 THREE.Mesh.prototype.raycast = acceleratedRaycast;
 
-const version = '0.1.4';
+const version = '0.1.5';
 
 const addGripInteractable = (interactable) => {
     gripInteractableHandler.addInteractable(interactable);
