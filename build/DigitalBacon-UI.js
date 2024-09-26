@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { Vector3, Vector2, Plane, Line3, Box3, Mesh, Triangle, Sphere, Matrix4, BufferAttribute, FrontSide, Group, LineBasicMaterial, MeshBasicMaterial, DataTexture, NearestFilter, UnsignedIntType, IntType, FloatType, RGBAFormat, RGIntegerFormat, BufferGeometry, Matrix3, Object3D, Ray, UnsignedByteType, UnsignedShortType, ByteType, ShortType, RGBAIntegerFormat, Vector4, RGFormat, RedFormat, RedIntegerFormat, BackSide, DoubleSide, TrianglesDrawMode, TriangleFanDrawMode, TriangleStripDrawMode, Quaternion, Loader, LoaderUtils, FileLoader, Color, LinearSRGBColorSpace, SpotLight, PointLight, DirectionalLight, SRGBColorSpace, MeshPhysicalMaterial, InstancedMesh, InstancedBufferAttribute, TextureLoader, ImageBitmapLoader, InterleavedBuffer, InterleavedBufferAttribute, LinearFilter, LinearMipmapLinearFilter, RepeatWrapping, PointsMaterial, Material, MeshStandardMaterial, PropertyBinding, SkinnedMesh, LineSegments, Line, LineLoop, Points, PerspectiveCamera, MathUtils, OrthographicCamera, Skeleton, AnimationClip, Bone, InterpolateLinear, ColorManagement, NearestMipmapNearestFilter, LinearMipmapNearestFilter, NearestMipmapLinearFilter, ClampToEdgeWrapping, MirroredRepeatWrapping, InterpolateDiscrete, Texture, VectorKeyframeTrack, NumberKeyframeTrack, QuaternionKeyframeTrack, Interpolant, SphereGeometry, UniformsUtils, MeshDepthMaterial, RGBADepthPacking, MeshDistanceMaterial, ShaderChunk, InstancedBufferGeometry, PlaneGeometry, Float32BufferAttribute } from 'three';
+import { Vector3, Vector2, Plane, Line3, Box3, Mesh, BatchedMesh, Triangle, Sphere, Matrix4, BufferAttribute, FrontSide, Group, LineBasicMaterial, MeshBasicMaterial, DataTexture, NearestFilter, UnsignedIntType, IntType, FloatType, RGBAFormat, RGIntegerFormat, BufferGeometry, Matrix3, Object3D, REVISION, Ray, UnsignedByteType, UnsignedShortType, ByteType, ShortType, RGBAIntegerFormat, Vector4, RGFormat, RedFormat, RedIntegerFormat, BackSide, DoubleSide, TrianglesDrawMode, TriangleFanDrawMode, TriangleStripDrawMode, Quaternion, Loader, LoaderUtils, FileLoader, Color, LinearSRGBColorSpace, SpotLight, PointLight, DirectionalLight, SRGBColorSpace, MeshPhysicalMaterial, InstancedMesh, InstancedBufferAttribute, TextureLoader, ImageBitmapLoader, InterleavedBuffer, InterleavedBufferAttribute, LinearFilter, LinearMipmapLinearFilter, RepeatWrapping, PointsMaterial, Material, MeshStandardMaterial, PropertyBinding, SkinnedMesh, LineSegments, Line, LineLoop, Points, PerspectiveCamera, MathUtils, OrthographicCamera, Skeleton, AnimationClip, Bone, InterpolateLinear, ColorManagement, NearestMipmapNearestFilter, LinearMipmapNearestFilter, NearestMipmapLinearFilter, ClampToEdgeWrapping, MirroredRepeatWrapping, InterpolateDiscrete, Texture, VectorKeyframeTrack, NumberKeyframeTrack, QuaternionKeyframeTrack, Interpolant, SphereGeometry, UniformsUtils, MeshDepthMaterial, RGBADepthPacking, MeshDistanceMaterial, ShaderChunk, InstancedBufferGeometry, PlaneGeometry, Float32BufferAttribute } from 'three';
 
 /*
  * This Source Code Form is subject to the terms of the Mozilla Public
@@ -257,10 +257,10 @@ function ensureIndex( geo, options ) {
 //                      g1 = [16, 40]           g2 = [41, 60]
 //
 // we would need four BVH roots: [0, 15], [16, 20], [21, 40], [41, 60].
-function getFullGeometryRange( geo ) {
+function getFullGeometryRange( geo, range ) {
 
 	const triCount = getTriCount( geo );
-	const drawRange = geo.drawRange;
+	const drawRange = range ? range : geo.drawRange;
 	const start = drawRange.start / 3;
 	const end = ( drawRange.start + drawRange.count ) / 3;
 
@@ -273,18 +273,18 @@ function getFullGeometryRange( geo ) {
 
 }
 
-function getRootIndexRanges( geo ) {
+function getRootIndexRanges( geo, range ) {
 
 	if ( ! geo.groups || ! geo.groups.length ) {
 
-		return getFullGeometryRange( geo );
+		return getFullGeometryRange( geo, range );
 
 	}
 
 	const ranges = [];
 	const rangeBoundaries = new Set();
 
-	const drawRange = geo.drawRange;
+	const drawRange = range ? range : geo.drawRange;
 	const drawRangeStart = drawRange.start / 3;
 	const drawRangeEnd = ( drawRange.start + drawRange.count ) / 3;
 	for ( const group of geo.groups ) {
@@ -315,16 +315,10 @@ function getRootIndexRanges( geo ) {
 
 }
 
-function hasGroupGaps( geometry ) {
-
-	if ( geometry.groups.length === 0 ) {
-
-		return false;
-
-	}
+function hasGroupGaps( geometry, range ) {
 
 	const vertexCount = getTriCount( geometry );
-	const groups = getRootIndexRanges( geometry )
+	const groups = getRootIndexRanges( geometry, range )
 		.sort( ( a, b ) => a.offset - b.offset );
 
 	const finalGroup = groups[ groups.length - 1 ];
@@ -1340,10 +1334,10 @@ function buildPackedTree( bvh, options ) {
 
 		bvh._indirectBuffer = generateIndirectBuffer( geometry, options.useSharedArrayBuffer );
 
-		if ( hasGroupGaps( geometry ) && ! options.verbose ) {
+		if ( hasGroupGaps( geometry, options.range ) && ! options.verbose ) {
 
 			console.warn(
-				'MeshBVH: Provided geometry contains groups that do not fully span the vertex contents while using the "indirect" option. ' +
+				'MeshBVH: Provided geometry contains groups or a range that do not fully span the vertex contents while using the "indirect" option. ' +
 				'BVH may incorrectly report intersections on unrendered portions of the geometry.'
 			);
 
@@ -1360,7 +1354,7 @@ function buildPackedTree( bvh, options ) {
 	const BufferConstructor = options.useSharedArrayBuffer ? SharedArrayBuffer : ArrayBuffer;
 
 	const triangleBounds = computeTriangleBounds( geometry );
-	const geometryRanges = options.indirect ? getFullGeometryRange( geometry ) : getRootIndexRanges( geometry );
+	const geometryRanges = options.indirect ? getFullGeometryRange( geometry, options.range ) : getRootIndexRanges( geometry, options.range );
 	bvh._roots = geometryRanges.map( range => {
 
 		const root = buildTree( bvh, triangleBounds, range.offset, range.count, options );
@@ -2982,7 +2976,7 @@ const _normalB = /* @__PURE__ */ new Vector3();
 const _normalC = /* @__PURE__ */ new Vector3();
 
 const _intersectionPoint = /* @__PURE__ */ new Vector3();
-function checkIntersection( ray, pA, pB, pC, point, side ) {
+function checkIntersection( ray, pA, pB, pC, point, side, near, far ) {
 
 	let intersect;
 	if ( side === BackSide ) {
@@ -2999,6 +2993,8 @@ function checkIntersection( ray, pA, pB, pC, point, side ) {
 
 	const distance = ray.origin.distanceTo( point );
 
+	if ( distance < near || distance > far ) return null;
+
 	return {
 
 		distance: distance,
@@ -3008,13 +3004,13 @@ function checkIntersection( ray, pA, pB, pC, point, side ) {
 
 }
 
-function checkBufferGeometryIntersection( ray, position, normal, uv, uv1, a, b, c, side ) {
+function checkBufferGeometryIntersection( ray, position, normal, uv, uv1, a, b, c, side, near, far ) {
 
 	_vA.fromBufferAttribute( position, a );
 	_vB.fromBufferAttribute( position, b );
 	_vC.fromBufferAttribute( position, c );
 
-	const intersection = checkIntersection( ray, _vA, _vB, _vC, _intersectionPoint, side );
+	const intersection = checkIntersection( ray, _vA, _vB, _vC, _intersectionPoint, side, near, far );
 
 	if ( intersection ) {
 
@@ -3073,7 +3069,7 @@ function checkBufferGeometryIntersection( ray, position, normal, uv, uv1, a, b, 
 }
 
 // https://github.com/mrdoob/three.js/blob/0aa87c999fe61e216c1133fba7a95772b503eddf/src/objects/Mesh.js#L258
-function intersectTri( geo, side, ray, tri, intersections ) {
+function intersectTri( geo, side, ray, tri, intersections, near, far ) {
 
 	const triOffset = tri * 3;
 	let a = triOffset + 0;
@@ -3090,7 +3086,7 @@ function intersectTri( geo, side, ray, tri, intersections ) {
 	}
 
 	const { position, normal, uv, uv1 } = geo.attributes;
-	const intersection = checkBufferGeometryIntersection( ray, position, normal, uv, uv1, a, b, c, side );
+	const intersection = checkBufferGeometryIntersection( ray, position, normal, uv, uv1, a, b, c, side, near, far );
 
 	if ( intersection ) {
 
@@ -3226,20 +3222,20 @@ function getTriangleHitPointInfo( point, geometry, triangleIndex, target ) {
 /*************************************************************/
 /* eslint-disable indent */
 
-function intersectTris( bvh, side, ray, offset, count, intersections ) {
+function intersectTris( bvh, side, ray, offset, count, intersections, near, far ) {
 
 	const { geometry, _indirectBuffer } = bvh;
 	for ( let i = offset, end = offset + count; i < end; i ++ ) {
 
 
-		intersectTri( geometry, side, ray, i, intersections );
+		intersectTri( geometry, side, ray, i, intersections, near, far );
 
 
 	}
 
 }
 
-function intersectClosestTri( bvh, side, ray, offset, count ) {
+function intersectClosestTri( bvh, side, ray, offset, count, near, far ) {
 
 	const { geometry, _indirectBuffer } = bvh;
 	let dist = Infinity;
@@ -3248,7 +3244,7 @@ function intersectClosestTri( bvh, side, ray, offset, count ) {
 
 		let intersection;
 
-		intersection = intersectTri( geometry, side, ray, i );
+		intersection = intersectTri( geometry, side, ray, i, null, near, far );
 
 
 		if ( intersection && intersection.distance < dist ) {
@@ -3471,7 +3467,7 @@ function refit( bvh, nodeIndices = null ) {
  * This function performs intersection tests similar to Ray.intersectBox in three.js,
  * with the difference that the box values are read from an array to improve performance.
  */
-function intersectRay( nodeIndex32, array, ray ) {
+function intersectRay( nodeIndex32, array, ray, near, far ) {
 
 	let tmin, tmax, tymin, tymax, tzmin, tzmax;
 
@@ -3536,15 +3532,13 @@ function intersectRay( nodeIndex32, array, ray ) {
 
 	if ( ( tmin > tzmax ) || ( tzmin > tmax ) ) return false;
 
-	// if ( tzmin > tmin || tmin !== tmin ) tmin = tzmin; // Uncomment this line if add the distance check
+	if ( tzmin > tmin || tmin !== tmin ) tmin = tzmin;
 
 	if ( tzmax < tmax || tmax !== tmax ) tmax = tzmax;
 
 	//return point closest to the ray (positive side)
 
-	if ( tmax < 0 ) return false;
-
-	return true;
+	return tmin <= far && tmax >= near;
 
 }
 
@@ -3553,20 +3547,20 @@ function intersectRay( nodeIndex32, array, ray ) {
 /*************************************************************/
 /* eslint-disable indent */
 
-function intersectTris_indirect( bvh, side, ray, offset, count, intersections ) {
+function intersectTris_indirect( bvh, side, ray, offset, count, intersections, near, far ) {
 
 	const { geometry, _indirectBuffer } = bvh;
 	for ( let i = offset, end = offset + count; i < end; i ++ ) {
 
 		let vi = _indirectBuffer ? _indirectBuffer[ i ] : i;
-		intersectTri( geometry, side, ray, vi, intersections );
+		intersectTri( geometry, side, ray, vi, intersections, near, far );
 
 
 	}
 
 }
 
-function intersectClosestTri_indirect( bvh, side, ray, offset, count ) {
+function intersectClosestTri_indirect( bvh, side, ray, offset, count, near, far ) {
 
 	const { geometry, _indirectBuffer } = bvh;
 	let dist = Infinity;
@@ -3574,7 +3568,7 @@ function intersectClosestTri_indirect( bvh, side, ray, offset, count ) {
 	for ( let i = offset, end = offset + count; i < end; i ++ ) {
 
 		let intersection;
-		intersection = intersectTri( geometry, side, ray, _indirectBuffer ? _indirectBuffer[ i ] : i );
+		intersection = intersectTri( geometry, side, ray, _indirectBuffer ? _indirectBuffer[ i ] : i, null, near, far );
 
 
 		if ( intersection && intersection.distance < dist ) {
@@ -3627,15 +3621,15 @@ function iterateOverTriangles_indirect(
 /* This file is generated from "raycast.template.js". */
 /******************************************************/
 
-function raycast( bvh, root, side, ray, intersects ) {
+function raycast( bvh, root, side, ray, intersects, near, far ) {
 
 	BufferStack.setBuffer( bvh._roots[ root ] );
-	_raycast$1( 0, bvh, side, ray, intersects );
+	_raycast$1( 0, bvh, side, ray, intersects, near, far );
 	BufferStack.clearBuffer();
 
 }
 
-function _raycast$1( nodeIndex32, bvh, side, ray, intersects ) {
+function _raycast$1( nodeIndex32, bvh, side, ray, intersects, near, far ) {
 
 	const { float32Array, uint16Array, uint32Array } = BufferStack;
 	const nodeIndex16 = nodeIndex32 * 2;
@@ -3646,22 +3640,22 @@ function _raycast$1( nodeIndex32, bvh, side, ray, intersects ) {
 		const count = COUNT( nodeIndex16, uint16Array );
 
 
-		intersectTris( bvh, side, ray, offset, count, intersects );
+		intersectTris( bvh, side, ray, offset, count, intersects, near, far );
 
 
 	} else {
 
 		const leftIndex = LEFT_NODE( nodeIndex32 );
-		if ( intersectRay( leftIndex, float32Array, ray ) ) {
+		if ( intersectRay( leftIndex, float32Array, ray, near, far ) ) {
 
-			_raycast$1( leftIndex, bvh, side, ray, intersects );
+			_raycast$1( leftIndex, bvh, side, ray, intersects, near, far );
 
 		}
 
 		const rightIndex = RIGHT_NODE( nodeIndex32, uint32Array );
-		if ( intersectRay( rightIndex, float32Array, ray ) ) {
+		if ( intersectRay( rightIndex, float32Array, ray, near, far ) ) {
 
-			_raycast$1( rightIndex, bvh, side, ray, intersects );
+			_raycast$1( rightIndex, bvh, side, ray, intersects, near, far );
 
 		}
 
@@ -3675,17 +3669,17 @@ function _raycast$1( nodeIndex32, bvh, side, ray, intersects ) {
 
 const _xyzFields$1 = [ 'x', 'y', 'z' ];
 
-function raycastFirst( bvh, root, side, ray ) {
+function raycastFirst( bvh, root, side, ray, near, far ) {
 
 	BufferStack.setBuffer( bvh._roots[ root ] );
-	const result = _raycastFirst$1( 0, bvh, side, ray );
+	const result = _raycastFirst$1( 0, bvh, side, ray, near, far );
 	BufferStack.clearBuffer();
 
 	return result;
 
 }
 
-function _raycastFirst$1( nodeIndex32, bvh, side, ray ) {
+function _raycastFirst$1( nodeIndex32, bvh, side, ray, near, far ) {
 
 	const { float32Array, uint16Array, uint32Array } = BufferStack;
 	let nodeIndex16 = nodeIndex32 * 2;
@@ -3697,7 +3691,8 @@ function _raycastFirst$1( nodeIndex32, bvh, side, ray ) {
 		const count = COUNT( nodeIndex16, uint16Array );
 
 
-		return intersectClosestTri( bvh, side, ray, offset, count );
+		// eslint-disable-next-line no-unreachable
+		return intersectClosestTri( bvh, side, ray, offset, count, near, far );
 
 
 	} else {
@@ -3723,8 +3718,8 @@ function _raycastFirst$1( nodeIndex32, bvh, side, ray ) {
 
 		}
 
-		const c1Intersection = intersectRay( c1, float32Array, ray );
-		const c1Result = c1Intersection ? _raycastFirst$1( c1, bvh, side, ray ) : null;
+		const c1Intersection = intersectRay( c1, float32Array, ray, near, far );
+		const c1Result = c1Intersection ? _raycastFirst$1( c1, bvh, side, ray, near, far ) : null;
 
 		// if we got an intersection in the first node and it's closer than the second node's bounding
 		// box, we don't need to consider the second node because it couldn't possibly be a better result
@@ -3747,8 +3742,8 @@ function _raycastFirst$1( nodeIndex32, bvh, side, ray ) {
 
 		// either there was no intersection in the first node, or there could still be a closer
 		// intersection in the second, so check the second node and then take the better of the two
-		const c2Intersection = intersectRay( c2, float32Array, ray );
-		const c2Result = c2Intersection ? _raycastFirst$1( c2, bvh, side, ray ) : null;
+		const c2Intersection = intersectRay( c2, float32Array, ray, near, far );
+		const c2Result = c2Intersection ? _raycastFirst$1( c2, bvh, side, ray, near, far ) : null;
 
 		if ( c1Result && c2Result ) {
 
@@ -4353,15 +4348,15 @@ function refit_indirect( bvh, nodeIndices = null ) {
 /* This file is generated from "raycast.template.js". */
 /******************************************************/
 
-function raycast_indirect( bvh, root, side, ray, intersects ) {
+function raycast_indirect( bvh, root, side, ray, intersects, near, far ) {
 
 	BufferStack.setBuffer( bvh._roots[ root ] );
-	_raycast( 0, bvh, side, ray, intersects );
+	_raycast( 0, bvh, side, ray, intersects, near, far );
 	BufferStack.clearBuffer();
 
 }
 
-function _raycast( nodeIndex32, bvh, side, ray, intersects ) {
+function _raycast( nodeIndex32, bvh, side, ray, intersects, near, far ) {
 
 	const { float32Array, uint16Array, uint32Array } = BufferStack;
 	const nodeIndex16 = nodeIndex32 * 2;
@@ -4371,22 +4366,22 @@ function _raycast( nodeIndex32, bvh, side, ray, intersects ) {
 		const offset = OFFSET( nodeIndex32, uint32Array );
 		const count = COUNT( nodeIndex16, uint16Array );
 
-		intersectTris_indirect( bvh, side, ray, offset, count, intersects );
+		intersectTris_indirect( bvh, side, ray, offset, count, intersects, near, far );
 
 
 	} else {
 
 		const leftIndex = LEFT_NODE( nodeIndex32 );
-		if ( intersectRay( leftIndex, float32Array, ray ) ) {
+		if ( intersectRay( leftIndex, float32Array, ray, near, far ) ) {
 
-			_raycast( leftIndex, bvh, side, ray, intersects );
+			_raycast( leftIndex, bvh, side, ray, intersects, near, far );
 
 		}
 
 		const rightIndex = RIGHT_NODE( nodeIndex32, uint32Array );
-		if ( intersectRay( rightIndex, float32Array, ray ) ) {
+		if ( intersectRay( rightIndex, float32Array, ray, near, far ) ) {
 
-			_raycast( rightIndex, bvh, side, ray, intersects );
+			_raycast( rightIndex, bvh, side, ray, intersects, near, far );
 
 		}
 
@@ -4400,17 +4395,17 @@ function _raycast( nodeIndex32, bvh, side, ray, intersects ) {
 
 const _xyzFields = [ 'x', 'y', 'z' ];
 
-function raycastFirst_indirect( bvh, root, side, ray ) {
+function raycastFirst_indirect( bvh, root, side, ray, near, far ) {
 
 	BufferStack.setBuffer( bvh._roots[ root ] );
-	const result = _raycastFirst( 0, bvh, side, ray );
+	const result = _raycastFirst( 0, bvh, side, ray, near, far );
 	BufferStack.clearBuffer();
 
 	return result;
 
 }
 
-function _raycastFirst( nodeIndex32, bvh, side, ray ) {
+function _raycastFirst( nodeIndex32, bvh, side, ray, near, far ) {
 
 	const { float32Array, uint16Array, uint32Array } = BufferStack;
 	let nodeIndex16 = nodeIndex32 * 2;
@@ -4421,7 +4416,7 @@ function _raycastFirst( nodeIndex32, bvh, side, ray ) {
 		const offset = OFFSET( nodeIndex32, uint32Array );
 		const count = COUNT( nodeIndex16, uint16Array );
 
-		return intersectClosestTri_indirect( bvh, side, ray, offset, count );
+		return intersectClosestTri_indirect( bvh, side, ray, offset, count, near, far );
 
 
 	} else {
@@ -4447,8 +4442,8 @@ function _raycastFirst( nodeIndex32, bvh, side, ray ) {
 
 		}
 
-		const c1Intersection = intersectRay( c1, float32Array, ray );
-		const c1Result = c1Intersection ? _raycastFirst( c1, bvh, side, ray ) : null;
+		const c1Intersection = intersectRay( c1, float32Array, ray, near, far );
+		const c1Result = c1Intersection ? _raycastFirst( c1, bvh, side, ray, near, far ) : null;
 
 		// if we got an intersection in the first node and it's closer than the second node's bounding
 		// box, we don't need to consider the second node because it couldn't possibly be a better result
@@ -4471,8 +4466,8 @@ function _raycastFirst( nodeIndex32, bvh, side, ray ) {
 
 		// either there was no intersection in the first node, or there could still be a closer
 		// intersection in the second, so check the second node and then take the better of the two
-		const c2Intersection = intersectRay( c2, float32Array, ray );
-		const c2Result = c2Intersection ? _raycastFirst( c2, bvh, side, ray ) : null;
+		const c2Intersection = intersectRay( c2, float32Array, ray, near, far );
+		const c2Result = c2Intersection ? _raycastFirst( c2, bvh, side, ray, near, far ) : null;
 
 		if ( c1Result && c2Result ) {
 
@@ -4943,7 +4938,7 @@ function bvhcast( bvh, otherBvh, matrixToLocal, intersectsRanges ) {
 		// iterate over the second set of roots
 		for ( let j = 0, jl = otherRoots.length; j < jl; j ++ ) {
 
-			_bufferStack2.setBuffer( otherRoots[ i ] );
+			_bufferStack2.setBuffer( otherRoots[ j ] );
 
 			result = _traverse(
 				0, 0, matrixToLocal, invMat, intersectsRanges,
@@ -5220,6 +5215,7 @@ const DEFAULT_OPTIONS = {
 	onProgress: null,
 	indirect: false,
 	verbose: true,
+	range: null
 };
 
 class MeshBVH {
@@ -5345,8 +5341,7 @@ class MeshBVH {
 
 		}
 
-		const { _indirectBuffer } = this;
-		this.resolveTriangleIndex = options.indirect ? i => _indirectBuffer[ i ] : i => i;
+		this.resolveTriangleIndex = options.indirect ? i => this._indirectBuffer[ i ] : i => i;
 
 	}
 
@@ -5396,7 +5391,7 @@ class MeshBVH {
 	}
 
 	/* Core Cast Functions */
-	raycast( ray, materialOrSide = FrontSide ) {
+	raycast( ray, materialOrSide = FrontSide, near = 0, far = Infinity ) {
 
 		const roots = this._roots;
 		const geometry = this.geometry;
@@ -5412,7 +5407,7 @@ class MeshBVH {
 			const materialSide = isArrayMaterial ? materialOrSide[ groups[ i ].materialIndex ].side : side;
 			const startCount = intersects.length;
 
-			raycastFunc( this, i, materialSide, ray, intersects );
+			raycastFunc( this, i, materialSide, ray, intersects, near, far );
 
 			if ( isArrayMaterial ) {
 
@@ -5431,7 +5426,7 @@ class MeshBVH {
 
 	}
 
-	raycastFirst( ray, materialOrSide = FrontSide ) {
+	raycastFirst( ray, materialOrSide = FrontSide, near = 0, far = Infinity ) {
 
 		const roots = this._roots;
 		const geometry = this.geometry;
@@ -5446,7 +5441,7 @@ class MeshBVH {
 		for ( let i = 0, l = roots.length; i < l; i ++ ) {
 
 			const materialSide = isArrayMaterial ? materialOrSide[ groups[ i ].materialIndex ].side : side;
-			const result = raycastFirstFunc( this, i, materialSide, ray );
+			const result = raycastFirstFunc( this, i, materialSide, ray, near, far );
 			if ( result != null && ( closestResult == null || result.distance < closestResult.distance ) ) {
 
 				closestResult = result;
@@ -5733,6 +5728,8 @@ class MeshBVH {
 }
 
 const boundingBox = /* @__PURE__ */ new Box3();
+const matrix = /* @__PURE__ */ new Matrix4();
+
 class MeshBVHRootHelper extends Object3D {
 
 	get isMesh() {
@@ -5750,6 +5747,13 @@ class MeshBVHRootHelper extends Object3D {
 	get isLine() {
 
 		return this.displayEdges;
+
+	}
+
+	getVertexPosition( ...args ) {
+
+		// implement this function so it works with Box3.setFromObject
+		return Mesh.prototype.getVertexPosition.call( this, ...args );
 
 	}
 
@@ -5977,6 +5981,7 @@ class MeshBVHHelper extends Group {
 		this.bvh = bvh;
 		this.displayParents = false;
 		this.displayEdges = true;
+		this.objectIndex = 0;
 		this._roots = [];
 
 		const edgeMaterial = new LineBasicMaterial( {
@@ -6004,7 +6009,21 @@ class MeshBVHHelper extends Group {
 
 	update() {
 
-		const bvh = this.bvh || this.mesh.geometry.boundsTree;
+		const mesh = this.mesh;
+		let bvh = this.bvh || mesh.geometry.boundsTree || null;
+		if ( mesh.isBatchedMesh && mesh.boundsTrees && ! bvh ) {
+
+			// get the bvh from a batchedMesh if not provided
+			// TODO: we should have an official way to get the geometry index cleanly
+			const drawInfo = mesh._drawInfo[ this.objectIndex ];
+			if ( drawInfo ) {
+
+				bvh = mesh.boundsTrees[ drawInfo.geometryIndex ] || bvh;
+
+			}
+
+		}
+
 		const totalRoots = bvh ? bvh._roots.length : 0;
 		while ( this._roots.length > totalRoots ) {
 
@@ -6058,6 +6077,14 @@ class MeshBVHHelper extends Group {
 
 				this.matrix
 					.copy( mesh.matrixWorld );
+
+			}
+
+			// handle batched and instanced mesh bvhs
+			if ( mesh.isInstancedMesh || mesh.isBatchedMesh ) {
+
+				mesh.getMatrixAt( this.objectIndex, matrix );
+				this.matrix.multiply( matrix );
 
 			}
 
@@ -6225,7 +6252,7 @@ function estimateMemoryInBytes( obj ) {
 
 		for ( let key in curr ) {
 
-			if ( ! curr.hasOwnProperty( key ) ) {
+			if ( ! Object.hasOwn( curr, key ) ) {
 
 				continue;
 
@@ -6405,23 +6432,110 @@ function convertRaycastIntersect( hit, object, raycaster ) {
 	hit.distance = hit.point.distanceTo( raycaster.ray.origin );
 	hit.object = object;
 
-	if ( hit.distance < raycaster.near || hit.distance > raycaster.far ) {
+	return hit;
 
-		return null;
+}
+
+const IS_REVISION_166 = parseInt( REVISION ) >= 166;
+const ray = /* @__PURE__ */ new Ray();
+const direction = /* @__PURE__ */ new Vector3();
+const tmpInverseMatrix = /* @__PURE__ */ new Matrix4();
+const origMeshRaycastFunc = Mesh.prototype.raycast;
+const origBatchedRaycastFunc = BatchedMesh.prototype.raycast;
+const _worldScale = /* @__PURE__ */ new Vector3();
+const _mesh = /* @__PURE__ */ new Mesh();
+const _batchIntersects = [];
+
+function acceleratedRaycast$1( raycaster, intersects ) {
+
+	if ( this.isBatchedMesh ) {
+
+		acceleratedBatchedMeshRaycast.call( this, raycaster, intersects );
 
 	} else {
 
-		return hit;
+		acceleratedMeshRaycast.call( this, raycaster, intersects );
 
 	}
 
 }
 
-const ray = /* @__PURE__ */ new Ray();
-const tmpInverseMatrix = /* @__PURE__ */ new Matrix4();
-const origMeshRaycastFunc = Mesh.prototype.raycast;
+function acceleratedBatchedMeshRaycast( raycaster, intersects ) {
 
-function acceleratedRaycast$1( raycaster, intersects ) {
+	if ( this.boundsTrees ) {
+
+		const boundsTrees = this.boundsTrees;
+		const drawInfo = this._drawInfo;
+		const drawRanges = this._drawRanges;
+		const matrixWorld = this.matrixWorld;
+
+		_mesh.material = this.material;
+		_mesh.geometry = this.geometry;
+
+		const oldBoundsTree = _mesh.geometry.boundsTree;
+		const oldDrawRange = _mesh.geometry.drawRange;
+
+		if ( _mesh.geometry.boundingSphere === null ) {
+
+			_mesh.geometry.boundingSphere = new Sphere();
+
+		}
+
+		// TODO: provide new method to get instances count instead of 'drawInfo.length'
+		for ( let i = 0, l = drawInfo.length; i < l; i ++ ) {
+
+			if ( ! this.getVisibleAt( i ) ) {
+
+				continue;
+
+			}
+
+			// TODO: use getGeometryIndex
+			const geometryId = drawInfo[ i ].geometryIndex;
+
+			_mesh.geometry.boundsTree = boundsTrees[ geometryId ];
+
+			this.getMatrixAt( i, _mesh.matrixWorld ).premultiply( matrixWorld );
+
+			if ( ! _mesh.geometry.boundsTree ) {
+
+				this.getBoundingBoxAt( geometryId, _mesh.geometry.boundingBox );
+				this.getBoundingSphereAt( geometryId, _mesh.geometry.boundingSphere );
+
+				const drawRange = drawRanges[ geometryId ];
+				_mesh.geometry.setDrawRange( drawRange.start, drawRange.count );
+
+			}
+
+			_mesh.raycast( raycaster, _batchIntersects );
+
+			for ( let j = 0, l = _batchIntersects.length; j < l; j ++ ) {
+
+				const intersect = _batchIntersects[ j ];
+				intersect.object = this;
+				intersect.batchId = i;
+				intersects.push( intersect );
+
+			}
+
+			_batchIntersects.length = 0;
+
+		}
+
+		_mesh.geometry.boundsTree = oldBoundsTree;
+		_mesh.geometry.drawRange = oldDrawRange;
+		_mesh.material = null;
+		_mesh.geometry = null;
+
+	} else {
+
+		origBatchedRaycastFunc.call( this, raycaster, intersects );
+
+	}
+
+}
+
+function acceleratedMeshRaycast( raycaster, intersects ) {
 
 	if ( this.geometry.boundsTree ) {
 
@@ -6430,10 +6544,17 @@ function acceleratedRaycast$1( raycaster, intersects ) {
 		tmpInverseMatrix.copy( this.matrixWorld ).invert();
 		ray.copy( raycaster.ray ).applyMatrix4( tmpInverseMatrix );
 
+		_worldScale.setFromMatrixScale( this.matrixWorld );
+		direction.copy( ray.direction ).multiply( _worldScale );
+
+		const scaleFactor = direction.length();
+		const near = raycaster.near / scaleFactor;
+		const far = raycaster.far / scaleFactor;
+
 		const bvh = this.geometry.boundsTree;
 		if ( raycaster.firstHitOnly === true ) {
 
-			const hit = convertRaycastIntersect( bvh.raycastFirst( ray, this.material ), this, raycaster );
+			const hit = convertRaycastIntersect( bvh.raycastFirst( ray, this.material, near, far ), this, raycaster );
 			if ( hit ) {
 
 				intersects.push( hit );
@@ -6442,7 +6563,7 @@ function acceleratedRaycast$1( raycaster, intersects ) {
 
 		} else {
 
-			const hits = bvh.raycast( ray, this.material );
+			const hits = bvh.raycast( ray, this.material, near, far );
 			for ( let i = 0, l = hits.length; i < l; i ++ ) {
 
 				const hit = convertRaycastIntersect( hits[ i ], this, raycaster );
@@ -6464,7 +6585,7 @@ function acceleratedRaycast$1( raycaster, intersects ) {
 
 }
 
-function computeBoundsTree$1( options ) {
+function computeBoundsTree$1( options = {} ) {
 
 	this.boundsTree = new MeshBVH( this, options );
 	return this.boundsTree;
@@ -6474,6 +6595,85 @@ function computeBoundsTree$1( options ) {
 function disposeBoundsTree$1() {
 
 	this.boundsTree = null;
+
+}
+
+function computeBatchedBoundsTree( index = - 1, options = {} ) {
+
+	if ( ! IS_REVISION_166 ) {
+
+		throw new Error( 'BatchedMesh: Three r166+ is required to compute bounds trees.' );
+
+	}
+
+	if ( options.indirect ) {
+
+		console.warn( '"Indirect" is set to false because it is not supported for BatchedMesh.' );
+
+	}
+
+	options = {
+		...options,
+		indirect: false,
+		range: null
+	};
+
+	const drawRanges = this._drawRanges;
+	const geometryCount = this._geometryCount;
+	if ( ! this.boundsTrees ) {
+
+		this.boundsTrees = new Array( geometryCount ).fill( null );
+
+	}
+
+	const boundsTrees = this.boundsTrees;
+	while ( boundsTrees.length < geometryCount ) {
+
+		boundsTrees.push( null );
+
+	}
+
+	if ( index < 0 ) {
+
+		for ( let i = 0; i < geometryCount; i ++ ) {
+
+			options.range = drawRanges[ i ];
+			boundsTrees[ i ] = new MeshBVH( this.geometry, options );
+
+		}
+
+		return boundsTrees;
+
+	} else {
+
+		if ( index < drawRanges.length ) {
+
+			options.range = drawRanges[ index ];
+			boundsTrees[ index ] = new MeshBVH( this.geometry, options );
+
+		}
+
+		return boundsTrees[ index ] || null;
+
+	}
+
+}
+
+function disposeBatchedBoundsTree( index = - 1 ) {
+
+	if ( index < 0 ) {
+
+		this.boundsTrees.fill( null );
+
+	} else {
+
+		if ( index < this.boundsTree.length ) {
+
+			this.boundsTrees[ index ] = null;
+
+		}
+
+	}
 
 }
 
@@ -8251,7 +8451,9 @@ var ThreeMeshBVH = /*#__PURE__*/Object.freeze({
     UIntVertexAttributeTexture: UIntVertexAttributeTexture,
     VertexAttributeTexture: VertexAttributeTexture,
     acceleratedRaycast: acceleratedRaycast$1,
+    computeBatchedBoundsTree: computeBatchedBoundsTree,
     computeBoundsTree: computeBoundsTree$1,
+    disposeBatchedBoundsTree: disposeBatchedBoundsTree,
     disposeBoundsTree: disposeBoundsTree$1,
     estimateMemoryInBytes: estimateMemoryInBytes,
     getBVHExtremes: getBVHExtremes,
@@ -8831,7 +9033,7 @@ class LayoutComponent extends UIComponent {
             borderRadius);
         let height = this.computedHeight;
         let width = this.computedWidth;
-        let renderOrder = 100 + this._materialOffset;
+        let renderOrder = this._materialOffset;
         if(borderWidth) {
             let borderShape = LayoutComponent.createShape(width, height,
                 topLeftRadius, topRightRadius, bottomLeftRadius,
@@ -9212,7 +9414,7 @@ class LayoutComponent extends UIComponent {
             if(child instanceof LayoutComponent)
                 child._updateMaterialOffset(this._materialOffset);
         }
-        let order = 100 + this._materialOffset;
+        let order = this._materialOffset;
         if(this._background) this._background.renderOrder = order;
         if(this._border) this._border.renderOrder = order;
     }
@@ -10060,16 +10262,6 @@ class GLTFLoader extends Loader {
 
 		this.dracoLoader = dracoLoader;
 		return this;
-
-	}
-
-	setDDSLoader() {
-
-		throw new Error(
-
-			'THREE.GLTFLoader: "MSFT_texture_dds" no longer supported. Please update to "KHR_texture_basisu".'
-
-		);
 
 	}
 
@@ -12376,18 +12568,24 @@ class GLTFParser {
 		// expensive work of uploading a texture to the GPU off the main thread.
 
 		let isSafari = false;
+		let safariVersion = - 1;
 		let isFirefox = false;
 		let firefoxVersion = - 1;
 
 		if ( typeof navigator !== 'undefined' ) {
 
-			isSafari = /^((?!chrome|android).)*safari/i.test( navigator.userAgent ) === true;
-			isFirefox = navigator.userAgent.indexOf( 'Firefox' ) > - 1;
-			firefoxVersion = isFirefox ? navigator.userAgent.match( /Firefox\/([0-9]+)\./ )[ 1 ] : - 1;
+			const userAgent = navigator.userAgent;
+
+			isSafari = /^((?!chrome|android).)*safari/i.test( userAgent ) === true;
+			const safariMatch = userAgent.match( /Version\/(\d+)/ );
+			safariVersion = isSafari && safariMatch ? parseInt( safariMatch[ 1 ], 10 ) : - 1;
+
+			isFirefox = userAgent.indexOf( 'Firefox' ) > - 1;
+			firefoxVersion = isFirefox ? userAgent.match( /Firefox\/([0-9]+)\./ )[ 1 ] : - 1;
 
 		}
 
-		if ( typeof createImageBitmap === 'undefined' || isSafari || ( isFirefox && firefoxVersion < 98 ) ) {
+		if ( typeof createImageBitmap === 'undefined' || ( isSafari && safariVersion < 17 ) || ( isFirefox && firefoxVersion < 98 ) ) {
 
 			this.textureLoader = new TextureLoader( this.options.manager );
 
@@ -12943,6 +13141,9 @@ class GLTFParser {
 
 				}
 
+				// Ignore normalized since we copy from sparse
+				bufferAttribute.normalized = false;
+
 				for ( let i = 0, il = sparseIndices.length; i < il; i ++ ) {
 
 					const index = sparseIndices[ i ];
@@ -12954,6 +13155,8 @@ class GLTFParser {
 					if ( itemSize >= 5 ) throw new Error( 'THREE.GLTFLoader: Unsupported itemSize in sparse BufferAttribute.' );
 
 				}
+
+				bufferAttribute.normalized = normalized;
 
 			}
 
@@ -13112,6 +13315,8 @@ class GLTFParser {
 				URL.revokeObjectURL( sourceURI );
 
 			}
+
+			assignExtrasToUserData( texture, sourceDef );
 
 			texture.userData.mimeType = sourceDef.mimeType || getImageURIMimeType( sourceDef.uri );
 
@@ -15662,15 +15867,24 @@ class InputHandler {
     }
 
     createJoystick() {
-        let joystickParent = document.createElement('div');
-        joystickParent.style.position = 'absolute';
-        joystickParent.style.width = '100px';
-        joystickParent.style.height = '100px';
-        joystickParent.style.left = '10px';
-        joystickParent.style.bottom = '10px';
-        this._container.appendChild(joystickParent);
+        console.warn('InputHandler.createJoystick() is deprecated, please use InputHandler.showJoystick() instead');
+        this._createJoystick();
+    }
+
+    _createJoystick() {
+        if(this._joystickParent) {
+            this.showJoystick();
+            return;
+        }
+        this._joystickParent = document.createElement('div');
+        this._joystickParent.style.position = 'absolute';
+        this._joystickParent.style.width = '100px';
+        this._joystickParent.style.height = '100px';
+        this._joystickParent.style.left = '10px';
+        this._joystickParent.style.bottom = '10px';
+        this._container.appendChild(this._joystickParent);
         let options = {
-            zone: joystickParent,
+            zone: this._joystickParent,
             mode: 'static',
             position: {left: '50%', top: '50%'},
         };
@@ -15683,6 +15897,22 @@ class InputHandler {
         joystick.on('end', () => {
             this._joystickDistance = 0;
         });
+    }
+
+    showJoystick() {
+        if(!this._joystickParent) {
+            this.createJoystick();
+        } else if(!this._container.contains(this._joystickParent)) {
+            this._container.appendChild(this._joystickParent);
+        }
+        //nipplejs needs a resize event in the case of absolute positioning
+        window.dispatchEvent(new Event("resize"));
+    }
+
+    hideJoystick() {
+        if(!this._joystickParent) return;
+        if(this._container.contains(this._joystickParent))
+            this._container.removeChild(this._joystickParent);
     }
 
     addExtraControlsButton(id, name) {
@@ -19626,7 +19856,7 @@ Original licenses apply:
 - fflate: https://github.com/101arrowz/fflate/blob/master/LICENSE (MIT)
 - woff2otf.js: https://github.com/arty-name/woff2otf/blob/master/woff2otf.js (Apache2)
 */
-function woff2otfFactory(){return function(r){var e=Uint8Array,n=Uint16Array,t=Uint32Array,a=new e([0,0,0,0,0,0,0,0,1,1,1,1,2,2,2,2,3,3,3,3,4,4,4,4,5,5,5,5,0,0,0,0]),i=new e([0,0,0,0,1,1,2,2,3,3,4,4,5,5,6,6,7,7,8,8,9,9,10,10,11,11,12,12,13,13,0,0]),o=new e([16,17,18,0,8,7,9,6,10,5,11,4,12,3,13,2,14,1,15]),f=function(r,e){for(var a=new n(31),i=0;i<31;++i)a[i]=e+=1<<r[i-1];var o=new t(a[30]);for(i=1;i<30;++i)for(var f=a[i];f<a[i+1];++f)o[f]=f-a[i]<<5|i;return [a,o]},u=f(a,2),v=u[0],s=u[1];v[28]=258,s[258]=28;for(var l=f(i,0)[0],c=new n(32768),g=0;g<32768;++g){var h=(43690&g)>>>1|(21845&g)<<1;h=(61680&(h=(52428&h)>>>2|(13107&h)<<2))>>>4|(3855&h)<<4,c[g]=((65280&h)>>>8|(255&h)<<8)>>>1;}var w=function(r,e,t){for(var a=r.length,i=0,o=new n(e);i<a;++i)++o[r[i]-1];var f,u=new n(e);for(i=0;i<e;++i)u[i]=u[i-1]+o[i-1]<<1;if(t){f=new n(1<<e);var v=15-e;for(i=0;i<a;++i)if(r[i])for(var s=i<<4|r[i],l=e-r[i],g=u[r[i]-1]++<<l,h=g|(1<<l)-1;g<=h;++g)f[c[g]>>>v]=s;}else for(f=new n(a),i=0;i<a;++i)r[i]&&(f[i]=c[u[r[i]-1]++]>>>15-r[i]);return f},d=new e(288);for(g=0;g<144;++g)d[g]=8;for(g=144;g<256;++g)d[g]=9;for(g=256;g<280;++g)d[g]=7;for(g=280;g<288;++g)d[g]=8;var m=new e(32);for(g=0;g<32;++g)m[g]=5;var b=w(d,9,1),p=w(m,5,1),y=function(r){for(var e=r[0],n=1;n<r.length;++n)r[n]>e&&(e=r[n]);return e},L=function(r,e,n){var t=e/8|0;return (r[t]|r[t+1]<<8)>>(7&e)&n},U=function(r,e){var n=e/8|0;return (r[n]|r[n+1]<<8|r[n+2]<<16)>>(7&e)},k=["unexpected EOF","invalid block type","invalid length/literal","invalid distance","stream finished","no stream handler",,"no callback","invalid UTF-8 data","extra field too long","date not in range 1980-2099","filename too long","stream finishing","invalid zip data"],T=function(r,e,n){var t=new Error(e||k[r]);if(t.code=r,Error.captureStackTrace&&Error.captureStackTrace(t,T),!n)throw t;return t},O=function(r,f,u){var s=r.length;if(!s||u&&!u.l&&s<5)return f||new e(0);var c=!f||u,g=!u||u.i;u||(u={}),f||(f=new e(3*s));var h,d=function(r){var n=f.length;if(r>n){var t=new e(Math.max(2*n,r));t.set(f),f=t;}},m=u.f||0,k=u.p||0,O=u.b||0,A=u.l,x=u.d,E=u.m,D=u.n,M=8*s;do{if(!A){u.f=m=L(r,k,1);var S=L(r,k+1,3);if(k+=3,!S){var V=r[(I=((h=k)/8|0)+(7&h&&1)+4)-4]|r[I-3]<<8,_=I+V;if(_>s){g&&T(0);break}c&&d(O+V),f.set(r.subarray(I,_),O),u.b=O+=V,u.p=k=8*_;continue}if(1==S)A=b,x=p,E=9,D=5;else if(2==S){var j=L(r,k,31)+257,z=L(r,k+10,15)+4,C=j+L(r,k+5,31)+1;k+=14;for(var F=new e(C),P=new e(19),q=0;q<z;++q)P[o[q]]=L(r,k+3*q,7);k+=3*z;var B=y(P),G=(1<<B)-1,H=w(P,B,1);for(q=0;q<C;){var I,J=H[L(r,k,G)];if(k+=15&J,(I=J>>>4)<16)F[q++]=I;else {var K=0,N=0;for(16==I?(N=3+L(r,k,3),k+=2,K=F[q-1]):17==I?(N=3+L(r,k,7),k+=3):18==I&&(N=11+L(r,k,127),k+=7);N--;)F[q++]=K;}}var Q=F.subarray(0,j),R=F.subarray(j);E=y(Q),D=y(R),A=w(Q,E,1),x=w(R,D,1);}else T(1);if(k>M){g&&T(0);break}}c&&d(O+131072);for(var W=(1<<E)-1,X=(1<<D)-1,Y=k;;Y=k){var Z=(K=A[U(r,k)&W])>>>4;if((k+=15&K)>M){g&&T(0);break}if(K||T(2),Z<256)f[O++]=Z;else {if(256==Z){Y=k,A=null;break}var $=Z-254;if(Z>264){var rr=a[q=Z-257];$=L(r,k,(1<<rr)-1)+v[q],k+=rr;}var er=x[U(r,k)&X],nr=er>>>4;er||T(3),k+=15&er;R=l[nr];if(nr>3){rr=i[nr];R+=U(r,k)&(1<<rr)-1,k+=rr;}if(k>M){g&&T(0);break}c&&d(O+131072);for(var tr=O+$;O<tr;O+=4)f[O]=f[O-R],f[O+1]=f[O+1-R],f[O+2]=f[O+2-R],f[O+3]=f[O+3-R];O=tr;}}u.l=A,u.p=Y,u.b=O,A&&(m=1,u.m=E,u.d=x,u.n=D);}while(!m);return O==f.length?f:function(r,a,i){(null==a||a<0)&&(a=0),(null==i||i>r.length)&&(i=r.length);var o=new(r instanceof n?n:r instanceof t?t:e)(i-a);return o.set(r.subarray(a,i)),o}(f,0,O)},A=new e(0);var x="undefined"!=typeof TextDecoder&&new TextDecoder;try{x.decode(A,{stream:!0}),1;}catch(r){}return r.convert_streams=function(r){var e=new DataView(r),n=0;function t(){var r=e.getUint16(n);return n+=2,r}function a(){var r=e.getUint32(n);return n+=4,r}function i(r){m.setUint16(b,r),b+=2;}function o(r){m.setUint32(b,r),b+=4;}for(var f={signature:a(),flavor:a(),length:a(),numTables:t(),reserved:t(),totalSfntSize:a(),majorVersion:t(),minorVersion:t(),metaOffset:a(),metaLength:a(),metaOrigLength:a(),privOffset:a(),privLength:a()},u=0;Math.pow(2,u)<=f.numTables;)u++;u--;for(var v=16*Math.pow(2,u),s=16*f.numTables-v,l=12,c=[],g=0;g<f.numTables;g++)c.push({tag:a(),offset:a(),compLength:a(),origLength:a(),origChecksum:a()}),l+=16;var h,w=new Uint8Array(12+16*c.length+c.reduce((function(r,e){return r+e.origLength+4}),0)),d=w.buffer,m=new DataView(d),b=0;return o(f.flavor),i(f.numTables),i(v),i(u),i(s),c.forEach((function(r){o(r.tag),o(r.origChecksum),o(l),o(r.origLength),r.outOffset=l,(l+=r.origLength)%4!=0&&(l+=4-l%4);})),c.forEach((function(e){var n,t=r.slice(e.offset,e.offset+e.compLength);if(e.compLength!=e.origLength){var a=new Uint8Array(e.origLength);n=new Uint8Array(t,2),O(n,a);}else a=new Uint8Array(t);w.set(a,e.outOffset);var i=0;(l=e.outOffset+e.origLength)%4!=0&&(i=4-l%4),w.set(new Uint8Array(i).buffer,e.outOffset+e.origLength),h=l+i;})),d.slice(0,h)},Object.defineProperty(r,"__esModule",{value:!0}),r}({}).convert_streams}
+function woff2otfFactory(){return function(r){var e=Uint8Array,n=Uint16Array,t=Uint32Array,a=new e([0,0,0,0,0,0,0,0,1,1,1,1,2,2,2,2,3,3,3,3,4,4,4,4,5,5,5,5,0,0,0,0]),i=new e([0,0,0,0,1,1,2,2,3,3,4,4,5,5,6,6,7,7,8,8,9,9,10,10,11,11,12,12,13,13,0,0]),o=new e([16,17,18,0,8,7,9,6,10,5,11,4,12,3,13,2,14,1,15]),f=function(r,e){for(var a=new n(31),i=0;i<31;++i)a[i]=e+=1<<r[i-1];var o=new t(a[30]);for(i=1;i<30;++i)for(var f=a[i];f<a[i+1];++f)o[f]=f-a[i]<<5|i;return [a,o]},u=f(a,2),v=u[0],s=u[1];v[28]=258,s[258]=28;for(var l=f(i,0)[0],c=new n(32768),g=0;g<32768;++g){var h=(43690&g)>>>1|(21845&g)<<1;h=(61680&(h=(52428&h)>>>2|(13107&h)<<2))>>>4|(3855&h)<<4,c[g]=((65280&h)>>>8|(255&h)<<8)>>>1;}var w=function(r,e,t){for(var a=r.length,i=0,o=new n(e);i<a;++i)++o[r[i]-1];var f,u=new n(e);for(i=0;i<e;++i)u[i]=u[i-1]+o[i-1]<<1;{f=new n(1<<e);var v=15-e;for(i=0;i<a;++i)if(r[i])for(var s=i<<4|r[i],l=e-r[i],g=u[r[i]-1]++<<l,h=g|(1<<l)-1;g<=h;++g)f[c[g]>>>v]=s;}return f},d=new e(288);for(g=0;g<144;++g)d[g]=8;for(g=144;g<256;++g)d[g]=9;for(g=256;g<280;++g)d[g]=7;for(g=280;g<288;++g)d[g]=8;var m=new e(32);for(g=0;g<32;++g)m[g]=5;var b=w(d,9),p=w(m,5),y=function(r){for(var e=r[0],n=1;n<r.length;++n)r[n]>e&&(e=r[n]);return e},L=function(r,e,n){var t=e/8|0;return (r[t]|r[t+1]<<8)>>(7&e)&n},U=function(r,e){var n=e/8|0;return (r[n]|r[n+1]<<8|r[n+2]<<16)>>(7&e)},k=["unexpected EOF","invalid block type","invalid length/literal","invalid distance","stream finished","no stream handler",,"no callback","invalid UTF-8 data","extra field too long","date not in range 1980-2099","filename too long","stream finishing","invalid zip data"],T=function(r,e,n){var t=new Error(e||k[r]);if(t.code=r,Error.captureStackTrace&&Error.captureStackTrace(t,T),!n)throw t;return t},O=function(r,f,u){var s=r.length;if(!s||u&&!u.l&&s<5)return f||new e(0);var c=!f||u,g=!u||u.i;u||(u={}),f||(f=new e(3*s));var h,d=function(r){var n=f.length;if(r>n){var t=new e(Math.max(2*n,r));t.set(f),f=t;}},m=u.f||0,k=u.p||0,O=u.b||0,A=u.l,x=u.d,E=u.m,D=u.n,M=8*s;do{if(!A){u.f=m=L(r,k,1);var S=L(r,k+1,3);if(k+=3,!S){var V=r[(I=((h=k)/8|0)+(7&h&&1)+4)-4]|r[I-3]<<8,_=I+V;if(_>s){g&&T(0);break}c&&d(O+V),f.set(r.subarray(I,_),O),u.b=O+=V,u.p=k=8*_;continue}if(1==S)A=b,x=p,E=9,D=5;else if(2==S){var j=L(r,k,31)+257,z=L(r,k+10,15)+4,C=j+L(r,k+5,31)+1;k+=14;for(var F=new e(C),P=new e(19),q=0;q<z;++q)P[o[q]]=L(r,k+3*q,7);k+=3*z;var B=y(P),G=(1<<B)-1,H=w(P,B);for(q=0;q<C;){var I,J=H[L(r,k,G)];if(k+=15&J,(I=J>>>4)<16)F[q++]=I;else {var K=0,N=0;for(16==I?(N=3+L(r,k,3),k+=2,K=F[q-1]):17==I?(N=3+L(r,k,7),k+=3):18==I&&(N=11+L(r,k,127),k+=7);N--;)F[q++]=K;}}var Q=F.subarray(0,j),R=F.subarray(j);E=y(Q),D=y(R),A=w(Q,E),x=w(R,D);}else T(1);if(k>M){g&&T(0);break}}c&&d(O+131072);for(var W=(1<<E)-1,X=(1<<D)-1,Y=k;;Y=k){var Z=(K=A[U(r,k)&W])>>>4;if((k+=15&K)>M){g&&T(0);break}if(K||T(2),Z<256)f[O++]=Z;else {if(256==Z){Y=k,A=null;break}var $=Z-254;if(Z>264){var rr=a[q=Z-257];$=L(r,k,(1<<rr)-1)+v[q],k+=rr;}var er=x[U(r,k)&X],nr=er>>>4;er||T(3),k+=15&er;R=l[nr];if(nr>3){rr=i[nr];R+=U(r,k)&(1<<rr)-1,k+=rr;}if(k>M){g&&T(0);break}c&&d(O+131072);for(var tr=O+$;O<tr;O+=4)f[O]=f[O-R],f[O+1]=f[O+1-R],f[O+2]=f[O+2-R],f[O+3]=f[O+3-R];O=tr;}}u.l=A,u.p=Y,u.b=O,A&&(m=1,u.m=E,u.d=x,u.n=D);}while(!m);return O==f.length?f:function(r,a,i){(null==i||i>r.length)&&(i=r.length);var o=new(r instanceof n?n:r instanceof t?t:e)(i-a);return o.set(r.subarray(a,i)),o}(f,0,O)},A=new e(0);var x="undefined"!=typeof TextDecoder&&new TextDecoder;try{x.decode(A,{stream:!0}),1;}catch(r){}return r.convert_streams=function(r){var e=new DataView(r),n=0;function t(){var r=e.getUint16(n);return n+=2,r}function a(){var r=e.getUint32(n);return n+=4,r}function i(r){m.setUint16(b,r),b+=2;}function o(r){m.setUint32(b,r),b+=4;}for(var f={signature:a(),flavor:a(),length:a(),numTables:t(),reserved:t(),totalSfntSize:a(),majorVersion:t(),minorVersion:t(),metaOffset:a(),metaLength:a(),metaOrigLength:a(),privOffset:a(),privLength:a()},u=0;Math.pow(2,u)<=f.numTables;)u++;u--;for(var v=16*Math.pow(2,u),s=16*f.numTables-v,l=12,c=[],g=0;g<f.numTables;g++)c.push({tag:a(),offset:a(),compLength:a(),origLength:a(),origChecksum:a()}),l+=16;var h,w=new Uint8Array(12+16*c.length+c.reduce((function(r,e){return r+e.origLength+4}),0)),d=w.buffer,m=new DataView(d),b=0;return o(f.flavor),i(f.numTables),i(v),i(u),i(s),c.forEach((function(r){o(r.tag),o(r.origChecksum),o(l),o(r.origLength),r.outOffset=l,(l+=r.origLength)%4!=0&&(l+=4-l%4);})),c.forEach((function(e){var n,t=r.slice(e.offset,e.offset+e.compLength);if(e.compLength!=e.origLength){var a=new Uint8Array(e.origLength);n=new Uint8Array(t,2),O(n,a);}else a=new Uint8Array(t);w.set(a,e.outOffset);var i=0;(l=e.outOffset+e.origLength)%4!=0&&(i=4-l%4),w.set(new Uint8Array(i).buffer,e.outOffset+e.origLength),h=l+i;})),d.slice(0,h)},Object.defineProperty(r,"__esModule",{value:!0}),r}({}).convert_streams}
 
 /**
  * A factory wrapper parsing a font file using Typr.
@@ -20583,7 +20813,7 @@ function createTypesetter(resolveFonts, bidi) {
             baseline: -halfLeading - ascender * fontSizeMult, // baseline offset from top of line height
             // cap: -halfLeading - capHeight * fontSizeMult, // cap from top of line height
             // ex: -halfLeading - xHeight * fontSizeMult, // ex from top of line height
-            caretTop: (ascender + descender) / 2 * fontSizeMult + caretHeight / 2,
+            caretTop,
             caretBottom: caretTop - caretHeight
           };
           metricsByFont.set(fontObj, fontData);
@@ -20726,7 +20956,7 @@ function createTypesetter(resolveFonts, bidi) {
             anchorY === 'top-ex' ? -lines[0].ex :
             anchorY === 'middle' ? totalHeight / 2 :
             anchorY === 'bottom' ? totalHeight :
-            anchorY === 'bottom-baseline' ? lines[lines.length - 1].baseline :
+            anchorY === 'bottom-baseline' ? -lines[lines.length - 1].baseline :
             parsePercent(anchorY) * totalHeight;
         }
       }
@@ -23178,7 +23408,7 @@ class Checkbox extends InteractableComponent {
     _updateMaterialOffset(parentOffset) {
         super._updateMaterialOffset(parentOffset);
         this._text.depthOffset = -1 * this._materialOffset - 1;
-        this._text.renderOrder = 100 + this._materialOffset + 1;
+        this._text.renderOrder = this._materialOffset + 1;
     }
 
     _change() {
@@ -23583,7 +23813,7 @@ class HSLColor {
         if(material.polygonOffsetFactor != -1 * materialOffset) {
             material.polygonOffsetFactor = -1 * materialOffset;
             material.polygonOffsetUnits = -1 * materialOffset;
-            this._colorCursor.renderOrder = 100 + materialOffset;
+            this._colorCursor.renderOrder = materialOffset;
         }
     }
 
@@ -23779,7 +24009,7 @@ class TextComponent extends LayoutComponent {
     _updateMaterialOffset(parentOffset) {
         super._updateMaterialOffset(parentOffset);
         this._text.depthOffset = -1 * this._materialOffset - 1;
-        this._text.renderOrder = 100 + this._materialOffset + 1;
+        this._text.renderOrder = this._materialOffset + 1;
     }
 
     get text() { return this._text.text; }
@@ -23842,6 +24072,8 @@ const NUMBERS = {
             keys: ['7', '8', '9'],
         }, {
             keys: ['.', '0', { text: '⌫', type: 'key', value: 'Backspace' }],
+        }, {
+            keys: ['±', { text: '⏎', type: 'key', value: 'Enter', style: { width: 0.21 } }], 
         }],
     }]
 };
@@ -25192,6 +25424,8 @@ class NumberInput extends TextInput {
             if(this._onEnter) this._onEnter(this._text.text);
         } else if(key == "Escape") {
             this.blur();
+        } else if(key == "±") {
+            this._negate();
         } else if(ARROW_KEYS.has(key)) {
             this._moveCaret(key);
         } else if(key.match(/^[0-9.-]*$/)) {
@@ -25205,7 +25439,7 @@ class NumberInput extends TextInput {
         this.insertContent(data);
         e.preventDefault();
     }
-    
+
     _checkForCaretScroll() {
         if(!this._scrollable && this._content.position.x != 0) {
             this._content.position.x = 0;
@@ -25269,6 +25503,27 @@ class NumberInput extends TextInput {
         return incoming;
     }
 
+    _negate() {
+        if(this._text.text.indexOf('-') >= 0) {
+            this.value = this._text.text.replaceAll('-', '');
+            this._moveCaret('ArrowLeft');
+        } else {
+            this.value = '-' + this.value;
+            this._moveCaret('ArrowRight');
+        }
+    }
+
+    _sanitizeScientificNotation(number) {
+        let numChunks = number.toString().split('e');
+        let coefficient = numChunks[0].replaceAll('.', '');
+        let zeroCount = Math.abs(numChunks[1]) - 1;
+        let zeroes = '0'.repeat(zeroCount);
+        let value = '0.' + zeroes + coefficient;
+        if(value.indexOf('-') > -1) value = '-' + value.replace('-','');
+        return value;
+        
+    }
+
     _sanitizeText() {
         if(this._text.text.indexOf('-') > 0) {
             this.value = '-' + this._text.text.replaceAll('-', '');
@@ -25290,7 +25545,11 @@ class NumberInput extends TextInput {
     set onEnter(onEnter) { this._onEnter = onEnter; }
     set value(value) {
         if(value == null) value = Math.max(this._minValue, 0);
-        value = this._sanitizeIncomingText(String(value));
+        if(Math.abs(value) <= 0.0000001) {
+            value = this._sanitizeScientificNotation(value);
+        } else {
+            value = this._sanitizeIncomingText(String(value));
+        }
         super.value = value;
         this._lastValidValue = this._text.text;
     }
@@ -25351,7 +25610,7 @@ class Radio extends InteractableComponent {
             = this._toggleMaterial.polygonOffsetUnits
             = -1 * this._materialOffset - 1;
         if(this._toggleChild)
-            this._toggleChild.renderOrder = 100 + this._materialOffset + 1;
+            this._toggleChild.renderOrder = this._materialOffset + 1;
     }
 
     _select(ignoreOnChange) {
@@ -25462,7 +25721,7 @@ class Range extends InteractableComponent {
             = this._scrubberMaterial.polygonOffsetUnits
             = -1 * this._materialOffset - 1;
         if(this._scrubberChild)
-            this._scrubberChild.renderOrder = 100 + this._materialOffset + 1;
+            this._scrubberChild.renderOrder = this._materialOffset + 1;
     }
 
     _select(e) {
@@ -25579,6 +25838,7 @@ class Select extends ScrollableComponent {
             width: this.width,
         });
         this._optionsDiv = new Div(this._optionsDivStyle);
+        this._optionsDiv._content.position.z *= 3;
         this._optionsStyle = new Style({
             backgroundVisible: this.backgroundVisible,
             width: '90%'
@@ -25639,7 +25899,7 @@ class Select extends ScrollableComponent {
     _select() {
         this.remove(this._textSpan);
         this.add(this._optionsDiv);
-        this._optionsDiv._updateMaterialOffset(this._materialOffset + 1);
+        this._optionsDiv._updateMaterialOffset(this._materialOffset + 3);
         this.onClick = this.onTouch = null;
         pointerInteractableHandler.addEventListener('down', this._downListener);
     }
@@ -25744,7 +26004,7 @@ class Toggle extends InteractableComponent {
         topRightRadius = Math.max(topRightRadius - padding / 2, 0);
         bottomLeftRadius = Math.max(bottomLeftRadius - padding / 2, 0);
         bottomRightRadius = Math.max(bottomRightRadius - padding / 2, 0);
-        let renderOrder = 100 + this._materialOffset + 1;
+        let renderOrder = this._materialOffset + 1;
         let shape = Toggle.createShape(width, height, topLeftRadius,
             topRightRadius, bottomLeftRadius, bottomRightRadius);
         let geometry = new THREE.ShapeGeometry(shape);
@@ -25764,7 +26024,7 @@ class Toggle extends InteractableComponent {
             = this._toggleMaterial.polygonOffsetUnits
             = -1 * this._materialOffset - 1;
         if(this._toggleChild)
-            this._toggleChild.renderOrder = 100 + this._materialOffset + 1;
+            this._toggleChild.renderOrder = this._materialOffset + 1;
     }
 
     _change() {
@@ -26075,7 +26335,7 @@ THREE.BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
 THREE.BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
 THREE.Mesh.prototype.raycast = acceleratedRaycast;
 
-const version = '0.1.1';
+const version = '0.1.4';
 
 const addGripInteractable = (interactable) => {
     gripInteractableHandler.addInteractable(interactable);
