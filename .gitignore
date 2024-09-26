@@ -135,3 +135,6 @@ dist
 # SSL
 cert.pem
 key.pem
+
+# Staging
+staging/
