@@ -317,11 +317,13 @@ class InputHandler {
         this._joystickParent.style.width = '100px';
         this._joystickParent.style.height = '100px';
         this._joystickParent.style.left = '10px';
-        this._joystickParent.style.bottom = '10px';
+        this._joystickParent.style.bottom = this._joystickParentBottomStyle
+            || '10px';
         this._container.appendChild(this._joystickParent);
         let options = {
             zone: this._joystickParent,
             mode: 'static',
+            dynamicPage: true,
             position: {left: '50%', top: '50%'},
         };
         let manager = nipplejs.create(options);
@@ -341,14 +343,20 @@ class InputHandler {
         } else if(!this._container.contains(this._joystickParent)) {
             this._container.appendChild(this._joystickParent);
         }
-        //nipplejs needs a resize event in the case of absolute positioning
-        window.dispatchEvent(new Event("resize"));
     }
 
     hideJoystick() {
         if(!this._joystickParent) return;
         if(this._container.contains(this._joystickParent))
             this._container.removeChild(this._joystickParent);
+    }
+
+    configureJoystickForLvhContainer() {
+        if(this._joystickParent) {
+            this._joystickParent.style.bottom = 'calc(100lvh - 100dvh + 10px)';
+        } else {
+            this._joystickParentBottomStyle = 'calc(100lvh - 100dvh + 10px)';
+        }
     }
 
     addExtraControlsButton(id, name) {
