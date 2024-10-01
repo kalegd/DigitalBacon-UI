@@ -327,6 +327,8 @@ class LayoutComponent extends UIComponent {
         let oldWidth = this.computedWidth;
         let oldMarginedHeight = this.marginedHeight;
         let oldMarginedWidth = this.marginedWidth;
+        let oldUnpaddedHeight = this.unpaddedHeight;
+        let oldUnpaddedWidth = this.unpaddedWidth;
         let height = this._computeDimension('height');
         let width = this._computeDimension('width');
         let contentHeight = this._getContentHeight();
@@ -447,6 +449,10 @@ class LayoutComponent extends UIComponent {
             if(this.clippingPlanes) this._updateClippingPlanes();
             if(this.parentComponent instanceof LayoutComponent)
                 this.parent.parent.updateLayout();
+        } else if(oldUnpaddedHeight != this.unpaddedHeight
+                || oldUnpaddedWidth != this.unpaddedWidth) {
+            this._updateChildrensLayout(oldUnpaddedWidth != this.unpaddedWidth,
+                oldUnpaddedHeight != this.unpaddedHeight);
         }
     }
 
