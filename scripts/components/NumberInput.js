@@ -236,7 +236,9 @@ class NumberInput extends TextInput {
     set onEnter(onEnter) { this._onEnter = onEnter; }
     set value(value) {
         if(value == null) value = Math.max(this._minValue, 0);
-        if(Math.abs(value) <= 0.0000001) {
+        if(value == 0) {
+            value = '0';
+        } else if(Math.abs(value) <= 0.0000001) {
             value = this._sanitizeScientificNotation(value);
         } else {
             value = this._sanitizeIncomingText(String(value));
