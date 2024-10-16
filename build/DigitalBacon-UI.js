@@ -9145,6 +9145,8 @@ class LayoutComponent extends UIComponent {
         let oldWidth = this.computedWidth;
         let oldMarginedHeight = this.marginedHeight;
         let oldMarginedWidth = this.marginedWidth;
+        let oldUnpaddedHeight = this.unpaddedHeight;
+        let oldUnpaddedWidth = this.unpaddedWidth;
         let height = this._computeDimension('height');
         let width = this._computeDimension('width');
         let contentHeight = this._getContentHeight();
@@ -9265,6 +9267,10 @@ class LayoutComponent extends UIComponent {
             if(this.clippingPlanes) this._updateClippingPlanes();
             if(this.parentComponent instanceof LayoutComponent)
                 this.parent.parent.updateLayout();
+        } else if(oldUnpaddedHeight != this.unpaddedHeight
+                || oldUnpaddedWidth != this.unpaddedWidth) {
+            this._updateChildrensLayout(oldUnpaddedWidth != this.unpaddedWidth,
+                oldUnpaddedHeight != this.unpaddedHeight);
         }
     }
 
@@ -15881,11 +15887,13 @@ class InputHandler {
         this._joystickParent.style.width = '100px';
         this._joystickParent.style.height = '100px';
         this._joystickParent.style.left = '10px';
-        this._joystickParent.style.bottom = '10px';
+        this._joystickParent.style.bottom = this._joystickParentBottomStyle
+            || '10px';
         this._container.appendChild(this._joystickParent);
         let options = {
             zone: this._joystickParent,
             mode: 'static',
+            dynamicPage: true,
             position: {left: '50%', top: '50%'},
         };
         let manager = nipplejs.create(options);
@@ -15905,14 +15913,20 @@ class InputHandler {
         } else if(!this._container.contains(this._joystickParent)) {
             this._container.appendChild(this._joystickParent);
         }
-        //nipplejs needs a resize event in the case of absolute positioning
-        window.dispatchEvent(new Event("resize"));
     }
 
     hideJoystick() {
         if(!this._joystickParent) return;
         if(this._container.contains(this._joystickParent))
             this._container.removeChild(this._joystickParent);
+    }
+
+    configureJoystickForLvhContainer() {
+        if(this._joystickParent) {
+            this._joystickParent.style.bottom = 'calc(100lvh - 100dvh + 10px)';
+        } else {
+            this._joystickParentBottomStyle = 'calc(100lvh - 100dvh + 10px)';
+        }
     }
 
     addExtraControlsButton(id, name) {
@@ -25545,7 +25559,9 @@ class NumberInput extends TextInput {
     set onEnter(onEnter) { this._onEnter = onEnter; }
     set value(value) {
         if(value == null) value = Math.max(this._minValue, 0);
-        if(Math.abs(value) <= 0.0000001) {
+        if(value == 0) {
+            value = '0';
+        } else if(Math.abs(value) <= 0.0000001) {
             value = this._sanitizeScientificNotation(value);
         } else {
             value = this._sanitizeIncomingText(String(value));
@@ -26335,7 +26351,7 @@ THREE.BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
 THREE.BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
 THREE.Mesh.prototype.raycast = acceleratedRaycast;
 
-const version = '0.1.5';
+const version = '0.1.6';
 
 const addGripInteractable = (interactable) => {
     gripInteractableHandler.addInteractable(interactable);
