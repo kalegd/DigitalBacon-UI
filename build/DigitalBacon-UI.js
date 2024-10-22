@@ -16217,6 +16217,7 @@ class PointerInteractableHandler extends InteractableHandler {
         if(!owner.raycaster) owner.raycaster = new THREE.Raycaster();
         let position = inputHandler.getPointerPosition();
         owner.raycaster.setFromCamera(position, this._camera);
+        owner.raycaster.layers.mask = this._camera.layers.mask;
         return owner.raycaster;
     }
 
@@ -16226,6 +16227,7 @@ class PointerInteractableHandler extends InteractableHandler {
         xrController.getWorldPosition(xrController.raycaster.ray.origin);
         xrController.getWorldDirection(xrController.raycaster.ray.direction)
             .negate().normalize();
+        xrController.raycaster.layers.mask = this._camera.layers.mask;
         return xrController.raycaster;
     }
 
@@ -26351,7 +26353,7 @@ THREE.BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
 THREE.BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
 THREE.Mesh.prototype.raycast = acceleratedRaycast;
 
-const version = '0.1.6';
+const version = '0.1.7';
 
 const addGripInteractable = (interactable) => {
     gripInteractableHandler.addInteractable(interactable);
