@@ -99,6 +99,14 @@ class LayoutComponent extends UIComponent {
         this._createBackground();
     }
 
+    _handleStyleUpdateForBorderMaterial() {
+        let borderMaterial = this.borderMaterial;
+        borderMaterial.polygonOffset = true;
+        borderMaterial.polygonOffsetFactor = borderMaterial.polygonOffsetUnits
+            = -1 * this._materialOffset;
+        this._border.material = borderMaterial;
+    }
+
     _handleStyleUpdateForJustifyContent() {
         this.updateLayout();
     }

@@ -24,16 +24,16 @@ const R_SQUARED = RADIUS * RADIUS;
 const PIXEL_BYTES = 4;
 
 export default class HSLColor {
-    constructor(radius) {
+    constructor(radius, ...styles) {
         this._hue = 171;
         this._saturation = 1;
         this._lightness = 0.5;
         this._radius = radius || 0.1;
-        this._createTextures();
+        this._createTextures(styles);
         this._createCursors();
     }
 
-    _createTextures() {
+    _createTextures(styles) {
         let diameter = this._radius * 2;
         let colorCanvas = document.createElement('canvas');
         let lightnessCanvas = document.createElement('canvas');
@@ -52,12 +52,12 @@ export default class HSLColor {
         this._lightnessTexture.colorSpace = THREE.SRGBColorSpace;
         this._lightnessTexture.bypassCloning = true;
         this.hueSaturationWheel = new HueSaturationWheel(this._colorTexture,
-            { height: diameter, width: diameter });
+            { height: diameter, width: diameter }, ...styles);
         this.lightnessBar = new Image(this._lightnessTexture, {
             borderRadius: diameter / 20,
             height: diameter,
             width: diameter / 10,
-        });
+        }, ...styles);
         this.hueSaturationWheel.pointerInteractable.addEventListener('down',
             (e) =>this.hueSaturationWheel.pointerInteractable.capture(e.owner));
         this.hueSaturationWheel.onClick = (e) => {
