@@ -9,6 +9,7 @@ import Checkbox from '/scripts/components/Checkbox.js';
 import Div from '/scripts/components/Div.js';
 import HSLColor from '/scripts/components/HSLColor.js';
 import Image from '/scripts/components/Image.js';
+import InstancedBackgroundManager from '/scripts/components/InstancedBackgroundManager.js';
 import Keyboard from '/scripts/components/Keyboard.js';
 import NumberInput from '/scripts/components/NumberInput.js';
 import Radio from '/scripts/components/Radio.js';
@@ -121,6 +122,7 @@ const update = (frame) => {
     }
     PointerInteractableHandler.update();
     UpdateHandler.update();
+    InstancedBackgroundManager.update();
 };
 
 export { Body };

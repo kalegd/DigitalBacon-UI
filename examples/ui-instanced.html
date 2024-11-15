@@ -1,0 +1,88 @@
+<html>
+  <head>
+    <title>Examples - UI Backgrounds</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#ffebfd"/>
+    <link rel="apple-touch-icon" sizes="180x180" href="../images/favicons/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="../images/favicons/favicon-16x16.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="../images/favicons/favicon-32x32.png">
+    <link rel="stylesheet" href="../css/examples.css">
+    <script type="importmap">
+      {
+        "imports": {
+          "DigitalBacon-UI": "../scripts/DigitalBacon-UI.js",
+          "three": "../node_modules/three/build/three.module.js",
+          "troika-worker-utils": "../node_modules/troika-worker-utils/dist/troika-worker-utils.esm.js",
+          "webgl-sdf-generator": "../node_modules/webgl-sdf-generator/dist/webgl-sdf-generator.mjs",
+          "bidi-js": "../node_modules/bidi-js/dist/bidi.mjs",
+          "troika-three-utils": "../node_modules/troika-three-utils/dist/troika-three-utils.esm.js"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <div id="container"></div>
+    <div id="vr-button"></div>
+    <div id="ar-button"></div>
+    <script type="module">
+      import * as ThreeBoilerplate from './scripts/ThreeBoilerplate.js';
+      import * as DigitalBaconUI from 'DigitalBacon-UI';
+      import * as THREE from 'three';
+
+      let { container, scene, camera, clock, stats, renderer }
+        = await ThreeBoilerplate.init();
+
+      await DigitalBaconUI.init(container, renderer, scene, camera);
+      DigitalBaconUI.InputHandler.enableXRControllerManagement(scene);
+
+      const body = new DigitalBaconUI.Body({
+        borderRadius: 0.06,
+        borderWidth: 0.005,
+        justifyContent: 'start',
+        materialColor: 0x000000,
+        opacity: 0.7,
+        padding: 0.06,
+        width: 1.5,
+      });
+      const textStyle = new DigitalBaconUI.Style({
+        color: '#ffffff',
+        fontSize: 0.055,
+        maxWidth: '100%',
+      });
+      const text1 = new DigitalBaconUI.Text('If you have a lot of components with the same shape in the same generation (closest ancestor with overflow set must be the same for both) setting "instanced" can help improve performance',
+        textStyle);
+      const selectedText = new DigitalBaconUI.Text('Click a Box', textStyle,
+        { margin: 0.04 });
+      const buttonStyle = new DigitalBaconUI.Style({
+        backgroundVisible: true,
+        borderRadius: 0.005,
+        height: 0.05,
+        instanced: true,
+        margin: 0.01,
+        width: 0.05,
+      });
+
+      body.position.set(0, 1.7, -1);
+      scene.add(body);
+      body.add(text1);
+      body.add(selectedText);
+
+      for(let i = 0; i < 5; i++) {
+        let row = new DigitalBaconUI.Span();
+        for(let j = 0; j < 10; j++) {
+          let button = new DigitalBaconUI.Div(buttonStyle);
+          row.add(button);
+        }
+        body.add(row);
+      }
+
+      renderer.setAnimationLoop((time, frame) => {
+        stats.begin();
+        let timeDelta = clock.getDelta();
+        DigitalBaconUI.update(frame);
+        renderer.render(scene, camera);
+        stats.end();
+      });
+    </script>
+  </body>
+</html>

@@ -56,6 +56,7 @@ class Style {
     get fontSize() { return this._genericGet('fontSize'); }
     get glassmorphism() { return this._genericGet('glassmorphism'); }
     get height() { return this._genericGet('height'); }
+    get instanced() { return this._genericGet('instanced'); }
     get justifyContent() { return this._genericGet('justifyContent'); }
     get margin() { return this._genericGet('margin'); }
     get marginBottom() { return this._genericGet('marginBottom'); }
@@ -101,6 +102,7 @@ class Style {
     set fontSize(v) { this._genericSet('fontSize', v); }
     set glassmorphism(v) { this._genericSet('glassmorphism', v); }
     set height(v) { this._genericSet('height', v); }
+    set instanced(v) { this._genericSet('instanced', v); }
     set justifyContent(v) { this._genericSet('justifyContent', v); }
     set margin(v) { this._genericSet('margin', v); }
     set marginBottom(v) { this._genericSet('marginBottom', v); }
@@ -143,6 +145,7 @@ class Style {
         'fontSize',
         'glassmorphism',
         'height',
+        'instanced',
         'justifyContent',
         'margin',
         'marginBottom',

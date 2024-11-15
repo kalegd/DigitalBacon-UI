@@ -4,6 +4,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
+import InstancedBackgroundManager from '/scripts/components/InstancedBackgroundManager.js';
 import UIComponent from '/scripts/components/UIComponent.js';
 import UpdateHandler from '/scripts/handlers/UpdateHandler.js';
 import { capitalizeFirstLetter, numberOr } from '/scripts/utils.js';
@@ -236,20 +237,50 @@ class LayoutComponent extends UIComponent {
             width -= 2 * borderWidth;
             let shape = LayoutComponent.createShape(width, height,topLeftRadius,
                 topRightRadius, bottomLeftRadius, bottomRightRadius);
-            let geometry = new THREE.ShapeGeometry(shape);
-            this._background = new THREE.Mesh(geometry, this.material);
-            this.add(this._background);
-            borderShape.holes.push(shape);
-            geometry = new THREE.ShapeGeometry(borderShape);
-            this._border = new THREE.Mesh(geometry, this.borderMaterial);
-            this.add(this._border);
-            this._border.renderOrder = renderOrder;
+            if(this.instanced) {
+                //TODO: include border too...
+                this._background = new THREE.Object3D();
+                this._instancedBackgroundId = InstancedBackgroundManager
+                    .createBackground(this, height, width, topLeftRadius,
+                        topRightRadius, bottomLeftRadius, bottomRightRadius,
+                        this._materialOffset);
+                if(this._instancedBackgroundId) {
+                    this.updateInstancePosition();
+                    InstancedBackgroundManager.setColor(
+                        this._instancedBackgroundId);
+                }
+            } else {
+                let geometry = new THREE.ShapeGeometry(shape);
+                this._background = new THREE.Mesh(geometry, this.material);
+                this.add(this._background);
+                borderShape.holes.push(shape);
+                geometry = new THREE.ShapeGeometry(borderShape);
+                this._border = new THREE.Mesh(geometry, this.borderMaterial);
+                this.add(this._border);
+                this._border.renderOrder = renderOrder;
+            }
         } else {
-            let shape = LayoutComponent.createShape(width, height,topLeftRadius,
-                topRightRadius, bottomLeftRadius, bottomRightRadius);
-            let geometry = new THREE.ShapeGeometry(shape);
-            this._background = new THREE.Mesh(geometry, this.material);
-            this.add(this._background);
+            if(this.instanced) {
+                this._background = new THREE.Object3D();
+                let color = this.materialColor || '#ffffff'
+                this._instancedBackgroundId = InstancedBackgroundManager
+                    .createBackground(this, height, width, topLeftRadius,
+                        topRightRadius, bottomLeftRadius, bottomRightRadius,
+                        this._materialOffset, color);
+                if(this._instancedBackgroundId) {
+                    this.updateInstancePosition();
+                    InstancedBackgroundManager.setColor(
+                        this._instancedBackgroundId,
+                        this.materialColor || '#ffffff');
+                }
+            } else {
+                let shape = LayoutComponent.createShape(width, height,
+                    topLeftRadius, topRightRadius, bottomLeftRadius,
+                    bottomRightRadius);
+                let geometry = new THREE.ShapeGeometry(shape);
+                this._background = new THREE.Mesh(geometry, this.material);
+                this.add(this._background);
+            }
         }
         this._background.renderOrder = renderOrder;
         if(!this.backgroundVisible)
@@ -462,6 +493,7 @@ class LayoutComponent extends UIComponent {
             this._updateChildrensLayout(oldUnpaddedWidth != this.unpaddedWidth,
                 oldUnpaddedHeight != this.unpaddedHeight);
         }
+        this._updateInstances();
     }
 
     _updateChildrensLayout(widthChanged, heightChanged) {
@@ -615,6 +647,25 @@ class LayoutComponent extends UIComponent {
         if(this._border) this._border.renderOrder = order;
     }
 
+    updateInstancePosition() {
+        InstancedBackgroundManager.setPositionFrom(this._instancedBackgroundId);
+    }
+
+    _updateInstances() {
+        if(this.instanced) {
+            if(this._instancedBackgroundId) {
+                this.updateInstancePosition();
+            } else {
+                this._createBackground();
+                if(!this._instancedBackgroundId) return;
+            }
+        }
+        for(let child of this._content.children) {
+            if(child instanceof LayoutComponent)
+                child._updateInstances();
+        }
+    }
+
     _onAdded() {
         this._addClippingPlanesUpdateListener();
     }
@@ -631,8 +682,8 @@ class LayoutComponent extends UIComponent {
         } else if(object instanceof UIComponent
                 && !object.bypassContentPositioning) {
             this._content.add(object);
-            object.updateLayout();
             object._updateMaterialOffset(this._materialOffset);
+            object.updateLayout();
             object.updateClippingPlanes(true);
             this.updateLayout();
         } else {
@@ -643,7 +694,7 @@ class LayoutComponent extends UIComponent {
     remove(object) {
         if(arguments.length > 1) {
             for(let argument of arguments) {
-                this.add(argument);
+                this.remove(argument);
             }
         } else if(object instanceof UIComponent
                 && !object.bypassContentPositioning) {
@@ -710,5 +761,7 @@ class LayoutComponent extends UIComponent {
         return shape;
     }
 }
+
+InstancedBackgroundManager.registerLayoutComponentClass(LayoutComponent);
 
 export default LayoutComponent;
