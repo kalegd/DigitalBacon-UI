@@ -33,9 +33,8 @@ class InstancedBackgroundManager {
         if(!instancedMesh) {
             let geometry = this._geometries[geometryKey];;
             if(!geometry) {
-                let shape = this._layoutComponentClass.createShape(width,
-                    height, topLeftRadius, topRightRadius, bottomLeftRadius,
-                    bottomRightRadius);
+                let shape = component.createShape(width, height, topLeftRadius,
+                    topRightRadius, bottomLeftRadius, bottomRightRadius);
                 geometry = new THREE.ShapeGeometry(shape);
                 this._geometries[geometryKey] = geometry;
             }

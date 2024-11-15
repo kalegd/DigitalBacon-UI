@@ -50,7 +50,7 @@ class Toggle extends InteractableComponent {
         bottomLeftRadius = Math.max(bottomLeftRadius - padding / 2, 0);
         bottomRightRadius = Math.max(bottomRightRadius - padding / 2, 0);
         let renderOrder = this._materialOffset + 1;
-        let shape = Toggle.createShape(width, height, topLeftRadius,
+        let shape = this.createShape(width, height, topLeftRadius,
             topRightRadius, bottomLeftRadius, bottomRightRadius);
         let geometry = new THREE.ShapeGeometry(shape);
         this._toggleChild = new THREE.Mesh(geometry, this._toggleMaterial);
