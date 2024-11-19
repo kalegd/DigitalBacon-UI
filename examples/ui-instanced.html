@@ -50,7 +50,7 @@
         fontSize: 0.055,
         maxWidth: '100%',
       });
-      const text1 = new DigitalBaconUI.Text('Setting "instanced" can improve performance when many components share the same shape, generation, and closest ancestor with overflow set',
+      const text1 = new DigitalBaconUI.Text('Setting "instanced" can improve performance when many components share the same shape, generation, and closest ancestor with "overflow" set',
         textStyle);
       const selectedText = new DigitalBaconUI.Text('Click a Box', textStyle,
         { margin: 0.04 });
@@ -68,7 +68,7 @@
       body.add(text1);
       body.add(selectedText);
 
-      for(let i = 0; i < 10; i++) {
+      for(let i = 0; i < 4; i++) {
         let row = new DigitalBaconUI.Span();
         for(let j = 0; j < 10; j++) {
           let button = new DigitalBaconUI.Div(buttonStyle);

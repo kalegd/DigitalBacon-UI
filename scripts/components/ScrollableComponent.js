@@ -72,9 +72,13 @@ class ScrollableComponent extends InteractableComponent {
         let width = this.computedWidth;
         let contentHeight = this._getContentHeight();
         let contentWidth = this._getContentWidth();
+        let paddedContentHeight = this._getPaddedContentHeight();
+        let paddedContentWidth = this._getPaddedContentWidth();
         let overflowScroll = (this.overflow == 'scroll');
-        this._verticallyScrollable = contentHeight > height && overflowScroll;
-        this._horizontallyScrollable = contentWidth > width && overflowScroll;
+        this._verticallyScrollable = paddedContentHeight > height
+            && overflowScroll;
+        this._horizontallyScrollable = paddedContentWidth > width
+            && overflowScroll;
         this._scrollable = this._verticallyScrollable
             || this._horizontallyScrollable;
         this._scrollableAncestor = this._getScrollableAncestor();

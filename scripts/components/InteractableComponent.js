@@ -4,6 +4,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
+import InstancedBackgroundManager from '/scripts/components/InstancedBackgroundManager.js';
 import LayoutComponent from '/scripts/components/LayoutComponent.js';
 import PointerInteractable from '/scripts/interactables/PointerInteractable.js';
 import TouchInteractable from '/scripts/interactables/TouchInteractable.js';
@@ -111,26 +112,66 @@ class InteractableComponent extends LayoutComponent {
         this[callbackName] = newCallback;
     }
 
+    _checkInstancedPointerListenerUpdate(isOnlyGroup) {
+        if(isOnlyGroup) {
+            InstancedBackgroundManager.checkRemovePointerInteractableListener(
+                    this._instancedBackgroundId);
+        } else {
+            InstancedBackgroundManager.checkAddPointerInteractableListener(
+                this._instancedBackgroundId);
+        }
+    }
+
+    _checkInstancedTouchListenerUpdate(isOnlyGroup) {
+        if(isOnlyGroup) {
+            InstancedBackgroundManager.checkRemoveTouchInteractableListener(
+                    this._instancedBackgroundId);
+        } else {
+            InstancedBackgroundManager.checkAddTouchInteractableListener(
+                this._instancedBackgroundId);
+        }
+    }
+
     get onClick() { return this._onClick; }
     get onDrag() { return this._onDrag; }
     get onTouch() { return this._onTouch; }
     get onTouchDrag() { return this._onTouchDrag; }
 
     set onClick(v) {
+        let wasOnlyGroup = this.pointerInteractable.isOnlyGroup();
         this._setCallback(this.pointerInteractable, 'click', 'click', v);
+        let isOnlyGroup = this.pointerInteractable.isOnlyGroup();
+        if(this._instancedBackgroundId && wasOnlyGroup != isOnlyGroup)
+            this._checkInstancedPointerListenerUpdate(isOnlyGroup);
     }
+
     set onClickAndTouch(v) {
-        this._setCallback(this.pointerInteractable, 'click', 'click', v);
-        this._setCallback(this.touchInteractable, 'click', 'touch', v);
+        this.onClick = v;
+        this.onTouch = v;
     }
+
     set onDrag(v) {
+        let wasOnlyGroup = this.pointerInteractable.isOnlyGroup();
         this._setCallback(this.pointerInteractable, 'drag', 'drag', v);
+        let isOnlyGroup = this.pointerInteractable.isOnlyGroup();
+        if(this._instancedBackgroundId && wasOnlyGroup != isOnlyGroup)
+            this._checkInstancedPointerListenerUpdate(isOnlyGroup);
     }
+
     set onTouch(v) {
+        let wasOnlyGroup = this.touchInteractable.isOnlyGroup();
         this._setCallback(this.touchInteractable, 'click', 'touch', v);
+        let isOnlyGroup = this.touchInteractable.isOnlyGroup();
+        if(this._instancedBackgroundId && wasOnlyGroup != isOnlyGroup)
+            this._checkInstancedTouchListenerUpdate(isOnlyGroup);
     }
+
     set onTouchDrag(v) {
+        let wasOnlyGroup = this.touchInteractable.isOnlyGroup();
         this._setCallback(this.touchInteractable, 'drag', 'touchDrag', v);
+        let isOnlyGroup = this.touchInteractable.isOnlyGroup();
+        if(this._instancedBackgroundId && wasOnlyGroup != isOnlyGroup)
+            this._checkInstancedTouchListenerUpdate(isOnlyGroup);
     }
 }
 

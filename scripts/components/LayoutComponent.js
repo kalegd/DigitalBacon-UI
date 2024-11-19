@@ -663,6 +663,14 @@ class LayoutComponent extends UIComponent {
         }
     }
 
+    _getPaddedContentHeight() {
+        return this._getContentHeight() + this.paddingVertical;
+    }
+
+    _getPaddedContentWidth() {
+        return this._getContentWidth() + this.paddingHorizontal;
+    }
+
     _updateMaterialOffset(parentOffset) {
         this._materialOffset = parentOffset + 1;
         let material = this.material;
