@@ -124,7 +124,7 @@ class InstancedBackgroundManager {
         if(!details) return;
         let object = details.component;
         object.updateWorldMatrix(true, false);
-        workingMatrix.copy(details.ancestor.matrixWorld).invert();
+        workingMatrix.copy(details.ancestor._content.matrixWorld).invert();
         workingMatrix.multiply(object.matrixWorld);
         details.instancedMesh.setMatrixAt(details.index, workingMatrix);
         details.instancedMesh.instanceMatrix.needsUpdate = true;
