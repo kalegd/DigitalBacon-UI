@@ -66,6 +66,13 @@ class TouchInteractable extends Interactable {
             return this._targets;
         }
     }
+
+    get object() { return this._object; }
+
+    set object(object) {
+        this._object = object;
+        if(object) object.touchInteractable = this;
+    }
 }
 
 export default TouchInteractable;

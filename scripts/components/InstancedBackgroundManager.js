@@ -1,9 +1,11 @@
+import PointerInteractable from '/scripts/interactables/PointerInteractable.js';
+import TouchInteractable from '/scripts/interactables/TouchInteractable.js';
 import * as THREE from 'three';
 
 let workingColor = new THREE.Color();
 let workingMatrix = new THREE.Matrix4();
 let nextId = 1;
-window.blame = 0;
+const emptyFunc = () => {};
 
 class InstancedBackgroundManager {
     constructor() {
@@ -37,22 +39,25 @@ class InstancedBackgroundManager {
                     topRightRadius, bottomLeftRadius, bottomRightRadius);
                 geometry = new THREE.ShapeGeometry(shape);
                 this._geometries[geometryKey] = geometry;
+                geometry.computeBoundsTree();
             }
             let material = new THREE.MeshBasicMaterial({
                 color: 0xffffff,
                 side: THREE.DoubleSide,
                 transparent: true,
                 polygonOffset: true,
-                polygonOffsetFactor: 1,
-                polygonOffsetUnits: 1,
+                polygonOffsetFactor: materialOffset * -1,
+                polygonOffsetUnits: materialOffset * -1,
             });
+            material.clippingPlanes = ancestor.material.clippingPlanes;
             instancedMesh = new THREE.InstancedMesh(geometry, material, 16);
             backgroundsMap[key] = instancedMesh;
+            instancedMesh.isUIManagedInstancedMesh = true;
             instancedMesh.maxCount = 16;
             instancedMesh.count = 0;
             instancedMesh.ids = [];
+            this._createInteractables(instancedMesh, component, ancestor);
             ancestor.add(instancedMesh);
-            window.im = instancedMesh;
         }
         if(instancedMesh.count == instancedMesh.maxCount) {
             let oldInstancedMesh = instancedMesh;
@@ -60,9 +65,12 @@ class InstancedBackgroundManager {
                 + Math.min(oldInstancedMesh.maxCount, 64);
             instancedMesh = new THREE.InstancedMesh(oldInstancedMesh.geometry,
                 oldInstancedMesh.material, newCount);
+            instancedMesh.isUIManagedInstancedMesh = true;
             instancedMesh.maxCount = newCount;
             instancedMesh.count = oldInstancedMesh.count;
             instancedMesh.ids = oldInstancedMesh.ids;
+            oldInstancedMesh.pointerInteractable.object = instancedMesh;
+            oldInstancedMesh.touchInteractable.object = instancedMesh;
             for(let i = 0; i < instancedMesh.count; i++) {
                 oldInstancedMesh.getColorAt(i, workingColor);
                 oldInstancedMesh.getMatrixAt(i, workingMatrix);
@@ -93,9 +101,18 @@ class InstancedBackgroundManager {
         };
         instancedMesh.count++;
         nextId++;
-        this.setPositionFrom(index);
-        this.setColor(index);
+        this.setPositionFrom(id);
+        this.setColorFrom(id);
         return id;
+    }
+
+    _createInteractables(instancedMesh, component, ancestor) {
+        let pointerInteractable = new PointerInteractable(instancedMesh);
+        let touchInteractable = new TouchInteractable(instancedMesh);
+        pointerInteractable.addEventListener('click', emptyFunc);
+        touchInteractable.addEventListener('click', emptyFunc);
+        ancestor.pointerInteractable.addChild(pointerInteractable);
+        ancestor.touchInteractable.addChild(touchInteractable);
     }
 
     setPositionFrom(id) {
@@ -113,7 +130,7 @@ class InstancedBackgroundManager {
         details.instancedMesh.instanceMatrix.needsUpdate = true;
     }
 
-    setColor(id) {
+    setColorFrom(id) {
         let details = this._idMap[id];
         if(!details) return;
         workingColor.set(details.component.materialColor || '#ffffff');
@@ -130,11 +147,23 @@ class InstancedBackgroundManager {
         return null;
     }
 
+    getComponent(id) {
+        return this._idMap[id]?.component;
+    }
+
     update() {
+        let updatedInstancedMeshes = new Set();
         for(let id of this._pendingUpdates) {
             this._setPositionFrom(id);
+            let instancedMesh = this._idMap[id]?.instancedMesh;
+            if(instancedMesh) updatedInstancedMeshes.add(instancedMesh);
         }
         this._pendingUpdates.clear();
+        for(let instancedMesh of updatedInstancedMeshes) {
+            instancedMesh.geometry.computeBoundsTree();
+            instancedMesh.computeBoundingSphere();
+            instancedMesh.computeBoundingBox();
+        }
     }
 }
 

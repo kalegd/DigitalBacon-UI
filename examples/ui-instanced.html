@@ -40,6 +40,7 @@
         borderWidth: 0.005,
         justifyContent: 'start',
         materialColor: 0x000000,
+        overflow: 'scroll',
         opacity: 0.7,
         padding: 0.06,
         width: 1.5,
@@ -49,17 +50,17 @@
         fontSize: 0.055,
         maxWidth: '100%',
       });
-      const text1 = new DigitalBaconUI.Text('If you have a lot of components with the same shape in the same generation (closest ancestor with overflow set must be the same for both) setting "instanced" can help improve performance',
+      const text1 = new DigitalBaconUI.Text('Setting "instanced" can improve performance when many components share the same shape, generation, and closest ancestor with overflow set',
         textStyle);
       const selectedText = new DigitalBaconUI.Text('Click a Box', textStyle,
         { margin: 0.04 });
       const buttonStyle = new DigitalBaconUI.Style({
         backgroundVisible: true,
         borderRadius: 0.005,
-        height: 0.05,
+        height: 0.1,
         instanced: true,
         margin: 0.01,
-        width: 0.05,
+        width: 0.1,
       });
 
       body.position.set(0, 1.7, -1);
@@ -67,11 +68,14 @@
       body.add(text1);
       body.add(selectedText);
 
-      for(let i = 0; i < 5; i++) {
+      for(let i = 0; i < 10; i++) {
         let row = new DigitalBaconUI.Span();
         for(let j = 0; j < 10; j++) {
           let button = new DigitalBaconUI.Div(buttonStyle);
           row.add(button);
+          button.onClick = () => {
+            selectedText.text = 'You clicked box (' + (j+1) + ',' + (i+1) + ')';
+          }
         }
         body.add(row);
       }

@@ -56,6 +56,7 @@ class LayoutComponent extends UIComponent {
         this._defaults['padding'] = 0;
         this._defaults['width'] = 'auto';
         this._updateListener = () => this._updateClippingPlanes();
+        this.descendantInstancedMeshes = new Set();
         this.computedHeight = 0;
         this.marginedHeight = 0;
         this.unpaddedHeight = 0;
@@ -245,7 +246,7 @@ class LayoutComponent extends UIComponent {
                         this._materialOffset);
                 if(this._instancedBackgroundId) {
                     this.updateInstancePosition();
-                    InstancedBackgroundManager.setColor(
+                    InstancedBackgroundManager.setColorFrom(
                         this._instancedBackgroundId);
                 }
             } else {
@@ -268,7 +269,7 @@ class LayoutComponent extends UIComponent {
                         this._materialOffset, color);
                 if(this._instancedBackgroundId) {
                     this.updateInstancePosition();
-                    InstancedBackgroundManager.setColor(
+                    InstancedBackgroundManager.setColorFrom(
                         this._instancedBackgroundId,
                         this.materialColor || '#ffffff');
                 }
@@ -382,6 +383,9 @@ class LayoutComponent extends UIComponent {
         let clippingPlanes = this._getClippingPlanes();
         this.material.clippingPlanes = clippingPlanes;
         this.borderMaterial.clippingPlanes = clippingPlanes;
+        for(let instancedMesh of this.descendantInstancedMeshes) {
+            instancedMesh.material.clippingPlanes = clippingPlanes;
+        }
         if(this._text) this._text.material.clippingPlanes = clippingPlanes;
         if(!recursive) return;
         for(let child of this._content.children) {
@@ -715,6 +719,9 @@ class LayoutComponent extends UIComponent {
             object.updateLayout();
             object.updateClippingPlanes(true);
             this.updateLayout();
+        } else if(object.isUIManagedInstancedMesh) {
+            this.descendantInstancedMeshes.add(object);
+            this._content.add(object);
         } else {
             super.add(object);
         }
@@ -728,6 +735,9 @@ class LayoutComponent extends UIComponent {
         } else if(object instanceof UIComponent
                 && !object.bypassContentPositioning) {
             this._content.remove(object);
+        } else if(object.isUIManagedInstancedMesh) {
+            this.descendantInstancedMeshes.delete(object);
+            super.remove(object);
         } else {
             super.remove(object);
         }

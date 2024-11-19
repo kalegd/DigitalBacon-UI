@@ -4,6 +4,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
+import InstancedBackgroundManager from '/scripts/components/InstancedBackgroundManager.js';
 import DeviceTypes from '/scripts/enums/DeviceTypes.js';
 import Handedness from '/scripts/enums/Handedness.js';
 import XRInputDeviceTypes from '/scripts/enums/XRInputDeviceTypes.js';
@@ -115,11 +116,16 @@ class PointerInteractableHandler extends InteractableHandler {
         let intersections = raycaster.intersectObjects(objects);
         for(let intersection of intersections) {
             let interactable = this._getObjectInteractable(intersection.object);
-            if(!interactable || this._ignoredInteractables.has(interactable))
+            let instancedComponent;
+            if(!interactable || this._ignoredInteractables.has(interactable)) {
                 continue;
-            if(this._checkClipped(intersection.object, intersection.point)) {
+            } else if(this._checkClipped(intersection)) {
                 this._ignoredInteractables.add(interactable);
                 continue;
+            } else if(instancedComponent = this._checkInstanced(intersection)) {
+                if(instancedComponent == true) continue;
+                interactable = this._getObjectInteractable(instancedComponent);
+                if(!interactable) continue;
             }
             let distance = intersection.distance;
             let userDistance = distance;
@@ -137,7 +143,8 @@ class PointerInteractableHandler extends InteractableHandler {
         }
     }
 
-    _checkClipped(object, point) {
+    _checkClipped(intersection) {
+        let { object, point } = intersection;
         let clippingPlanes = object?.material?.clippingPlanes;
         if(clippingPlanes && clippingPlanes.length > 0) {
             for(let plane of clippingPlanes) {
@@ -145,6 +152,15 @@ class PointerInteractableHandler extends InteractableHandler {
             }
         }
         return false;
+    }
+
+    _checkInstanced(intersection) {
+        let { object, point, instanceId } = intersection;
+        if(!object.isUIManagedInstancedMesh) return false;
+        let id = object.ids[instanceId];
+        let component = InstancedBackgroundManager.getComponent(id);
+        InstancedBackgroundManager.setColorFrom(id);
+        return component || true;
     }
 
     _updateInteractables(controller) {

@@ -23,6 +23,8 @@ class ScrollableComponent extends InteractableComponent {
         this._scrollOwner;
         this._scrollable = false;
         this._scrollableByAncestor = false;
+        this._wasScrollable = false;
+        this._scrollableAncestor;
         this._downAction = (e) => this.pointerInteractable.capture(e.owner);
         this._touchDownAction = (e) => this.touchInteractable.capture(e.owner);
     }
@@ -33,17 +35,19 @@ class ScrollableComponent extends InteractableComponent {
     }
 
     _updateScrollInteractables() {
-        let wasScrollable = this._scrollable || this._scrollableByAncestor;
+        let scrollableAncestor = this._scrollableAncestor;
         this._updateScrollable();
-        if(wasScrollable == (this._scrollable || this._scrollableByAncestor))
+        let scrollable = this._scrollable || this._scrollableByAncestor;
+        if(scrollable == this._wasScrollable) {
+            if(scrollableAncestor != this._scrollableAncestor)
+                this._updateChildrenScrollInteractables();
             return;
-        for(let child of this._content.children) {
-            if(child instanceof ScrollableComponent)
-                child._updateScrollInteractables();
         }
-        let functionName = (wasScrollable)
-            ? 'removeEventListener'
-            : 'addEventListener';
+        this._wasScrollable = scrollable;
+        this._updateChildrenScrollInteractables();
+        let functionName = (scrollable)
+            ? 'addEventListener'
+            : 'removeEventListener';
         this.pointerInteractable[functionName]('down', this._downAction);
         this.touchInteractable[functionName]('down', this._touchDownAction);
         if(!this._onClick)
@@ -56,6 +60,13 @@ class ScrollableComponent extends InteractableComponent {
             this.touchInteractable[functionName]('drag', this._touchDragAction);
     }
 
+    _updateChildrenScrollInteractables() {
+        for(let child of this._content.children) {
+            if(child instanceof ScrollableComponent)
+                child._updateScrollInteractables();
+        }
+    }
+
     _updateScrollable() {
         let height = this.computedHeight;
         let width = this.computedWidth;
@@ -66,8 +77,9 @@ class ScrollableComponent extends InteractableComponent {
         this._horizontallyScrollable = contentWidth > width && overflowScroll;
         this._scrollable = this._verticallyScrollable
             || this._horizontallyScrollable;
+        this._scrollableAncestor = this._getScrollableAncestor();
         this._scrollableByAncestor = this._onClick != null
-            && this._getScrollableAncestor() != null;
+            && this._scrollableAncestor != null;
         if(!this._scrollable) {
             this._content.position.x = 0;
             this._content.position.y = 0;

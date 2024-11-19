@@ -60,8 +60,13 @@ class PointerInteractable extends Interactable {
     get hoveredCursor() {
         return (this._disabled) ? 'not-allowed' : this._hoveredCursor;
     }
+    get object() { return this._object; }
 
     set hoveredCursor(hoveredCursor) { this._hoveredCursor = hoveredCursor; }
+    set object(object) {
+        this._object = object;
+        if(object) object.pointerInteractable = this;
+    }
 }
 
 export default PointerInteractable;

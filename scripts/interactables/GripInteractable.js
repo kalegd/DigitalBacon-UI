@@ -41,6 +41,13 @@ class GripInteractable extends Interactable {
     distanceToSphere(sphere) {
         return sphere.distanceToPoint(this._boundingBox.getCenter(vector3));
     }
+
+    get object() { return this._object; }
+
+    set object(object) {
+        this._object = object;
+        if(object) object.gripInteractable = this;
+    }
 }
 
 export default GripInteractable;
