@@ -208,6 +208,10 @@ class LayoutComponent extends UIComponent {
     _createBackground() {
         if(this._background) this.remove(this._background);
         if(this._border) this.remove(this._border);
+        if(this._instancedBackgroundId) {
+            InstancedBackgroundManager.remove(this._instancedBackgroundId);
+            delete this._instancedBackgroundId;
+        }
         this._background = null;
         this._border = null;
         let material = this.material;
