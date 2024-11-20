@@ -91,6 +91,8 @@ class InstancedBackgroundManager {
             }
             oldInstancedMesh.dispose();
             backgroundsMap[key] = instancedMesh;
+        } else if(instancedMesh.count == 0) {
+            ancestor.add(instancedMesh);
         }
         let id = nextId;
         let index = instancedMesh.count;
@@ -200,6 +202,28 @@ class InstancedBackgroundManager {
 
     getComponent(id) {
         return this._idMap[id]?.component;
+    }
+
+    remove(id) {
+        let details = this._idMap[id];
+        if(!details) return;
+        let { index, instancedMesh, component, ancestor } = details;
+        let lastIndex = instancedMesh.count - 1;
+        if(index != lastIndex) {
+            instancedMesh.getColorAt(lastIndex, workingColor);
+            instancedMesh.getMatrixAt(lastIndex, workingMatrix);
+            instancedMesh.setColorAt(index, workingColor);
+            instancedMesh.setMatrixAt(index, workingMatrix);
+            let lastId = instancedMesh.ids[lastIndex];
+            instancedMesh.ids[index] = lastId;
+            this._idMap[lastId].index = index;
+        }
+        instancedMesh.count--;
+        instancedMesh.ids.pop();
+        if(instancedMesh.count == 0) {
+            ancestor.remove(instancedMesh);
+        }
+        delete this._idMap[id];
     }
 
     _updatePositions() {

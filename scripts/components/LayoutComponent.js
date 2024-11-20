@@ -707,12 +707,24 @@ class LayoutComponent extends UIComponent {
         }
     }
 
+    _removeInstances() {
+        if(this.instanced && this._instancedBackgroundId) {
+            InstancedBackgroundManager.remove(this._instancedBackgroundId);
+            delete this._instancedBackgroundId;
+        }
+        for(let child of this._content.children) {
+            if(child instanceof LayoutComponent)
+                child._removeInstances();
+        }
+    }
+
     _onAdded() {
         this._addClippingPlanesUpdateListener();
     }
 
     _onRemoved() {
         this._removeClippingPlanesUpdateListener();
+        this._removeInstances();
     }
 
     add(object) {
@@ -745,7 +757,7 @@ class LayoutComponent extends UIComponent {
             this._content.remove(object);
         } else if(object.isUIManagedInstancedMesh) {
             this.descendantInstancedMeshes.delete(object);
-            super.remove(object);
+            this._content.remove(object);
         } else {
             super.remove(object);
         }
