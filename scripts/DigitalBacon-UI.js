@@ -35,6 +35,7 @@ import TouchInteractableHandler from '/scripts/handlers/TouchInteractableHandler
 import DelayedClickHandler from '/scripts/handlers/DelayedClickHandler.js';
 import InputHandler from '/scripts/handlers/InputHandler.js';
 import InteractionToolHandler from '/scripts/handlers/InteractionToolHandler.js';
+import LayoutUpdateHandler from '/scripts/handlers/LayoutUpdateHandler.js';
 import UpdateHandler from '/scripts/handlers/UpdateHandler.js';
 import * as utils from '/scripts/utils.js';
 import * as TroikaThreeText from '/node_modules/troika-three-text/dist/troika-three-text.esm.js';
@@ -122,6 +123,7 @@ const update = (frame) => {
     }
     PointerInteractableHandler.update();
     UpdateHandler.update();
+    LayoutUpdateHandler.update();
     InstancedBackgroundManager.update();
 };
 

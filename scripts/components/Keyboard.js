@@ -66,10 +66,10 @@ class Keyboard extends InteractableComponent {
         this.updateLayout();
     }
 
-    _createBackground() {
+    createBackground() {
         this._defaults['borderRadius'] = Math.min(this.computedHeight,
             this.computedHeight) / 20;
-        super._createBackground();
+        super.createBackground();
     }
 
     _createOptionsPanel() {

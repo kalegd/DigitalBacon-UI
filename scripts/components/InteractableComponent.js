@@ -26,8 +26,8 @@ class InteractableComponent extends LayoutComponent {
         this._touchDragAction = (e) => this._touchDrag(e);
     }
 
-    _createBackground() {
-        super._createBackground();
+    createBackground() {
+        super.createBackground();
         this.pointerInteractable.object = this._background;
         this.touchInteractable.object = this._background;
     }

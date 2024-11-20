@@ -30,8 +30,8 @@ class Toggle extends InteractableComponent {
         this.updateLayout();
     }
 
-    _createBackground() {
-        super._createBackground();
+    createBackground() {
+        super.createBackground();
         if(this._toggleChild?.parent)
             this._toggleChild.parent.remove(this._toggleChild);
         let borderRadius = this.borderRadius || 0;

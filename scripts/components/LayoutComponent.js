@@ -6,6 +6,7 @@
 
 import InstancedBackgroundManager from '/scripts/components/InstancedBackgroundManager.js';
 import UIComponent from '/scripts/components/UIComponent.js';
+import LayoutUpdateHandler from '/scripts/handlers/LayoutUpdateHandler.js';
 import UpdateHandler from '/scripts/handlers/UpdateHandler.js';
 import { capitalizeFirstLetter, numberOr } from '/scripts/utils.js';
 import * as THREE from 'three';
@@ -206,6 +207,10 @@ class LayoutComponent extends UIComponent {
     }
 
     _createBackground() {
+        LayoutUpdateHandler.scheduleBackgroundUpdate(this);
+    }
+
+    createBackground() {
         if(this._background) this.remove(this._background);
         if(this._border) this.remove(this._border);
         if(this._instancedBackgroundId) {

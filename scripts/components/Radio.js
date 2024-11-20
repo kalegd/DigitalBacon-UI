@@ -35,10 +35,10 @@ class Radio extends InteractableComponent {
         RADIO_MAP[name].add(this);
     }
 
-    _createBackground() {
+    createBackground() {
         this._defaults['borderRadius'] = Math.min(this.computedHeight,
             this.computedHeight) / 2;
-        super._createBackground();
+        super.createBackground();
         if(this._toggleChild?.parent)
             this._toggleChild.parent.remove(this._toggleChild);
         this._toggleChild = new THREE.Mesh(this._background.geometry,

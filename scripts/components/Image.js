@@ -119,8 +119,8 @@ class Image extends InteractableComponent {
         if(oldTexture) oldTexture.dispose();
     }
 
-    _createBackground() {
-        super._createBackground();
+    createBackground() {
+        super.createBackground();
         let minX = this.computedWidth / 2;
         let minY = this.computedHeight / 2;
         let attPos = this._background.geometry.attributes.position;

@@ -11,10 +11,10 @@ class HueSaturationWheel extends Image {
         super(texture, ...styles);
     }
 
-    _createBackground() {
+    createBackground() {
         this._defaults['borderRadius'] = Math.min(this.computedHeight,
             this.computedHeight) / 2;
-        super._createBackground();
+        super.createBackground();
     }
 }
 

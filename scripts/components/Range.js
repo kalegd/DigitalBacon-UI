@@ -39,10 +39,10 @@ class Range extends InteractableComponent {
         this.updateLayout();
     }
 
-    _createBackground() {
+    createBackground() {
         this._defaults['borderRadius'] = Math.min(this.computedHeight,
             this.computedWidth) / 2;
-        super._createBackground();
+        super.createBackground();
         if(this._scrubberChild?.parent)
             this._scrubberChild.parent.remove(this._scrubberChild);
         if(this._scrubberValue?.parent)
