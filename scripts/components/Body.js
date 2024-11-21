@@ -13,7 +13,6 @@ class Body extends ScrollableComponent {
         this._defaults['backgroundVisible'] = true;
         this._defaults['height'] = 1;
         this._defaults['width'] = 1;
-        this.updateLayout();
     }
 }
 

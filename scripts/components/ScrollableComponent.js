@@ -29,8 +29,8 @@ class ScrollableComponent extends InteractableComponent {
         this._touchDownAction = (e) => this.touchInteractable.capture(e.owner);
     }
 
-    updateLayout() {
-        super.updateLayout();
+    updateLayout(recursive) {
+        super.updateLayout(recursive);
         this._updateScrollInteractables();
     }
 

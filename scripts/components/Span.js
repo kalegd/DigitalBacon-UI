@@ -10,7 +10,6 @@ class Span extends ScrollableComponent {
     constructor(...styles) {
         super(...styles);
         this._defaults['contentDirection'] = 'row';
-        this.updateLayout();
     }
 }
 

@@ -24,7 +24,7 @@ class TextComponent extends LayoutComponent {
         this._text.anchorY = 'middle';
         this._text.overflowWrap = 'break-word';
         if(typeof this.maxWidth == Number) this._text.maxWidth = this.maxWidth;
-        this._text.addEventListener('synccomplete', () => this.updateLayout());
+        this._text.addEventListener('synccomplete', () => this._updateLayout());
         this._text.sync();
         this._text.text = text || '';
         this._text.sync();
@@ -38,12 +38,12 @@ class TextComponent extends LayoutComponent {
 
     _handleStyleUpdateForFont() {
         this._text.font = this.font;
-        if(this.width == 'auto' || this.height == 'auto') this.updateLayout();
+        if(this.width == 'auto' || this.height == 'auto') this._updateLayout();
     }
 
     _handleStyleUpdateForFontSize() {
         this._text.fontSize = this.fontSize;
-        if(this.width == 'auto' || this.height == 'auto') this.updateLayout();
+        if(this.width == 'auto' || this.height == 'auto') this._updateLayout();
     }
 
     _handleStyleUpdateForTextAlign() {

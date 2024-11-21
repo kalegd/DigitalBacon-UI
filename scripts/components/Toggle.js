@@ -27,7 +27,6 @@ class Toggle extends InteractableComponent {
         this._defaults['width'] = 0.14;
         this._toggleMaterial = DEFAULT_MATERIAL.clone();
         this.onClick = this.onTouch = () => this._change();
-        this.updateLayout();
     }
 
     createBackground() {
@@ -76,10 +75,12 @@ class Toggle extends InteractableComponent {
         this._checked = !this._checked;
         if(this._checked) {
             this.material.color.set(0x0030ff);
-            this._toggleChild.position.setX(this._toggleOffset);
+            if(this._toggleChild)
+                this._toggleChild.position.setX(this._toggleOffset);
         } else {
             this.material.color.set(0xcccccc);
-            this._toggleChild.position.setX(-this._toggleOffset);
+            if(this._toggleChild)
+                this._toggleChild.position.setX(-this._toggleOffset);
         }
         if(this._onChange) this._onChange(this._checked);
     }
@@ -92,10 +93,12 @@ class Toggle extends InteractableComponent {
         this._checked = checked;
         if(checked) {
             this.material.color.set(0x0030ff);
-            this._toggleChild.position.setX(this._toggleOffset);
+            if(this._toggleChild)
+                this._toggleChild.position.setX(this._toggleOffset);
         } else {
             this.material.color.set(0xcccccc);
-            this._toggleChild.position.setX(-this._toggleOffset);
+            if(this._toggleChild)
+                this._toggleChild.position.setX(-this._toggleOffset);
         }
     }
     set onChange(onChange) { this._onChange = onChange; }

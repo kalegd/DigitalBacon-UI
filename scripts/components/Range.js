@@ -36,7 +36,6 @@ class Range extends InteractableComponent {
         this.onTouch = (e) => this._touchSelect(e);
         this.onDrag = (e) => this._drag(e);
         this.onTouchDrag = (e) => this._touchDrag(e);
-        this.updateLayout();
     }
 
     createBackground() {
@@ -57,6 +56,7 @@ class Range extends InteractableComponent {
     }
 
     _updateScrubber() {
+        if(!this._scrubberChild) return;
         this._scrubberChild.position.setX((this._value - 0.5) * this.width);
         this._scrubberValue.scale.setX(this._value);
         this._scrubberValue.position.setX(this.width * (this._value-1)/2);

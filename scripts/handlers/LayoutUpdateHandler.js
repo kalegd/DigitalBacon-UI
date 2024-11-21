@@ -7,13 +7,19 @@
 class LayoutUpdateHandler {
     constructor() {
         this._backgroundQueue = new Set();
+        this._layoutQueue = new Set();
     }
 
     scheduleBackgroundUpdate(component) {
         this._backgroundQueue.add(component);
     }
 
-    completeBackgroundUpdate(component) {
+    scheduleLayoutUpdate(component) {
+        this._layoutQueue.add(component);
+    }
+
+    completeLayoutUpdate(component) {
+        this._layoutQueue.delete(component);
     }
 
     updateBackgrounds() {
@@ -23,7 +29,15 @@ class LayoutUpdateHandler {
         }
     }
 
+    updateLayouts() {
+        for(let component of this._layoutQueue) {
+            component.updateLayout();
+            this._layoutQueue.delete(component);
+        }
+    }
+
     update() {
+        this.updateLayouts();
         this.updateBackgrounds();
     }
 }

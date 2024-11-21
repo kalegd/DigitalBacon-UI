@@ -70,11 +70,12 @@ class LayoutComponent extends UIComponent {
         this.addEventListener('added', () => this._onAdded());
         this.addEventListener('removed', () => this._onRemoved());
         this.add(this._content);
+        this._updateLayout();
         if(this.overflow != 'visible') this._createClippingPlanes();
     }
 
     _handleStyleUpdateForAlignItems() {
-        this.updateLayout();
+        this._updateLayout();
     }
 
     _handleStyleUpdateForBackgroundVisible() {
@@ -111,71 +112,71 @@ class LayoutComponent extends UIComponent {
     }
 
     _handleStyleUpdateForJustifyContent() {
-        this.updateLayout();
+        this._updateLayout();
     }
 
     _handleStyleUpdateForMargin() {
-        this.updateLayout();
+        this._updateLayout();
     }
 
     _handleStyleUpdateForMarginBottom() {
-        this.updateLayout();
+        this._updateLayout();
     }
 
     _handleStyleUpdateForMarginLeft() {
-        this.updateLayout();
+        this._updateLayout();
     }
 
     _handleStyleUpdateForMarginRight() {
-        this.updateLayout();
+        this._updateLayout();
     }
 
     _handleStyleUpdateForMarginTop() {
-        this.updateLayout();
+        this._updateLayout();
     }
 
     _handleStyleUpdateForMaxHeight() {
-        this.updateLayout();
+        this._updateLayout();
     }
 
     _handleStyleUpdateForMaxWidth() {
-        this.updateLayout();
+        this._updateLayout();
     }
 
     _handleStyleUpdateForMinHeight() {
-        this.updateLayout();
+        this._updateLayout();
     }
 
     _handleStyleUpdateForMinWidth() {
-        this.updateLayout();
+        this._updateLayout();
     }
 
     _handleStyleUpdateForPadding() {
-        this.updateLayout();
+        this._updateLayout();
     }
 
     _handleStyleUpdateForPaddingBottom() {
-        this.updateLayout();
+        this._updateLayout();
     }
 
     _handleStyleUpdateForPaddingLeft() {
-        this.updateLayout();
+        this._updateLayout();
     }
 
     _handleStyleUpdateForPaddingRight() {
-        this.updateLayout();
+        this._updateLayout();
     }
 
     _handleStyleUpdateForPaddingTop() {
-        this.updateLayout();
+        this._updateLayout();
     }
 
     _handleStyleUpdateForHeight() {
-        this.updateLayout();
+        this._updateLayout();
     }
 
     _handleStyleUpdateForWidth() {
-        this.updateLayout();
+        this._updateLayout();
     }
 
     _handleStyleUpdateForMaterial() {
@@ -403,7 +404,15 @@ class LayoutComponent extends UIComponent {
         }
     }
 
-    updateLayout() {
+    _updateLayout(recursive) {
+        if(recursive) {
+            this.updateLayout(recursive);
+        } else {
+            LayoutUpdateHandler.scheduleLayoutUpdate(this);
+        }
+    }
+
+    updateLayout(recursive) {
         let oldHeight = this.computedHeight;
         let oldWidth = this.computedWidth;
         let oldMarginedHeight = this.marginedHeight;
@@ -523,22 +532,24 @@ class LayoutComponent extends UIComponent {
             this._createBackground();
             if(this.clippingPlanes) this._updateClippingPlanes();
             if(this.parentComponent instanceof LayoutComponent)
-                this.parent.parent.updateLayout();
-            this._updateChildrensLayout(oldWidth != width, oldHeight != height);
+                this.parent.parent._updateLayout(recursive);
+            this._updateChildrensLayout(oldWidth != width, oldHeight != height,
+                recursive);
         } else if(oldMarginedHeight != this.marginedHeight
                 || oldMarginedWidth != this.marginedWidth) {
             if(this.clippingPlanes) this._updateClippingPlanes();
             if(this.parentComponent instanceof LayoutComponent)
-                this.parent.parent.updateLayout();
+                this.parent.parent._updateLayout(recursive);
         } else if(oldUnpaddedHeight != this.unpaddedHeight
                 || oldUnpaddedWidth != this.unpaddedWidth) {
             this._updateChildrensLayout(oldUnpaddedWidth != this.unpaddedWidth,
-                oldUnpaddedHeight != this.unpaddedHeight);
+                oldUnpaddedHeight != this.unpaddedHeight, recursive);
         }
         this._updateInstances();
+        if(recursive) LayoutUpdateHandler.completeLayoutUpdate(this);
     }
 
-    _updateChildrensLayout(widthChanged, heightChanged) {
+    _updateChildrensLayout(widthChanged, heightChanged, recursive) {
         for(let child of this._content.children) {
             if(child instanceof LayoutComponent) {
                 let needsUpdate = false;
@@ -552,7 +563,7 @@ class LayoutComponent extends UIComponent {
                     if(typeof height == 'string' && height.endsWith('%'))
                         needsUpdate = true;
                 }
-                if(needsUpdate) child.updateLayout();
+                if(needsUpdate) child._updateLayout(recursive);
             }
         }
     }
@@ -745,9 +756,9 @@ class LayoutComponent extends UIComponent {
                 && !object.bypassContentPositioning) {
             this._content.add(object);
             object._updateMaterialOffset(this._materialOffset);
-            object.updateLayout();
+            object._updateLayout();
             object.updateClippingPlanes(true);
-            this.updateLayout();
+            this._updateLayout();
         } else if(object.isUIManagedInstancedMesh) {
             this.descendantInstancedMeshes.add(object);
             this._content.add(object);

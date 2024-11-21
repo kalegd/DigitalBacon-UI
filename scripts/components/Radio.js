@@ -30,7 +30,6 @@ class Radio extends InteractableComponent {
         this._name = name;
         this._toggleMaterial = DEFAULT_MATERIAL.clone();
         this.onClick = this.onTouch = () => this._select();
-        this.updateLayout();
         if(!(name in RADIO_MAP)) RADIO_MAP[name] = new Set();
         RADIO_MAP[name].add(this);
     }
@@ -64,7 +63,7 @@ class Radio extends InteractableComponent {
         }
         this._selected = true;
         this.borderMaterial.color.set(0x0030ff);
-        this._toggleChild.visible = true;
+        if(this._toggleChild) this._toggleChild.visible = true;
         if(!ignoreOnChange) {
             if(this._onChange) this._onChange(this._selected);
             if(this._onSelect) this._onSelect();
@@ -74,7 +73,7 @@ class Radio extends InteractableComponent {
     _unselect(ignoreOnChange) {
         this._selected = false;
         this.borderMaterial.color.set(0x4f4f4f);
-        this._toggleChild.visible = false;
+        if(this._toggleChild) this._toggleChild.visible = false;
         if(this._onChange && !ignoreOnChange) this._onChange(this._selected);
     }
 

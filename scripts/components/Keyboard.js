@@ -63,7 +63,6 @@ class Keyboard extends InteractableComponent {
         this._setLayout(KeyboardLayouts.ENGLISH);
         this.types = { NUMBER: 'NUMBER' };
         this.onClick = () => {};
-        this.updateLayout();
     }
 
     createBackground() {

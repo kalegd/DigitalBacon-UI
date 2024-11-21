@@ -80,7 +80,6 @@ class TextArea extends ScrollableComponent {
             this._updateCaret();
             this._checkForCaretScroll();
         };
-        this.updateLayout();
         if(this.overflow != 'visible' && !this.clippingPlanes)
             this._createClippingPlanes();
     }

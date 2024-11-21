@@ -28,11 +28,10 @@ class Checkbox extends InteractableComponent {
         this.onClick = this.onTouch = () => this._change();
         if(this.overflow != 'visible')
             this._text.material.clippingPlanes = this._getClippingPlanes();
-        this.updateLayout();
     }
 
-    updateLayout() {
-        super.updateLayout();
+    updateLayout(recursive) {
+        super.updateLayout(recursive);
         this._text.fontSize = Math.min(this.computedHeight, this.computedWidth)
             * 0.65;
     }

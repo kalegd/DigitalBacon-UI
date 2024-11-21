@@ -31,7 +31,6 @@ class NumberInput extends TextInput {
         this._minValue = -Infinity;
         this._maxValue = Infinity;
         this._lastValidValue = '';
-        this.updateLayout();
     }
 
     _addListeners() {

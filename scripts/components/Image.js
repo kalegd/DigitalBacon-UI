@@ -17,7 +17,6 @@ class Image extends InteractableComponent {
         this._defaults['textureFit'] = 'fill';
         this._imageHeight = 0;
         this._imageWidth = 0;
-        this.updateLayout();
         this.updateTexture(url);
     }
 
@@ -49,10 +48,10 @@ class Image extends InteractableComponent {
         return this[computedParam];
     }
 
-    updateLayout() {
+    updateLayout(recursive) {
         let oldHeight = this.computedHeight;
         let oldWidth = this.computedWidth;
-        super.updateLayout();
+        super.updateLayout(recursive);
         this._updateFit(oldHeight, oldWidth);
     }
 

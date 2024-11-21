@@ -68,11 +68,10 @@ class Select extends ScrollableComponent {
             this.hideOptions();
         };
         this.onClick = this.onTouch = () => this._select();
-        this.updateLayout();
     }
 
-    updateLayout() {
-        super.updateLayout();
+    updateLayout(recursive) {
+        super.updateLayout(recursive);
         if(this._optionsStyle.minHeight != this.computedHeight)
             this._optionsStyle.minHeight = this.computedHeight;
         if(this._optionsTextStyle.minWidth != this.unpaddedWidth * 0.9)

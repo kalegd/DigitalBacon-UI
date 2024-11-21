@@ -33,7 +33,6 @@ class TextInput extends TextArea {
         this._latestValue['alignItems'] = null;
         this._text._overrideStyle.maxWidth = null;
         this._text._text.whiteSpace = 'nowrap';
-        this.updateLayout();
     }
 
     _displayMobileTextArea() {
