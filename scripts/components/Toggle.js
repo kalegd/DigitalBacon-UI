@@ -74,11 +74,11 @@ class Toggle extends InteractableComponent {
     _change() {
         this._checked = !this._checked;
         if(this._checked) {
-            this.material.color.set(0x0030ff);
+            this.materialColor = 0x0030ff;
             if(this._toggleChild)
                 this._toggleChild.position.setX(this._toggleOffset);
         } else {
-            this.material.color.set(0xcccccc);
+            this.materialColor = 0xcccccc;
             if(this._toggleChild)
                 this._toggleChild.position.setX(-this._toggleOffset);
         }
@@ -92,11 +92,11 @@ class Toggle extends InteractableComponent {
         if(checked == this._checked) return;
         this._checked = checked;
         if(checked) {
-            this.material.color.set(0x0030ff);
+            this.materialColor = 0x0030ff;
             if(this._toggleChild)
                 this._toggleChild.position.setX(this._toggleOffset);
         } else {
-            this.material.color.set(0xcccccc);
+            this.materialColor = 0xcccccc;
             if(this._toggleChild)
                 this._toggleChild.position.setX(-this._toggleOffset);
         }
