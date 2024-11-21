@@ -775,6 +775,8 @@ class LayoutComponent extends UIComponent {
         } else if(object instanceof UIComponent
                 && !object.bypassContentPositioning) {
             this._content.remove(object);
+            if(this._content.children.length || this.width == 'auto'
+                || this.height == 'auto') this._updateLayout();
         } else if(object.isUIManagedInstancedMesh) {
             this.descendantInstancedMeshes.delete(object);
             this._content.remove(object);
