@@ -159,7 +159,6 @@ class PointerInteractableHandler extends InteractableHandler {
         if(!object.isUIManagedInstancedMesh) return false;
         let id = object.ids[instanceId];
         let component = InstancedBackgroundManager.getComponent(id);
-        InstancedBackgroundManager.setColorFrom(id);
         return component || true;
     }
 

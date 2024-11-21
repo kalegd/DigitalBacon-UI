@@ -188,7 +188,7 @@ class InstancedBackgroundManager {
         if(!details) return;
         workingColor.set(details.component.materialColor || '#ffffff');
         details.instancedMesh.setColorAt(details.index, workingColor);
-        details.instancedMesh.instanceMatrix.needsUpdate = true;
+        details.instancedMesh.instanceColor.needsUpdate = true;
     }
 
     _getClosestAncestorWithHiddenOverflow(object) {

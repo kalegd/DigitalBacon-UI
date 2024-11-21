@@ -191,6 +191,9 @@ class LayoutComponent extends UIComponent {
         let materialColor = this.materialColor;
         if(materialColor == null) materialColor = '#ffffff';
         this.material.color.set(materialColor);
+        if(this._instancedBackgroundId)
+            InstancedBackgroundManager.setColorFrom(
+                this._instancedBackgroundId);
     }
 
     _handleStyleUpdateForOpacity() {

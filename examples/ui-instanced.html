@@ -68,6 +68,8 @@
       body.add(text1);
       body.add(selectedText);
 
+      let selectedButton;
+
       for(let i = 0; i < 4; i++) {
         let row = new DigitalBaconUI.Span();
         for(let j = 0; j < 10; j++) {
@@ -75,7 +77,19 @@
           row.add(button);
           button.onClick = () => {
             selectedText.text = 'You clicked box (' + (j+1) + ',' + (i+1) + ')';
-          }
+            if(selectedButton) selectedButton.materialColor = 0xffffff;
+            if(button == selectedButton) {
+              button.materialColor = 0xffa500;
+              selectedButton = null;
+            } else {
+              button.materialColor = 0x00ff00;
+              selectedButton = button;
+            }
+          };
+          button.pointerInteractable.addHoveredCallback((hovered) => {
+            if(selectedButton == button) return;
+            button.materialColor = (hovered) ? 0xffa500 : 0xffffff;
+          });
         }
         body.add(row);
       }
