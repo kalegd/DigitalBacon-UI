@@ -24399,6 +24399,8 @@ class Checkbox extends InteractableComponent {
         this._defaults['height'] = 0.08;
         this._defaults['width'] = 0.08;
         this._text = new Text();
+        this._text.fontSize = Math.min(numberOr(this.height, 0.08),
+            numberOr(this.width, 0.08)) * 0.65;
         this._content.add(this._text);
         this._text.text = ' ';
         this._text.color = this.color;
