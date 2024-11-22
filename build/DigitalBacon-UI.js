@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { Vector3, Vector2, Plane, Line3, Box3, Mesh, BatchedMesh, Triangle, Sphere, Matrix4, BufferAttribute, FrontSide, Group, LineBasicMaterial, MeshBasicMaterial, DataTexture, NearestFilter, UnsignedIntType, IntType, FloatType, RGBAFormat, RGIntegerFormat, BufferGeometry, Matrix3, Object3D, REVISION, Ray, UnsignedByteType, UnsignedShortType, ByteType, ShortType, RGBAIntegerFormat, Vector4, RGFormat, RedFormat, RedIntegerFormat, BackSide, DoubleSide, TrianglesDrawMode, TriangleFanDrawMode, TriangleStripDrawMode, Quaternion, Loader, LoaderUtils, FileLoader, Color, LinearSRGBColorSpace, SpotLight, PointLight, DirectionalLight, SRGBColorSpace, MeshPhysicalMaterial, InstancedMesh, InstancedBufferAttribute, TextureLoader, ImageBitmapLoader, InterleavedBuffer, InterleavedBufferAttribute, LinearFilter, LinearMipmapLinearFilter, RepeatWrapping, PointsMaterial, Material, MeshStandardMaterial, PropertyBinding, SkinnedMesh, LineSegments, Line, LineLoop, Points, PerspectiveCamera, MathUtils, OrthographicCamera, Skeleton, AnimationClip, Bone, InterpolateLinear, ColorManagement, NearestMipmapNearestFilter, LinearMipmapNearestFilter, NearestMipmapLinearFilter, ClampToEdgeWrapping, MirroredRepeatWrapping, InterpolateDiscrete, Texture, VectorKeyframeTrack, NumberKeyframeTrack, QuaternionKeyframeTrack, Interpolant, SphereGeometry, UniformsUtils, MeshDepthMaterial, RGBADepthPacking, MeshDistanceMaterial, ShaderChunk, InstancedBufferGeometry, PlaneGeometry, Float32BufferAttribute } from 'three';
+import { Vector3, Vector2, Plane, Line3, Box3, Mesh, BatchedMesh, Triangle, Sphere, Matrix4, BufferAttribute, FrontSide, Group, LineBasicMaterial, MeshBasicMaterial, DataTexture, NearestFilter, UnsignedIntType, IntType, FloatType, RGBAFormat, RGIntegerFormat, BufferGeometry, Matrix3, Object3D, REVISION, Ray, UnsignedByteType, UnsignedShortType, ByteType, ShortType, RGBAIntegerFormat, Vector4, RGFormat, RedFormat, RedIntegerFormat, BackSide, DoubleSide, TrianglesDrawMode, TriangleFanDrawMode, TriangleStripDrawMode, Quaternion, Loader, LoaderUtils, FileLoader, Color, LinearSRGBColorSpace, SpotLight, PointLight, DirectionalLight, SRGBColorSpace, MeshPhysicalMaterial, InstancedMesh, InstancedBufferAttribute, TextureLoader, ImageBitmapLoader, InterleavedBuffer, InterleavedBufferAttribute, LinearFilter, LinearMipmapLinearFilter, RepeatWrapping, PointsMaterial, Material, MeshStandardMaterial, PropertyBinding, SkinnedMesh, LineSegments, Line, LineLoop, Points, PerspectiveCamera, MathUtils, OrthographicCamera, Skeleton, AnimationClip, Bone, InterpolateLinear, ColorManagement, NearestMipmapNearestFilter, LinearMipmapNearestFilter, NearestMipmapLinearFilter, ClampToEdgeWrapping, MirroredRepeatWrapping, InterpolateDiscrete, Texture, VectorKeyframeTrack, NumberKeyframeTrack, QuaternionKeyframeTrack, Interpolant, SphereGeometry, UniformsUtils, MeshDepthMaterial, RGBADepthPacking, MeshDistanceMaterial, ShaderChunk, InstancedBufferGeometry, DynamicDrawUsage, PlaneGeometry } from 'three';
 
 /*
  * This Source Code Form is subject to the terms of the Mozilla Public
@@ -7,11 +7,20 @@ import { Vector3, Vector2, Plane, Line3, Box3, Mesh, BatchedMesh, Triangle, Sphe
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
-class Style {
-    constructor(style = {}) {
+class InteractionToolHandler {
+    constructor() {
+        this._tool = null;
         this._listeners = new Set();
-        for(let property of Style.PROPERTIES) {
-            if(property in style) this['_' + property] = style[property];
+    }
+
+    getTool() {
+        return this._tool;
+    }
+
+    setTool(tool) {
+        this._tool = tool;
+        for(let callback of this._listeners) {
+            callback(tool);
         }
     }
 
@@ -22,154 +31,329 @@ class Style {
     removeUpdateListener(callback) {
         this._listeners.delete(callback);
     }
+}
 
-    _genericGet(param) {
-        return this['_' + param];
+let interactionToolHandler = new InteractionToolHandler();
+
+const InteractableStates = {
+    IDLE: "IDLE",
+    DISABLED: "DISABLED",
+    HOVERED: "HOVERED",
+    SELECTED: "SELECTED"
+};
+
+/*
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ */
+
+
+class Interactable {
+    constructor(object) {
+        this._object = object;
+        this._state = InteractableStates.IDLE;
+        this.children = new Set();
+        this._hoveredOwners = new Set();
+        this._selectedOwners = new Set();
+        this._capturedOwners = new Set();
+        this._stateCallbacks = new Set();
+        this._hoveredCallbacks = new Set();
+        this._callbacks = {};
+        this._callbacksLength = 0;
+        this._toolCounts = {};
+        this._hoveredCallbackState = false;
+        this._disabled = false;
     }
 
-    _genericSet(param, value) {
-        this['_' + param] = value;
-        for(let callback of this._listeners) {
-            callback(param);
+    addEventListener(type, callback, options) {
+        if(options) options = { ...options };//Shallow copy
+        let tool = options?.tool || 'none';
+        if(!(type in this._callbacks)) this._callbacks[type] = new Map();
+        if(this._callbacks[type].has(callback))
+            this.removeEventListener(type, callback);
+        this._callbacks[type].set(callback, options);
+        this._callbacksLength++;
+        if(!this._toolCounts[tool]) this._toolCounts[tool] = 0;
+        this._toolCounts[tool]++;
+    }
+
+    copyEventListenersTo(interactable) {
+        for(let type in this._callbacks) {
+            for(let [callback, options] of this._callbacks[type]) {
+                interactable.addEventListener(type, callback, options);
+            }
         }
     }
 
-    get alignItems() { return this._genericGet('alignItems'); }
-    get backgroundVisible() {
-        return this._genericGet('backgroundVisible');
+    removeEventListener(type, callback) {
+        if(type in this._callbacks && this._callbacks[type].has(callback)) {
+            let options = this._callbacks[type].get(callback);
+            this._callbacks[type].delete(callback);
+            this._callbacksLength--;
+            let tool = options?.tool || 'none';
+            this._toolCounts[tool]--;
+        }
     }
-    get borderMaterial() { return this._genericGet('borderMaterial'); }
-    get borderRadius() { return this._genericGet('borderRadius'); }
-    get borderBottomLeftRadius() {
-        return this._genericGet('borderBottomLeftRadius');
-    }
-    get borderBottomRightRadius() {
-        return this._genericGet('borderBottomRightRadius');
-    }
-    get borderTopLeftRadius() {
-        return this._genericGet('borderTopLeftRadius');
-    }
-    get borderTopRightRadius() {
-        return this._genericGet('borderTopRightRadius');
-    }
-    get borderWidth() { return this._genericGet('borderWidth'); }
-    get color() { return this._genericGet('color'); }
-    get contentDirection() { return this._genericGet('contentDirection'); }
-    get font() { return this._genericGet('font'); }
-    get fontSize() { return this._genericGet('fontSize'); }
-    get glassmorphism() { return this._genericGet('glassmorphism'); }
-    get height() { return this._genericGet('height'); }
-    get justifyContent() { return this._genericGet('justifyContent'); }
-    get margin() { return this._genericGet('margin'); }
-    get marginBottom() { return this._genericGet('marginBottom'); }
-    get marginLeft() { return this._genericGet('marginLeft'); }
-    get marginRight() { return this._genericGet('marginRight'); }
-    get marginTop() { return this._genericGet('marginTop'); }
-    get material() { return this._genericGet('material'); }
-    get materialColor() { return this._genericGet('materialColor'); }
-    get maxHeight() { return this._genericGet('maxHeight'); }
-    get maxWidth() { return this._genericGet('maxWidth'); }
-    get minHeight() { return this._genericGet('minHeight'); }
-    get minWidth() { return this._genericGet('minWidth'); }
-    get opacity() { return this._genericGet('opacity'); }
-    get overflow() { return this._genericGet('overflow'); }
-    get padding() { return this._genericGet('padding'); }
-    get paddingBottom() { return this._genericGet('paddingBottom'); }
-    get paddingLeft() { return this._genericGet('paddingLeft'); }
-    get paddingRight() { return this._genericGet('paddingRight'); }
-    get paddingTop() { return this._genericGet('paddingTop'); }
-    get pointerInteractableClassOverride() {
-        return this._genericGet('pointerInteractableClassOverride');
-    }
-    get textAlign() { return this._genericGet('textAlign'); }
-    get textureFit() { return this._genericGet('textureFit'); }
-    get width() { return this._genericGet('width'); }
 
-    set alignItems(v) { this._genericSet('alignItems', v); }
-    set backgroundVisible(v) { this._genericSet('backgroundVisible', v); }
-    set borderMaterial(v) { this._genericSet('borderMaterial', v); }
-    set borderRadius(v) { this._genericSet('borderRadius', v); }
-    set borderBottomLeftRadius(v) {
-        this._genericSet('borderBottomLeftRadius', v);
+    dispatchEvent(type, e) {
+        if(this._disabled || !(type in this._callbacks)) return;
+        let tool = interactionToolHandler.getTool();
+        for(let [callback, options] of this._callbacks[type]) {
+            let callbackTool = options?.tool;
+            if(!callbackTool || callbackTool == tool) callback(e);
+        }
     }
-    set borderBottomRightRadius(v) {
-        this._genericSet('borderBottomRightRadius', v);
-    }
-    set borderTopLeftRadius(v) { this._genericSet('borderTopLeftRadius', v); }
-    set borderTopRightRadius(v) { this._genericSet('borderTopRightRadius', v); }
-    set borderWidth(v) { this._genericSet('borderWidth', v); }
-    set color(v) { this._genericSet('color', v); }
-    set contentDirection(v) { this._genericSet('contentDirection', v); }
-    set font(v) { this._genericSet('font', v); }
-    set fontSize(v) { this._genericSet('fontSize', v); }
-    set glassmorphism(v) { this._genericSet('glassmorphism', v); }
-    set height(v) { this._genericSet('height', v); }
-    set justifyContent(v) { this._genericSet('justifyContent', v); }
-    set margin(v) { this._genericSet('margin', v); }
-    set marginBottom(v) { this._genericSet('marginBottom', v); }
-    set marginLeft(v) { this._genericSet('marginLeft', v); }
-    set marginRight(v) { this._genericSet('marginRight', v); }
-    set marginTop(v) { this._genericSet('marginTop', v); }
-    set material(v) { this._genericSet('material', v); }
-    set materialColor(v) { this._genericSet('materialColor', v); }
-    set maxHeight(v) { this._genericSet('maxHeight', v); }
-    set maxWidth(v) { this._genericSet('maxWidth', v); }
-    set minHeight(v) { this._genericSet('minHeight', v); }
-    set minWidth(v) { this._genericSet('minWidth', v); }
-    set opacity(v) { this._genericSet('opacity', v); }
-    set overflow(v) { this._genericSet('overflow', v); }
-    set padding(v) { this._genericSet('padding', v); }
-    set paddingBottom(v) { this._genericSet('paddingBottom', v); }
-    set paddingLeft(v) { this._genericSet('paddingLeft', v); }
-    set paddingRight(v) { this._genericSet('paddingRight', v); }
-    set paddingTop(v) { this._genericSet('paddingTop', v); }
-    set pointerInteractableClassOverride(v) {
-        this._genericSet('pointerInteractableClassOverride', v);
-    }
-    set textAlign(v) { this._genericSet('textAlign', v); }
-    set textureFit(v) { this._genericSet('textureFit', v); }
-    set width(v) { this._genericSet('width', v); }
 
-    static PROPERTIES = [
-        'alignItems',
-        'backgroundVisible',
-        'borderMaterial',
-        'borderRadius',
-        'borderBottomLeftRadius',
-        'borderBottomRightRadius',
-        'borderTopLeftRadius',
-        'borderTopRightRadius',
-        'borderWidth',
-        'color',
-        'contentDirection',
-        'font',
-        'fontSize',
-        'glassmorphism',
-        'height',
-        'justifyContent',
-        'margin',
-        'marginBottom',
-        'marginLeft',
-        'marginRight',
-        'marginTop',
-        'material',
-        'materialColor',
-        'maxHeight',
-        'maxWidth',
-        'minHeight',
-        'minWidth',
-        'padding',
-        'paddingBottom',
-        'paddingLeft',
-        'paddingRight',
-        'paddingTop',
-        'pointerInteractableClassOverride',
-        'opacity',
-        'overflow',
-        'textAlign',
-        'textureFit',
-        'width'
-    ];
+    over(e) {
+        this.dispatchEvent('over', e);
+    }
+
+    out(e) {
+        this.dispatchEvent('out', e);
+    }
+
+    down(e) {
+        this.dispatchEvent('down', e);
+    }
+
+    up(e) {
+        this.dispatchEvent('up', e);
+    }
+
+    click(e) {
+        this.dispatchEvent('click', e);
+        if(this._capturedOwners.has(e.owner))
+            this._capturedOwners.delete(e.owner);
+    }
+
+    move(e) {
+        this.dispatchEvent('move', e);
+    }
+
+    drag(e) {
+        this.dispatchEvent('drag', e);
+    }
+
+    capture(owner) {
+        this._capturedOwners.add(owner);
+    }
+
+    isCapturedBy(owner) {
+        return this._capturedOwners.has(owner);
+    }
+
+    getCallbacksLength(tool) {
+        return (tool) ? this._toolCounts[tool] : this._callbacksLength;
+    }
+
+    supportsTool() {
+        let tool = interactionToolHandler.getTool();
+        return this._toolCounts['none'] || this._toolCounts[tool];
+    }
+
+    isOnlyGroup() {
+        return !this.supportsTool();
+    }
+
+    addStateCallback(callback) {
+        this._stateCallbacks.add(callback);
+    }
+
+    addHoveredCallback(callback) {
+        this._hoveredCallbacks.add(callback);
+    }
+
+    removeStateCallback(callback) {
+        this._stateCallbacks.delete(callback);
+    }
+
+    removeHoveredCallback(callback) {
+        this._hoveredCallbacks.delete(callback);
+    }
+
+    _determineAndSetState() {
+        if(this._selectedOwners.size > 0) {
+            this.state = InteractableStates.SELECTED;
+        } else if(this._hoveredOwners.size > 0) {
+            this.state = InteractableStates.HOVERED;
+        } else {
+            this.state = InteractableStates.IDLE;
+        }
+    }
+
+    _determineHoveredCallbackState() {
+        if(this._disabled || this._hoveredCallbacks.size == 0) return;
+        let newState = false;
+        for(let owner of this._hoveredOwners) {
+            if(!this._selectedOwners.has(owner)) {
+                newState = true;
+                break;
+            }
+        }
+        if(newState != this._hoveredCallbackState) {
+            this._hoveredCallbackState = newState;
+            for(let callback of this._hoveredCallbacks) {
+                callback(newState);
+            }
+        }
+    }
+
+    addHoveredBy(owner) {
+        if(this._hoveredOwners.has(owner)) return;
+        this._hoveredOwners.add(owner);
+        this._determineHoveredCallbackState();
+        if(this._selectedOwners.size == 0)
+            this.state = InteractableStates.HOVERED;
+    }
+
+    removeHoveredBy(owner) {
+        this._hoveredOwners.delete(owner);
+        this._determineAndSetState();
+        this._determineHoveredCallbackState();
+    }
+
+    addSelectedBy(owner) {
+        this._selectedOwners.add(owner);
+        this.state = InteractableStates.SELECTED;
+        this._determineHoveredCallbackState();
+    }
+
+    removeSelectedBy(owner) {
+        this._selectedOwners.delete(owner);
+        this._determineAndSetState();
+        this._determineHoveredCallbackState();
+    }
+
+    reset() {
+        this._hoveredOwners.clear();
+        this._selectedOwners.clear();
+        this.state = InteractableStates.IDLE;
+        this.children.forEach((interactable) => {
+            interactable.reset();
+        });
+    }
+
+    addChild(interactable) {
+        if(interactable.parent == this) return;
+        if(interactable.parent) interactable.parent.removeChild(interactable);
+        this.children.add(interactable);
+        interactable.parent = this;
+    }
+
+    addChildren(interactables) {
+        interactables.forEach((interactable) => {
+            this.addChild(interactable);
+        });
+    }
+
+    removeChild(interactable) {
+        this.children.delete(interactable);
+        interactable.parent = null;
+    }
+
+    removeChildren(interactables) {
+        interactables.forEach((interactable) => {
+            this.removeChild(interactable);
+        });
+    }
+
+    get disabled() { return this._disabled; }
+    get object() { return this._object; }
+    get state() { return this._state; }
+
+    set disabled(disabled) {
+        if(disabled) {
+            if(this._hoveredCallbackState) {
+                this._hoveredCallbacks.forEach((callback) => callback(false));
+                this._hoveredCallbackState = false;
+            }
+            this.state = InteractableStates.DISABLED;
+            this._disabled = disabled;
+        } else {
+            this._disabled = disabled;
+            this._determineAndSetState();
+            this._determineHoveredCallbackState();
+        }
+    }
+    set object(object) { this._object = object; }
+    set state(newState) {
+        if(!this._disabled && this._state != newState) {
+            this._state = newState;
+            for(let callback of this._stateCallbacks) {
+                callback(newState);
+            }
+        }
+    }
+}
+
+/*
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ */
+
+
+class PointerInteractable extends Interactable {
+    constructor(object) {
+        super(object);
+        if(object) object.pointerInteractable = this;
+        this._maxDistance = -Infinity;
+        this._hoveredCursor = 'pointer';
+    }
+
+    addEventListener(type, callback, options = {}) {
+        options = { ...options };
+        if(options.maxDistance == null) options.maxDistance = Infinity;
+        if(options.maxDistance > this._maxDistance)
+            this._maxDistance = options.maxDistance;
+        super.addEventListener(type, callback, options);
+    }
+
+    removeEventListener(type, callback) {
+        let needsMaxDistanceUpdate = false;
+        if(type in this._callbacks && this._callbacks[type].has(callback)) {
+            let options = this._callbacks[type].get(callback);
+            if(options.maxDistance == this._maxDistance)
+                needsMaxDistanceUpdate = true;
+        }
+        super.removeEventListener(type, callback);
+        if(needsMaxDistanceUpdate) {
+            this._maxDistance = -Infinity;
+            for(let type in this._callbacks) {
+                for(let [_key, value] of this._callbacks[type]) {
+                    if(value.maxDistance > this._maxDistance)
+                        this._maxDistance = value.maxDistance;
+                }
+            }
+        }
+    }
+
+    dispatchEvent(type, e) {
+        if(this._disabled || !(type in this._callbacks)) return;
+        let tool = interactionToolHandler.getTool();
+        for(let [callback, options] of this._callbacks[type]) {
+            let callbackTool = options.tool;
+            if(callbackTool && callbackTool != tool) continue;
+            if(e?.userDistance == null || options.maxDistance >= e.userDistance)
+                callback(e);
+        }
+    }
+
+    isWithinReach(distance) {
+        return distance < this._maxDistance;
+    }
+
+    get hoveredCursor() {
+        return (this._disabled) ? 'not-allowed' : this._hoveredCursor;
+    }
+    get object() { return this._object; }
+
+    set hoveredCursor(hoveredCursor) { this._hoveredCursor = hoveredCursor; }
+    set object(object) {
+        this._object = object;
+        if(object) object.pointerInteractable = this;
+    }
 }
 
 // Split strategy constants
@@ -411,7 +595,7 @@ function computeTriangleBounds( geo, target = null, offset = null, count = null 
 	let triangleBounds;
 	if ( target === null ) {
 
-		triangleBounds = new Float32Array( triCount * 6 * 4 );
+		triangleBounds = new Float32Array( triCount * 6 );
 		offset = 0;
 		count = triCount;
 
@@ -2961,6 +3145,8 @@ function closestPointToPoint(
 
 }
 
+const IS_GT_REVISION_169 = parseInt( REVISION ) >= 169;
+
 // Ripped and modified From THREE.js Mesh raycast
 // https://github.com/mrdoob/three.js/blob/0aa87c999fe61e216c1133fba7a95772b503eddf/src/objects/Mesh.js#L115
 const _vA = /* @__PURE__ */ new Vector3();
@@ -3014,6 +3200,9 @@ function checkBufferGeometryIntersection( ray, position, normal, uv, uv1, a, b, 
 
 	if ( intersection ) {
 
+		const barycoord = new Vector3();
+		Triangle.getBarycoord( _intersectionPoint, _vA, _vB, _vC, barycoord );
+
 		if ( uv ) {
 
 			_uvA.fromBufferAttribute( uv, a );
@@ -3061,6 +3250,12 @@ function checkBufferGeometryIntersection( ray, position, normal, uv, uv1, a, b, 
 
 		intersection.face = face;
 		intersection.faceIndex = a;
+
+		if ( IS_GT_REVISION_169 ) {
+
+			intersection.barycoord = barycoord;
+
+		}
 
 	}
 
@@ -3170,6 +3365,10 @@ function getTriangleHitPointInfo( point, geometry, triangleIndex, target ) {
 
 	}
 
+	// extract barycoord
+	const barycoord = target && target.barycoord ? target.barycoord : new Vector3();
+	Triangle.getBarycoord( point, tempV1, tempV2, tempV3, barycoord );
+
 	// extract uvs
 	let uv = null;
 	if ( uvs ) {
@@ -3197,6 +3396,7 @@ function getTriangleHitPointInfo( point, geometry, triangleIndex, target ) {
 		Triangle.getNormal( tempV1, tempV2, tempV3, target.face.normal );
 
 		if ( uv ) target.uv = uv;
+		target.barycoord = barycoord;
 
 		return target;
 
@@ -3210,7 +3410,8 @@ function getTriangleHitPointInfo( point, geometry, triangleIndex, target ) {
 				materialIndex: materialIndex,
 				normal: Triangle.getNormal( tempV1, tempV2, tempV3, new Vector3() )
 			},
-			uv: uv
+			uv: uv,
+			barycoord: barycoord,
 		};
 
 	}
@@ -6464,9 +6665,10 @@ function acceleratedBatchedMeshRaycast( raycaster, intersects ) {
 
 	if ( this.boundsTrees ) {
 
+		// TODO: remove use of geometry info, instance info when r170 is minimum version
 		const boundsTrees = this.boundsTrees;
-		const drawInfo = this._drawInfo;
-		const drawRanges = this._drawRanges;
+		const drawInfo = this._drawInfo || this._instanceInfo;
+		const drawRanges = this._drawRanges || this._geometryInfo;
 		const matrixWorld = this.matrixWorld;
 
 		_mesh.material = this.material;
@@ -6618,7 +6820,7 @@ function computeBatchedBoundsTree( index = - 1, options = {} ) {
 		range: null
 	};
 
-	const drawRanges = this._drawRanges;
+	const drawRanges = this._drawRanges || this._geometryInfo;
 	const geometryCount = this._geometryCount;
 	if ( ! this.boundsTrees ) {
 
@@ -8613,6 +8815,512 @@ var utils = /*#__PURE__*/Object.freeze({
  */
 
 
+const matrix4 = new THREE.Matrix4();
+
+class TouchInteractable extends Interactable {
+    constructor(object) {
+        super(object);
+        this._target1 = {};
+        this._target2 = {};
+        this._targets = [this._target1, this._target2];
+        if(object) {
+            object.touchInteractable = this;
+            if(!object.bvhGeometry) setupBVHForComplexObject(object);
+        }
+        this._createBoundingObject();
+    }
+
+    _createBoundingObject() {
+        this._boundingBox = new THREE.Box3();
+    }
+
+    _getBoundingObject() {
+        this._boundingBox.setFromObject(this._object);
+        return this._boundingBox;
+    }
+
+    intersectsSphere(sphere) {
+        let boundingBox = this._getBoundingObject();
+        let intersects;
+        if(boundingBox) {
+            intersects = sphere.intersectsBox(boundingBox);
+        } else {
+            intersects = false;
+        }
+        return intersects;
+    }
+
+    intersectsObject(object) {
+        if(!object?.bvhGeometry?.boundsTree) return;
+        if(!this._object?.bvhGeometry?.boundsTree
+            && !setupBVHForComplexObject(this._object)) return;
+        matrix4.copy(this._object.matrixWorld).invert().multiply(
+            object.matrixWorld);
+        return this._object.bvhGeometry.boundsTree.intersectsGeometry(
+            object.bvhGeometry, matrix4);
+    }
+
+    getClosestPointTo(object) {
+        if(object.model) object = object.model;
+        if(!object?.bvhGeometry?.boundsTree) return;
+        if(!this._object?.bvhGeometry?.boundsTree) return;
+        matrix4.copy(this._object.matrixWorld).invert().multiply(
+            object.matrixWorld);
+        let found = this._object.bvhGeometry.boundsTree.closestPointToGeometry(
+            object.bvhGeometry, matrix4, this._target1, this._target2);
+        if(found) {
+            this._target2.object = object;
+            return this._targets;
+        }
+    }
+
+    get object() { return this._object; }
+
+    set object(object) {
+        this._object = object;
+        if(object) object.touchInteractable = this;
+    }
+}
+
+let workingColor = new THREE.Color();
+let workingMatrix = new THREE.Matrix4();
+let nextId = 1;
+const emptyFunc = () => {};
+
+class InstancedBackgroundManager {
+    constructor() {
+        this._idMap = {};
+        this._geometries = {};
+        this._clippedParents = new Map();
+        this._pendingPositionUpdates = new Set();
+        this._pendingPointerListenerUpdates = new Set();
+        this._pendingTouchListenerUpdates = new Set();
+    }
+
+    registerLayoutComponentClass(layoutComponentClass) {
+        this._layoutComponentClass = layoutComponentClass;
+    }
+
+    createBackground(component, height, width, topLeftRadius, topRightRadius,
+                     bottomLeftRadius, bottomRightRadius, materialOffset,color){
+        let params = [height, width, topLeftRadius, topRightRadius,
+            bottomLeftRadius, bottomRightRadius];
+        let geometryKey = params.join(':');
+        params.push(materialOffset);
+        let key = params.join(':');
+        let ancestor = this._getClosestAncestorWithHiddenOverflow(component);
+        if(!ancestor) return;
+        if(!this._clippedParents.has(ancestor))
+            this._clippedParents.set(ancestor, {});
+        let backgroundsMap = this._clippedParents.get(ancestor);
+        let instancedMesh = backgroundsMap[key];
+        if(!instancedMesh) {
+            let geometry = this._geometries[geometryKey];            if(!geometry) {
+                let shape = component.createShape(width, height, topLeftRadius,
+                    topRightRadius, bottomLeftRadius, bottomRightRadius);
+                geometry = new THREE.ShapeGeometry(shape);
+                this._geometries[geometryKey] = geometry;
+                geometry.computeBoundsTree();
+            }
+            let material = new THREE.MeshBasicMaterial({
+                color: 0xffffff,
+                side: THREE.DoubleSide,
+                transparent: true,
+                polygonOffset: true,
+                polygonOffsetFactor: materialOffset * -1,
+                polygonOffsetUnits: materialOffset * -1,
+            });
+            material.clippingPlanes = ancestor.material.clippingPlanes;
+            instancedMesh = new THREE.InstancedMesh(geometry, material, 16);
+            backgroundsMap[key] = instancedMesh;
+            instancedMesh.isUIManagedInstancedMesh = true;
+            instancedMesh.maxCount = 16;
+            instancedMesh.count = 0;
+            instancedMesh.ids = [];
+            this._createInteractables(instancedMesh, component, ancestor);
+            ancestor.add(instancedMesh);
+        }
+        if(instancedMesh.count == instancedMesh.maxCount) {
+            let oldInstancedMesh = instancedMesh;
+            let newCount = oldInstancedMesh.maxCount
+                + Math.min(oldInstancedMesh.maxCount, 64);
+            instancedMesh = new THREE.InstancedMesh(oldInstancedMesh.geometry,
+                oldInstancedMesh.material, newCount);
+            instancedMesh.isUIManagedInstancedMesh = true;
+            instancedMesh.maxCount = newCount;
+            instancedMesh.count = oldInstancedMesh.count;
+            instancedMesh.ids = oldInstancedMesh.ids;
+            oldInstancedMesh.pointerInteractable.object = instancedMesh;
+            oldInstancedMesh.touchInteractable.object = instancedMesh;
+            for(let i = 0; i < instancedMesh.count; i++) {
+                oldInstancedMesh.getColorAt(i, workingColor);
+                oldInstancedMesh.getMatrixAt(i, workingMatrix);
+                instancedMesh.setColorAt(i, workingColor);
+                instancedMesh.setMatrixAt(i, workingMatrix);
+                instancedMesh.instanceColor.needsUpdate = true;
+                instancedMesh.instanceMatrix.needsUpdate = true;
+            }
+            for(let id of instancedMesh.ids) {
+                this._idMap[id].instancedMesh = instancedMesh;
+            }
+            if(oldInstancedMesh.parent) {
+                oldInstancedMesh.parent.add(instancedMesh);
+                oldInstancedMesh.parent.remove(oldInstancedMesh);
+                //instancedMesh.matrix.copy(oldInstancedMesh.matrix);
+            }
+            oldInstancedMesh.dispose();
+            backgroundsMap[key] = instancedMesh;
+        } else if(instancedMesh.count == 0) {
+            ancestor.add(instancedMesh);
+        }
+        let id = nextId;
+        let index = instancedMesh.count;
+        instancedMesh.ids.push(id);
+        this._idMap[id] = {
+            ancestor: ancestor,
+            component: component,
+            instancedMesh: instancedMesh,
+            index: index,
+        };
+        instancedMesh.count++;
+        nextId++;
+        this.setPositionFrom(id);
+        this.setColorFrom(id);
+        this.checkAddPointerInteractableListener(id);
+        this.checkAddTouchInteractableListener(id);
+        return id;
+    }
+
+    _createInteractables(instancedMesh, component, ancestor) {
+        let pointerInteractable = new PointerInteractable(instancedMesh);
+        let touchInteractable = new TouchInteractable(instancedMesh);
+        ancestor.pointerInteractable.addChild(pointerInteractable);
+        ancestor.touchInteractable.addChild(touchInteractable);
+    }
+
+    checkAddPointerInteractableListener(id) {
+        let { instancedMesh, component } = this._idMap[id];
+        if(!instancedMesh || !instancedMesh.pointerInteractable.isOnlyGroup()
+            || component.pointerInteractable.isOnlyGroup()) return;
+        instancedMesh.pointerInteractable.addEventListener('click', emptyFunc);
+    }
+
+    checkAddTouchInteractableListener(id) {
+        let { instancedMesh, component } = this._idMap[id];
+        if(!instancedMesh || !instancedMesh.touchInteractable.isOnlyGroup()
+            || component.touchInteractable.isOnlyGroup()) return;
+        instancedMesh.touchInteractable.addEventListener('click', emptyFunc);
+    }
+
+    checkRemovePointerInteractableListener(id) {
+        let instancedMesh = this._idMap[id]?.instancedMesh;
+        if(!instancedMesh) return;
+        this._pendingPointerListenerUpdates.add(instancedMesh);
+    }
+
+    checkRemoveTouchInteractableListener(id) {
+        let instancedMesh = this._idMap[id]?.instancedMesh;
+        if(!instancedMesh) return;
+        this._pendingTouchListenerUpdates.add(instancedMesh);
+    }
+
+    _checkRemovePointerInteractableListener(instancedMesh) {
+        for(let id of instancedMesh.ids) {
+            //The instancedMesh may have been replaced with a new resized
+            //instance after requesting a listener removal check
+            if(instancedMesh != this._idMap[id].instancedMesh) return;
+            if(!this._idMap[id].component.pointerInteractable.isOnlyGroup())
+                return;
+        }
+        instancedMesh.pointerInteractable.removeEventListener('click',
+            emptyFunc);
+    }
+
+    _checkRemoveTouchInteractableListener(instancedMesh) {
+        for(let id of instancedMesh.ids) {
+            //The instancedMesh may have been replaced with a new resized
+            //instance after requesting a listener removal check
+            if(instancedMesh != this._idMap[id].instancedMesh) return;
+            if(!this._idMap[id].component.touchInteractable.isOnlyGroup())
+                return;
+        }
+        instancedMesh.touchInteractable.removeEventListener('click', emptyFunc);
+    }
+
+    setPositionFrom(id) {
+        this._pendingPositionUpdates.add(id);
+    }
+
+    _setPositionFrom(id) {
+        let details = this._idMap[id];
+        if(!details) return;
+        let object = details.component;
+        object.updateWorldMatrix(true, false);
+        workingMatrix.copy(details.ancestor._content.matrixWorld).invert();
+        workingMatrix.multiply(object.matrixWorld);
+        details.instancedMesh.setMatrixAt(details.index, workingMatrix);
+        details.instancedMesh.instanceMatrix.needsUpdate = true;
+    }
+
+    setColorFrom(id) {
+        let details = this._idMap[id];
+        if(!details) return;
+        workingColor.set(details.component.materialColor || '#ffffff');
+        details.instancedMesh.setColorAt(details.index, workingColor);
+        details.instancedMesh.instanceColor.needsUpdate = true;
+    }
+
+    _getClosestAncestorWithHiddenOverflow(object) {
+        while(object instanceof this._layoutComponentClass) {
+            if(object.overflow != 'visible' || object.constructor.name =='Body')
+                return object;
+            object = object.parentComponent;
+        }
+        return null;
+    }
+
+    getComponent(id) {
+        return this._idMap[id]?.component;
+    }
+
+    remove(id) {
+        let details = this._idMap[id];
+        if(!details) return;
+        let { index, instancedMesh, component, ancestor } = details;
+        let lastIndex = instancedMesh.count - 1;
+        if(index != lastIndex) {
+            instancedMesh.getColorAt(lastIndex, workingColor);
+            instancedMesh.getMatrixAt(lastIndex, workingMatrix);
+            instancedMesh.setColorAt(index, workingColor);
+            instancedMesh.setMatrixAt(index, workingMatrix);
+            let lastId = instancedMesh.ids[lastIndex];
+            instancedMesh.ids[index] = lastId;
+            this._idMap[lastId].index = index;
+        }
+        instancedMesh.count--;
+        instancedMesh.ids.pop();
+        if(instancedMesh.count == 0) {
+            ancestor.remove(instancedMesh);
+        }
+        delete this._idMap[id];
+    }
+
+    _updatePositions() {
+        let updatedInstancedMeshes = new Set();
+        for(let id of this._pendingPositionUpdates) {
+            this._setPositionFrom(id);
+            let instancedMesh = this._idMap[id]?.instancedMesh;
+            if(instancedMesh) updatedInstancedMeshes.add(instancedMesh);
+        }
+        this._pendingPositionUpdates.clear();
+        for(let instancedMesh of updatedInstancedMeshes) {
+            instancedMesh.geometry.computeBoundsTree();
+            instancedMesh.computeBoundingSphere();
+            instancedMesh.computeBoundingBox();
+        }
+    }
+
+    _updateInteractableListeners() {
+        for(let instancedMesh of this._pendingPointerListenerUpdates) {
+            this._checkRemovePointerInteractableListener(instancedMesh);
+        }
+        this._pendingPointerListenerUpdates.clear();
+        for(let instancedMesh of this._pendingTouchListenerUpdates) {
+            if(instancedMesh)
+                this._checkRemoveTouchInteractableListener(instancedMesh);
+        }
+        this._pendingTouchListenerUpdates.clear();
+    }
+
+    update() {
+        this._updatePositions();
+        this._updateInteractableListeners();
+    }
+}
+
+let instancedBackgroundManager = new InstancedBackgroundManager();
+
+/*
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ */
+
+class Style {
+    constructor(style = {}) {
+        this._listeners = new Set();
+        for(let property of Style.PROPERTIES) {
+            if(property in style) this['_' + property] = style[property];
+        }
+    }
+
+    addUpdateListener(callback) {
+        this._listeners.add(callback);
+    }
+
+    removeUpdateListener(callback) {
+        this._listeners.delete(callback);
+    }
+
+    _genericGet(param) {
+        return this['_' + param];
+    }
+
+    _genericSet(param, value) {
+        this['_' + param] = value;
+        for(let callback of this._listeners) {
+            callback(param);
+        }
+    }
+
+    get alignItems() { return this._genericGet('alignItems'); }
+    get backgroundVisible() {
+        return this._genericGet('backgroundVisible');
+    }
+    get borderMaterial() { return this._genericGet('borderMaterial'); }
+    get borderRadius() { return this._genericGet('borderRadius'); }
+    get borderBottomLeftRadius() {
+        return this._genericGet('borderBottomLeftRadius');
+    }
+    get borderBottomRightRadius() {
+        return this._genericGet('borderBottomRightRadius');
+    }
+    get borderTopLeftRadius() {
+        return this._genericGet('borderTopLeftRadius');
+    }
+    get borderTopRightRadius() {
+        return this._genericGet('borderTopRightRadius');
+    }
+    get borderWidth() { return this._genericGet('borderWidth'); }
+    get color() { return this._genericGet('color'); }
+    get contentDirection() { return this._genericGet('contentDirection'); }
+    get font() { return this._genericGet('font'); }
+    get fontSize() { return this._genericGet('fontSize'); }
+    get glassmorphism() { return this._genericGet('glassmorphism'); }
+    get height() { return this._genericGet('height'); }
+    get instanced() { return this._genericGet('instanced'); }
+    get justifyContent() { return this._genericGet('justifyContent'); }
+    get margin() { return this._genericGet('margin'); }
+    get marginBottom() { return this._genericGet('marginBottom'); }
+    get marginLeft() { return this._genericGet('marginLeft'); }
+    get marginRight() { return this._genericGet('marginRight'); }
+    get marginTop() { return this._genericGet('marginTop'); }
+    get material() { return this._genericGet('material'); }
+    get materialColor() { return this._genericGet('materialColor'); }
+    get maxHeight() { return this._genericGet('maxHeight'); }
+    get maxWidth() { return this._genericGet('maxWidth'); }
+    get minHeight() { return this._genericGet('minHeight'); }
+    get minWidth() { return this._genericGet('minWidth'); }
+    get opacity() { return this._genericGet('opacity'); }
+    get overflow() { return this._genericGet('overflow'); }
+    get padding() { return this._genericGet('padding'); }
+    get paddingBottom() { return this._genericGet('paddingBottom'); }
+    get paddingLeft() { return this._genericGet('paddingLeft'); }
+    get paddingRight() { return this._genericGet('paddingRight'); }
+    get paddingTop() { return this._genericGet('paddingTop'); }
+    get pointerInteractableClassOverride() {
+        return this._genericGet('pointerInteractableClassOverride');
+    }
+    get textAlign() { return this._genericGet('textAlign'); }
+    get textureFit() { return this._genericGet('textureFit'); }
+    get width() { return this._genericGet('width'); }
+
+    set alignItems(v) { this._genericSet('alignItems', v); }
+    set backgroundVisible(v) { this._genericSet('backgroundVisible', v); }
+    set borderMaterial(v) { this._genericSet('borderMaterial', v); }
+    set borderRadius(v) { this._genericSet('borderRadius', v); }
+    set borderBottomLeftRadius(v) {
+        this._genericSet('borderBottomLeftRadius', v);
+    }
+    set borderBottomRightRadius(v) {
+        this._genericSet('borderBottomRightRadius', v);
+    }
+    set borderTopLeftRadius(v) { this._genericSet('borderTopLeftRadius', v); }
+    set borderTopRightRadius(v) { this._genericSet('borderTopRightRadius', v); }
+    set borderWidth(v) { this._genericSet('borderWidth', v); }
+    set color(v) { this._genericSet('color', v); }
+    set contentDirection(v) { this._genericSet('contentDirection', v); }
+    set font(v) { this._genericSet('font', v); }
+    set fontSize(v) { this._genericSet('fontSize', v); }
+    set glassmorphism(v) { this._genericSet('glassmorphism', v); }
+    set height(v) { this._genericSet('height', v); }
+    set instanced(v) { this._genericSet('instanced', v); }
+    set justifyContent(v) { this._genericSet('justifyContent', v); }
+    set margin(v) { this._genericSet('margin', v); }
+    set marginBottom(v) { this._genericSet('marginBottom', v); }
+    set marginLeft(v) { this._genericSet('marginLeft', v); }
+    set marginRight(v) { this._genericSet('marginRight', v); }
+    set marginTop(v) { this._genericSet('marginTop', v); }
+    set material(v) { this._genericSet('material', v); }
+    set materialColor(v) { this._genericSet('materialColor', v); }
+    set maxHeight(v) { this._genericSet('maxHeight', v); }
+    set maxWidth(v) { this._genericSet('maxWidth', v); }
+    set minHeight(v) { this._genericSet('minHeight', v); }
+    set minWidth(v) { this._genericSet('minWidth', v); }
+    set opacity(v) { this._genericSet('opacity', v); }
+    set overflow(v) { this._genericSet('overflow', v); }
+    set padding(v) { this._genericSet('padding', v); }
+    set paddingBottom(v) { this._genericSet('paddingBottom', v); }
+    set paddingLeft(v) { this._genericSet('paddingLeft', v); }
+    set paddingRight(v) { this._genericSet('paddingRight', v); }
+    set paddingTop(v) { this._genericSet('paddingTop', v); }
+    set pointerInteractableClassOverride(v) {
+        this._genericSet('pointerInteractableClassOverride', v);
+    }
+    set textAlign(v) { this._genericSet('textAlign', v); }
+    set textureFit(v) { this._genericSet('textureFit', v); }
+    set width(v) { this._genericSet('width', v); }
+
+    static PROPERTIES = [
+        'alignItems',
+        'backgroundVisible',
+        'borderMaterial',
+        'borderRadius',
+        'borderBottomLeftRadius',
+        'borderBottomRightRadius',
+        'borderTopLeftRadius',
+        'borderTopRightRadius',
+        'borderWidth',
+        'color',
+        'contentDirection',
+        'font',
+        'fontSize',
+        'glassmorphism',
+        'height',
+        'instanced',
+        'justifyContent',
+        'margin',
+        'marginBottom',
+        'marginLeft',
+        'marginRight',
+        'marginTop',
+        'material',
+        'materialColor',
+        'maxHeight',
+        'maxWidth',
+        'minHeight',
+        'minWidth',
+        'padding',
+        'paddingBottom',
+        'paddingLeft',
+        'paddingRight',
+        'paddingTop',
+        'pointerInteractableClassOverride',
+        'opacity',
+        'overflow',
+        'textAlign',
+        'textureFit',
+        'width'
+    ];
+}
+
+/*
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ */
+
+
 class UIComponent extends THREE.Object3D {
     constructor(...styles) {
         super();
@@ -8720,6 +9428,7 @@ class UIComponent extends THREE.Object3D {
     get fontSize() { return this._genericGet('fontSize'); }
     get glassmorphism() { return this._genericGet('glassmorphism'); }
     get height() { return this._genericGet('height'); }
+    get instanced() { return this._genericGet('instanced'); }
     get justifyContent() { return this._genericGet('justifyContent'); }
     get margin() { return this._genericGet('margin'); }
     get marginBottom() { return this._genericGet('marginBottom'); }
@@ -8765,6 +9474,7 @@ class UIComponent extends THREE.Object3D {
     set fontSize(v) { this._genericSet('fontSize', v); }
     set glassmorphism(v) { this._genericSet('glassmorphism', v); }
     set height(v) { this._genericSet('height', v); }
+    set instanced(v) { this._genericSet('instanced', v); }
     set justifyContent(v) { this._genericSet('justifyContent', v); }
     set margin(v) { this._genericSet('margin', v); }
     set marginBottom(v) { this._genericSet('marginBottom', v); }
@@ -8791,6 +9501,52 @@ class UIComponent extends THREE.Object3D {
     set textureFit(v) { this._genericSet('textureFit', v); }
     set width(v) { this._genericSet('width', v); }
 }
+
+/*
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ */
+
+class LayoutUpdateHandler {
+    constructor() {
+        this._backgroundQueue = new Set();
+        this._layoutQueue = new Set();
+    }
+
+    scheduleBackgroundUpdate(component) {
+        this._backgroundQueue.add(component);
+    }
+
+    scheduleLayoutUpdate(component) {
+        this._layoutQueue.add(component);
+    }
+
+    completeLayoutUpdate(component) {
+        this._layoutQueue.delete(component);
+    }
+
+    updateBackgrounds() {
+        for(let component of this._backgroundQueue) {
+            component.createBackground();
+            this._backgroundQueue.delete(component);
+        }
+    }
+
+    updateLayouts() {
+        for(let component of this._layoutQueue) {
+            component.updateLayout();
+            this._layoutQueue.delete(component);
+        }
+    }
+
+    update() {
+        this.updateLayouts();
+        this.updateBackgrounds();
+    }
+}
+
+let layoutUpdateHandler = new LayoutUpdateHandler();
 
 /*
  * This Source Code Form is subject to the terms of the Mozilla Public
@@ -8873,6 +9629,7 @@ class LayoutComponent extends UIComponent {
         this._defaults['padding'] = 0;
         this._defaults['width'] = 'auto';
         this._updateListener = () => this._updateClippingPlanes();
+        this.descendantInstancedMeshes = new Set();
         this.computedHeight = 0;
         this.marginedHeight = 0;
         this.unpaddedHeight = 0;
@@ -8885,11 +9642,12 @@ class LayoutComponent extends UIComponent {
         this.addEventListener('added', () => this._onAdded());
         this.addEventListener('removed', () => this._onRemoved());
         this.add(this._content);
+        this._updateLayout();
         if(this.overflow != 'visible') this._createClippingPlanes();
     }
 
     _handleStyleUpdateForAlignItems() {
-        this.updateLayout();
+        this._updateLayout();
     }
 
     _handleStyleUpdateForBackgroundVisible() {
@@ -8926,71 +9684,71 @@ class LayoutComponent extends UIComponent {
     }
 
     _handleStyleUpdateForJustifyContent() {
-        this.updateLayout();
+        this._updateLayout();
     }
 
     _handleStyleUpdateForMargin() {
-        this.updateLayout();
+        this._updateLayout();
     }
 
     _handleStyleUpdateForMarginBottom() {
-        this.updateLayout();
+        this._updateLayout();
     }
 
     _handleStyleUpdateForMarginLeft() {
-        this.updateLayout();
+        this._updateLayout();
     }
 
     _handleStyleUpdateForMarginRight() {
-        this.updateLayout();
+        this._updateLayout();
     }
 
     _handleStyleUpdateForMarginTop() {
-        this.updateLayout();
+        this._updateLayout();
     }
 
     _handleStyleUpdateForMaxHeight() {
-        this.updateLayout();
+        this._updateLayout();
     }
 
     _handleStyleUpdateForMaxWidth() {
-        this.updateLayout();
+        this._updateLayout();
     }
 
     _handleStyleUpdateForMinHeight() {
-        this.updateLayout();
+        this._updateLayout();
     }
 
     _handleStyleUpdateForMinWidth() {
-        this.updateLayout();
+        this._updateLayout();
     }
 
     _handleStyleUpdateForPadding() {
-        this.updateLayout();
+        this._updateLayout();
     }
 
     _handleStyleUpdateForPaddingBottom() {
-        this.updateLayout();
+        this._updateLayout();
     }
 
     _handleStyleUpdateForPaddingLeft() {
-        this.updateLayout();
+        this._updateLayout();
     }
 
     _handleStyleUpdateForPaddingRight() {
-        this.updateLayout();
+        this._updateLayout();
     }
 
     _handleStyleUpdateForPaddingTop() {
-        this.updateLayout();
+        this._updateLayout();
     }
 
     _handleStyleUpdateForHeight() {
-        this.updateLayout();
+        this._updateLayout();
     }
 
     _handleStyleUpdateForWidth() {
-        this.updateLayout();
+        this._updateLayout();
     }
 
     _handleStyleUpdateForMaterial() {
@@ -9005,6 +9763,9 @@ class LayoutComponent extends UIComponent {
         let materialColor = this.materialColor;
         if(materialColor == null) materialColor = '#ffffff';
         this.material.color.set(materialColor);
+        if(this._instancedBackgroundId)
+            instancedBackgroundManager.setColorFrom(
+                this._instancedBackgroundId);
     }
 
     _handleStyleUpdateForOpacity() {
@@ -9022,8 +9783,16 @@ class LayoutComponent extends UIComponent {
     }
 
     _createBackground() {
+        layoutUpdateHandler.scheduleBackgroundUpdate(this);
+    }
+
+    createBackground() {
         if(this._background) this.remove(this._background);
         if(this._border) this.remove(this._border);
+        if(this._instancedBackgroundId) {
+            instancedBackgroundManager.remove(this._instancedBackgroundId);
+            delete this._instancedBackgroundId;
+        }
         this._background = null;
         this._border = null;
         let material = this.material;
@@ -9043,35 +9812,94 @@ class LayoutComponent extends UIComponent {
         let width = this.computedWidth;
         let renderOrder = this._materialOffset;
         if(borderWidth) {
-            let borderShape = LayoutComponent.createShape(width, height,
-                topLeftRadius, topRightRadius, bottomLeftRadius,
-                bottomRightRadius);
+            let borderShape = this.createShape(width, height, topLeftRadius,
+                topRightRadius, bottomLeftRadius, bottomRightRadius);
             topLeftRadius = Math.max(topLeftRadius - borderWidth, 0);
             topRightRadius = Math.max(topRightRadius - borderWidth, 0);
             bottomLeftRadius = Math.max(bottomLeftRadius - borderWidth, 0);
             bottomRightRadius = Math.max(bottomRightRadius - borderWidth, 0);
             height -= 2 * borderWidth;
             width -= 2 * borderWidth;
-            let shape = LayoutComponent.createShape(width, height,topLeftRadius,
+            let shape = this.createShape(width, height,topLeftRadius,
                 topRightRadius, bottomLeftRadius, bottomRightRadius);
-            let geometry = new THREE.ShapeGeometry(shape);
-            this._background = new THREE.Mesh(geometry, this.material);
-            this.add(this._background);
-            borderShape.holes.push(shape);
-            geometry = new THREE.ShapeGeometry(borderShape);
-            this._border = new THREE.Mesh(geometry, this.borderMaterial);
-            this.add(this._border);
-            this._border.renderOrder = renderOrder;
+            if(this.instanced) {
+                //TODO: include border too...
+                this._background = new THREE.Object3D();
+                this._instancedBackgroundId = instancedBackgroundManager
+                    .createBackground(this, height, width, topLeftRadius,
+                        topRightRadius, bottomLeftRadius, bottomRightRadius,
+                        this._materialOffset);
+                if(this._instancedBackgroundId) {
+                    this.updateInstancePosition();
+                    instancedBackgroundManager.setColorFrom(
+                        this._instancedBackgroundId);
+                }
+            } else {
+                let geometry = new THREE.ShapeGeometry(shape);
+                this._background = new THREE.Mesh(geometry, this.material);
+                this.add(this._background);
+                borderShape.holes.push(shape);
+                geometry = new THREE.ShapeGeometry(borderShape);
+                this._border = new THREE.Mesh(geometry, this.borderMaterial);
+                this.add(this._border);
+                this._border.renderOrder = renderOrder;
+            }
         } else {
-            let shape = LayoutComponent.createShape(width, height,topLeftRadius,
-                topRightRadius, bottomLeftRadius, bottomRightRadius);
-            let geometry = new THREE.ShapeGeometry(shape);
-            this._background = new THREE.Mesh(geometry, this.material);
-            this.add(this._background);
+            if(this.instanced) {
+                this._background = new THREE.Object3D();
+                let color = this.materialColor || '#ffffff';
+                this._instancedBackgroundId = instancedBackgroundManager
+                    .createBackground(this, height, width, topLeftRadius,
+                        topRightRadius, bottomLeftRadius, bottomRightRadius,
+                        this._materialOffset, color);
+                if(this._instancedBackgroundId) {
+                    this.updateInstancePosition();
+                    instancedBackgroundManager.setColorFrom(
+                        this._instancedBackgroundId,
+                        this.materialColor || '#ffffff');
+                }
+            } else {
+                let shape = this.createShape(width, height, topLeftRadius,
+                    topRightRadius, bottomLeftRadius, bottomRightRadius);
+                let geometry = new THREE.ShapeGeometry(shape);
+                this._background = new THREE.Mesh(geometry, this.material);
+                this.add(this._background);
+            }
         }
         this._background.renderOrder = renderOrder;
         if(!this.backgroundVisible)
             this._background.visible = false;
+    }
+
+    //https://stackoverflow.com/a/65576761/11626958
+    createShape(width, height, topLeftRadius, topRightRadius,
+                bottomLeftRadius, bottomRightRadius) {
+        let shape = new THREE.Shape();
+        let halfWidth = width / 2;
+        let halfHeight = height / 2;
+        let negativeHalfWidth = halfWidth * -1;
+        let negativeHalfHeight = halfHeight * -1;
+        shape.moveTo(negativeHalfWidth, negativeHalfHeight + bottomLeftRadius);
+        shape.lineTo(negativeHalfWidth, halfHeight - topLeftRadius);
+        if(topLeftRadius)
+            shape.absarc(negativeHalfWidth + topLeftRadius,
+                halfHeight - topLeftRadius, topLeftRadius, Math.PI, Math.PI/2,
+                true);
+        shape.lineTo(halfWidth - topRightRadius, halfHeight);
+        if(topRightRadius)
+            shape.absarc(halfWidth - topRightRadius, halfHeight -topRightRadius,
+                topRightRadius, Math.PI / 2, 0, true);
+        shape.lineTo(halfWidth, negativeHalfHeight + bottomRightRadius);
+        if(bottomRightRadius)
+            shape.absarc(halfWidth - bottomRightRadius,
+                negativeHalfHeight + bottomRightRadius, bottomRightRadius, 0,
+                Math.PI / -2, true);
+        shape.lineTo(negativeHalfWidth + bottomLeftRadius, negativeHalfHeight);
+        if(bottomLeftRadius)
+            shape.absarc(negativeHalfWidth + bottomLeftRadius,
+                negativeHalfHeight + bottomLeftRadius, bottomLeftRadius,
+                Math.PI / -2, -Math.PI, true);
+        return shape;
     }
 
     _addClippingPlanesUpdateListener() {
@@ -9140,6 +9968,9 @@ class LayoutComponent extends UIComponent {
         let clippingPlanes = this._getClippingPlanes();
         this.material.clippingPlanes = clippingPlanes;
         this.borderMaterial.clippingPlanes = clippingPlanes;
+        for(let instancedMesh of this.descendantInstancedMeshes) {
+            instancedMesh.material.clippingPlanes = clippingPlanes;
+        }
         if(this._text) this._text.material.clippingPlanes = clippingPlanes;
         if(!recursive) return;
         for(let child of this._content.children) {
@@ -9148,7 +9979,15 @@ class LayoutComponent extends UIComponent {
         }
     }
 
-    updateLayout() {
+    _updateLayout(recursive) {
+        if(recursive) {
+            this.updateLayout(recursive);
+        } else {
+            layoutUpdateHandler.scheduleLayoutUpdate(this);
+        }
+    }
+
+    updateLayout(recursive) {
         let oldHeight = this.computedHeight;
         let oldWidth = this.computedWidth;
         let oldMarginedHeight = this.marginedHeight;
@@ -9268,21 +10107,24 @@ class LayoutComponent extends UIComponent {
             this._createBackground();
             if(this.clippingPlanes) this._updateClippingPlanes();
             if(this.parentComponent instanceof LayoutComponent)
-                this.parent.parent.updateLayout();
-            this._updateChildrensLayout(oldWidth != width, oldHeight != height);
+                this.parent.parent._updateLayout(recursive);
+            this._updateChildrensLayout(oldWidth != width, oldHeight != height,
+                recursive);
         } else if(oldMarginedHeight != this.marginedHeight
                 || oldMarginedWidth != this.marginedWidth) {
             if(this.clippingPlanes) this._updateClippingPlanes();
             if(this.parentComponent instanceof LayoutComponent)
-                this.parent.parent.updateLayout();
+                this.parent.parent._updateLayout(recursive);
         } else if(oldUnpaddedHeight != this.unpaddedHeight
                 || oldUnpaddedWidth != this.unpaddedWidth) {
             this._updateChildrensLayout(oldUnpaddedWidth != this.unpaddedWidth,
-                oldUnpaddedHeight != this.unpaddedHeight);
+                oldUnpaddedHeight != this.unpaddedHeight, recursive);
         }
+        this._updateInstances();
+        if(recursive) layoutUpdateHandler.completeLayoutUpdate(this);
     }
 
-    _updateChildrensLayout(widthChanged, heightChanged) {
+    _updateChildrensLayout(widthChanged, heightChanged, recursive) {
         for(let child of this._content.children) {
             if(child instanceof LayoutComponent) {
                 let needsUpdate = false;
@@ -9296,7 +10138,7 @@ class LayoutComponent extends UIComponent {
                     if(typeof height == 'string' && height.endsWith('%'))
                         needsUpdate = true;
                 }
-                if(needsUpdate) child.updateLayout();
+                if(needsUpdate) child._updateLayout(recursive);
             }
         }
     }
@@ -9416,6 +10258,14 @@ class LayoutComponent extends UIComponent {
         }
     }
 
+    _getPaddedContentHeight() {
+        return this._getContentHeight() + this.paddingVertical;
+    }
+
+    _getPaddedContentWidth() {
+        return this._getContentWidth() + this.paddingHorizontal;
+    }
+
     _updateMaterialOffset(parentOffset) {
         this._materialOffset = parentOffset + 1;
         let material = this.material;
@@ -9433,12 +10283,43 @@ class LayoutComponent extends UIComponent {
         if(this._border) this._border.renderOrder = order;
     }
 
+    updateInstancePosition() {
+        instancedBackgroundManager.setPositionFrom(this._instancedBackgroundId);
+    }
+
+    _updateInstances() {
+        if(this.instanced) {
+            if(this._instancedBackgroundId) {
+                this.updateInstancePosition();
+            } else {
+                this._createBackground();
+                if(!this._instancedBackgroundId) return;
+            }
+        }
+        for(let child of this._content.children) {
+            if(child instanceof LayoutComponent)
+                child._updateInstances();
+        }
+    }
+
+    _removeInstances() {
+        if(this.instanced && this._instancedBackgroundId) {
+            instancedBackgroundManager.remove(this._instancedBackgroundId);
+            delete this._instancedBackgroundId;
+        }
+        for(let child of this._content.children) {
+            if(child instanceof LayoutComponent)
+                child._removeInstances();
+        }
+    }
+
     _onAdded() {
         this._addClippingPlanesUpdateListener();
     }
 
     _onRemoved() {
         this._removeClippingPlanesUpdateListener();
+        this._removeInstances();
     }
 
     add(object) {
@@ -9449,10 +10330,13 @@ class LayoutComponent extends UIComponent {
         } else if(object instanceof UIComponent
                 && !object.bypassContentPositioning) {
             this._content.add(object);
-            object.updateLayout();
             object._updateMaterialOffset(this._materialOffset);
+            object._updateLayout();
             object.updateClippingPlanes(true);
-            this.updateLayout();
+            this._updateLayout();
+        } else if(object.isUIManagedInstancedMesh) {
+            this.descendantInstancedMeshes.add(object);
+            this._content.add(object);
         } else {
             super.add(object);
         }
@@ -9461,10 +10345,15 @@ class LayoutComponent extends UIComponent {
     remove(object) {
         if(arguments.length > 1) {
             for(let argument of arguments) {
-                this.add(argument);
+                this.remove(argument);
             }
         } else if(object instanceof UIComponent
                 && !object.bypassContentPositioning) {
+            this._content.remove(object);
+            if(this._content.children.length || this.width == 'auto'
+                || this.height == 'auto') this._updateLayout();
+        } else if(object.isUIManagedInstancedMesh) {
+            this.descendantInstancedMeshes.delete(object);
             this._content.remove(object);
         } else {
             super.remove(object);
@@ -9496,455 +10385,9 @@ class LayoutComponent extends UIComponent {
         return paddingTop + paddingBottom;
     }
     get parentComponent() { return this.parent?.parent; }
-
-    //https://stackoverflow.com/a/65576761/11626958
-    static createShape(width, height, topLeftRadius, topRightRadius,
-                       bottomLeftRadius, bottomRightRadius) {
-        let shape = new THREE.Shape();
-        let halfWidth = width / 2;
-        let halfHeight = height / 2;
-        let negativeHalfWidth = halfWidth * -1;
-        let negativeHalfHeight = halfHeight * -1;
-        shape.moveTo(negativeHalfWidth, negativeHalfHeight + bottomLeftRadius);
-        shape.lineTo(negativeHalfWidth, halfHeight - topLeftRadius);
-        if(topLeftRadius)
-            shape.absarc(negativeHalfWidth + topLeftRadius,
-                halfHeight - topLeftRadius, topLeftRadius, Math.PI, Math.PI/2,
-                true);
-        shape.lineTo(halfWidth - topRightRadius, halfHeight);
-        if(topRightRadius)
-            shape.absarc(halfWidth - topRightRadius, halfHeight -topRightRadius,
-                topRightRadius, Math.PI / 2, 0, true);
-        shape.lineTo(halfWidth, negativeHalfHeight + bottomRightRadius);
-        if(bottomRightRadius)
-            shape.absarc(halfWidth - bottomRightRadius,
-                negativeHalfHeight + bottomRightRadius, bottomRightRadius, 0,
-                Math.PI / -2, true);
-        shape.lineTo(negativeHalfWidth + bottomLeftRadius, negativeHalfHeight);
-        if(bottomLeftRadius)
-            shape.absarc(negativeHalfWidth + bottomLeftRadius,
-                negativeHalfHeight + bottomLeftRadius, bottomLeftRadius,
-                Math.PI / -2, -Math.PI, true);
-        return shape;
-    }
 }
 
-/*
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at https://mozilla.org/MPL/2.0/.
- */
-
-class InteractionToolHandler {
-    constructor() {
-        this._tool = null;
-        this._listeners = new Set();
-    }
-
-    getTool() {
-        return this._tool;
-    }
-
-    setTool(tool) {
-        this._tool = tool;
-        for(let callback of this._listeners) {
-            callback(tool);
-        }
-    }
-
-    addUpdateListener(callback) {
-        this._listeners.add(callback);
-    }
-
-    removeUpdateListener(callback) {
-        this._listeners.delete(callback);
-    }
-}
-
-let interactionToolHandler = new InteractionToolHandler();
-
-const InteractableStates = {
-    IDLE: "IDLE",
-    DISABLED: "DISABLED",
-    HOVERED: "HOVERED",
-    SELECTED: "SELECTED"
-};
-
-/*
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at https://mozilla.org/MPL/2.0/.
- */
-
-
-class Interactable {
-    constructor(object) {
-        this._object = object;
-        this._state = InteractableStates.IDLE;
-        this.children = new Set();
-        this._hoveredOwners = new Set();
-        this._selectedOwners = new Set();
-        this._capturedOwners = new Set();
-        this._stateCallbacks = new Set();
-        this._hoveredCallbacks = new Set();
-        this._callbacks = {};
-        this._callbacksLength = 0;
-        this._toolCounts = {};
-        this._hoveredCallbackState = false;
-        this._disabled = false;
-    }
-
-    addEventListener(type, callback, options) {
-        if(options) options = { ...options };//Shallow copy
-        let tool = options?.tool || 'none';
-        if(!(type in this._callbacks)) this._callbacks[type] = new Map();
-        if(this._callbacks[type].has(callback))
-            this.removeEventListener(type, callback);
-        this._callbacks[type].set(callback, options);
-        this._callbacksLength++;
-        if(!this._toolCounts[tool]) this._toolCounts[tool] = 0;
-        this._toolCounts[tool]++;
-    }
-
-    copyEventListenersTo(interactable) {
-        for(let type in this._callbacks) {
-            for(let [callback, options] of this._callbacks[type]) {
-                interactable.addEventListener(type, callback, options);
-            }
-        }
-    }
-
-    removeEventListener(type, callback) {
-        if(type in this._callbacks && this._callbacks[type].has(callback)) {
-            let options = this._callbacks[type].get(callback);
-            this._callbacks[type].delete(callback);
-            this._callbacksLength--;
-            let tool = options?.tool || 'none';
-            this._toolCounts[tool]--;
-        }
-    }
-
-    dispatchEvent(type, e) {
-        if(this._disabled || !(type in this._callbacks)) return;
-        let tool = interactionToolHandler.getTool();
-        for(let [callback, options] of this._callbacks[type]) {
-            let callbackTool = options?.tool;
-            if(!callbackTool || callbackTool == tool) callback(e);
-        }
-    }
-
-    over(e) {
-        this.dispatchEvent('over', e);
-    }
-
-    out(e) {
-        this.dispatchEvent('out', e);
-    }
-
-    down(e) {
-        this.dispatchEvent('down', e);
-    }
-
-    up(e) {
-        this.dispatchEvent('up', e);
-    }
-
-    click(e) {
-        this.dispatchEvent('click', e);
-        if(this._capturedOwners.has(e.owner))
-            this._capturedOwners.delete(e.owner);
-    }
-
-    move(e) {
-        this.dispatchEvent('move', e);
-    }
-
-    drag(e) {
-        this.dispatchEvent('drag', e);
-    }
-
-    capture(owner) {
-        this._capturedOwners.add(owner);
-    }
-
-    isCapturedBy(owner) {
-        return this._capturedOwners.has(owner);
-    }
-
-    getCallbacksLength(tool) {
-        return (tool) ? this._toolCounts[tool] : this._callbacksLength;
-    }
-
-    supportsTool() {
-        let tool = interactionToolHandler.getTool();
-        return this._toolCounts['none'] || this._toolCounts[tool];
-    }
-
-    isOnlyGroup() {
-        return !this.supportsTool();
-    }
-
-    addStateCallback(callback) {
-        this._stateCallbacks.add(callback);
-    }
-
-    addHoveredCallback(callback) {
-        this._hoveredCallbacks.add(callback);
-    }
-
-    removeStateCallback(callback) {
-        this._stateCallbacks.delete(callback);
-    }
-
-    removeHoveredCallback(callback) {
-        this._hoveredCallbacks.delete(callback);
-    }
-
-    _determineAndSetState() {
-        if(this._selectedOwners.size > 0) {
-            this.state = InteractableStates.SELECTED;
-        } else if(this._hoveredOwners.size > 0) {
-            this.state = InteractableStates.HOVERED;
-        } else {
-            this.state = InteractableStates.IDLE;
-        }
-    }
-
-    _determineHoveredCallbackState() {
-        if(this._disabled || this._hoveredCallbacks.size == 0) return;
-        let newState = false;
-        for(let owner of this._hoveredOwners) {
-            if(!this._selectedOwners.has(owner)) {
-                newState = true;
-                break;
-            }
-        }
-        if(newState != this._hoveredCallbackState) {
-            this._hoveredCallbackState = newState;
-            for(let callback of this._hoveredCallbacks) {
-                callback(newState);
-            }
-        }
-    }
-
-    addHoveredBy(owner) {
-        if(this._hoveredOwners.has(owner)) return;
-        this._hoveredOwners.add(owner);
-        this._determineHoveredCallbackState();
-        if(this._selectedOwners.size == 0)
-            this.state = InteractableStates.HOVERED;
-    }
-
-    removeHoveredBy(owner) {
-        this._hoveredOwners.delete(owner);
-        this._determineAndSetState();
-        this._determineHoveredCallbackState();
-    }
-
-    addSelectedBy(owner) {
-        this._selectedOwners.add(owner);
-        this.state = InteractableStates.SELECTED;
-        this._determineHoveredCallbackState();
-    }
-
-    removeSelectedBy(owner) {
-        this._selectedOwners.delete(owner);
-        this._determineAndSetState();
-        this._determineHoveredCallbackState();
-    }
-
-    reset() {
-        this._hoveredOwners.clear();
-        this._selectedOwners.clear();
-        this.state = InteractableStates.IDLE;
-        this.children.forEach((interactable) => {
-            interactable.reset();
-        });
-    }
-
-    addChild(interactable) {
-        if(interactable.parent == this) return;
-        if(interactable.parent) interactable.parent.removeChild(interactable);
-        this.children.add(interactable);
-        interactable.parent = this;
-    }
-
-    addChildren(interactables) {
-        interactables.forEach((interactable) => {
-            this.addChild(interactable);
-        });
-    }
-
-    removeChild(interactable) {
-        this.children.delete(interactable);
-        interactable.parent = null;
-    }
-
-    removeChildren(interactables) {
-        interactables.forEach((interactable) => {
-            this.removeChild(interactable);
-        });
-    }
-
-    get disabled() { return this._disabled; }
-    get object() { return this._object; }
-    get state() { return this._state; }
-
-    set disabled(disabled) {
-        if(disabled) {
-            if(this._hoveredCallbackState) {
-                this._hoveredCallbacks.forEach((callback) => callback(false));
-                this._hoveredCallbackState = false;
-            }
-            this.state = InteractableStates.DISABLED;
-            this._disabled = disabled;
-        } else {
-            this._disabled = disabled;
-            this._determineAndSetState();
-            this._determineHoveredCallbackState();
-        }
-    }
-    set object(object) { this._object = object; }
-    set state(newState) {
-        if(!this._disabled && this._state != newState) {
-            this._state = newState;
-            for(let callback of this._stateCallbacks) {
-                callback(newState);
-            }
-        }
-    }
-}
-
-/*
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at https://mozilla.org/MPL/2.0/.
- */
-
-
-class PointerInteractable extends Interactable {
-    constructor(object) {
-        super(object);
-        if(object) object.pointerInteractable = this;
-        this._maxDistance = -Infinity;
-        this._hoveredCursor = 'pointer';
-    }
-
-    addEventListener(type, callback, options = {}) {
-        options = { ...options };
-        if(options.maxDistance == null) options.maxDistance = Infinity;
-        if(options.maxDistance > this._maxDistance)
-            this._maxDistance = options.maxDistance;
-        super.addEventListener(type, callback, options);
-    }
-
-    removeEventListener(type, callback) {
-        let needsMaxDistanceUpdate = false;
-        if(type in this._callbacks && this._callbacks[type].has(callback)) {
-            let options = this._callbacks[type].get(callback);
-            if(options.maxDistance == this._maxDistance)
-                needsMaxDistanceUpdate = true;
-        }
-        super.removeEventListener(type, callback);
-        if(needsMaxDistanceUpdate) {
-            this._maxDistance = -Infinity;
-            for(let type in this._callbacks) {
-                for(let [_key, value] of this._callbacks[type]) {
-                    if(value.maxDistance > this._maxDistance)
-                        this._maxDistance = value.maxDistance;
-                }
-            }
-        }
-    }
-
-    dispatchEvent(type, e) {
-        if(this._disabled || !(type in this._callbacks)) return;
-        let tool = interactionToolHandler.getTool();
-        for(let [callback, options] of this._callbacks[type]) {
-            let callbackTool = options.tool;
-            if(callbackTool && callbackTool != tool) continue;
-            if(e?.userDistance == null || options.maxDistance >= e.userDistance)
-                callback(e);
-        }
-    }
-
-    isWithinReach(distance) {
-        return distance < this._maxDistance;
-    }
-
-    get hoveredCursor() {
-        return (this._disabled) ? 'not-allowed' : this._hoveredCursor;
-    }
-
-    set hoveredCursor(hoveredCursor) { this._hoveredCursor = hoveredCursor; }
-}
-
-/*
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at https://mozilla.org/MPL/2.0/.
- */
-
-
-const matrix4 = new THREE.Matrix4();
-
-class TouchInteractable extends Interactable {
-    constructor(object) {
-        super(object);
-        this._target1 = {};
-        this._target2 = {};
-        this._targets = [this._target1, this._target2];
-        if(object) {
-            object.touchInteractable = this;
-            if(!object.bvhGeometry) setupBVHForComplexObject(object);
-        }
-        this._createBoundingObject();
-    }
-
-    _createBoundingObject() {
-        this._boundingBox = new THREE.Box3();
-    }
-
-    _getBoundingObject() {
-        this._boundingBox.setFromObject(this._object);
-        return this._boundingBox;
-    }
-
-    intersectsSphere(sphere) {
-        let boundingBox = this._getBoundingObject();
-        let intersects;
-        if(boundingBox) {
-            intersects = sphere.intersectsBox(boundingBox);
-        } else {
-            intersects = false;
-        }
-        return intersects;
-    }
-
-    intersectsObject(object) {
-        if(!object?.bvhGeometry?.boundsTree) return;
-        if(!this._object?.bvhGeometry?.boundsTree
-            && !setupBVHForComplexObject(this._object)) return;
-        matrix4.copy(this._object.matrixWorld).invert().multiply(
-            object.matrixWorld);
-        return this._object.bvhGeometry.boundsTree.intersectsGeometry(
-            object.bvhGeometry, matrix4);
-    }
-
-    getClosestPointTo(object) {
-        if(object.model) object = object.model;
-        if(!object?.bvhGeometry?.boundsTree) return;
-        if(!this._object?.bvhGeometry?.boundsTree) return;
-        matrix4.copy(this._object.matrixWorld).invert().multiply(
-            object.matrixWorld);
-        let found = this._object.bvhGeometry.boundsTree.closestPointToGeometry(
-            object.bvhGeometry, matrix4, this._target1, this._target2);
-        if(found) {
-            this._target2.object = object;
-            return this._targets;
-        }
-    }
-}
+instancedBackgroundManager.registerLayoutComponentClass(LayoutComponent);
 
 const DeviceTypes = {
     POINTER: "POINTER",
@@ -12537,6 +12980,7 @@ function getImageURIMimeType( uri ) {
 
 	if ( uri.search( /\.jpe?g($|\?)/i ) > 0 || uri.search( /^data\:image\/jpeg/ ) === 0 ) return 'image/jpeg';
 	if ( uri.search( /\.webp($|\?)/i ) > 0 || uri.search( /^data\:image\/webp/ ) === 0 ) return 'image/webp';
+	if ( uri.search( /\.ktx2($|\?)/i ) > 0 || uri.search( /^data\:image\/ktx2/ ) === 0 ) return 'image/ktx2';
 
 	return 'image/png';
 
@@ -13242,6 +13686,7 @@ class GLTFParser {
 			texture.minFilter = WEBGL_FILTERS[ sampler.minFilter ] || LinearMipmapLinearFilter;
 			texture.wrapS = WEBGL_WRAPPINGS[ sampler.wrapS ] || RepeatWrapping;
 			texture.wrapT = WEBGL_WRAPPINGS[ sampler.wrapT ] || RepeatWrapping;
+			texture.generateMipmaps = ! texture.isCompressedTexture && texture.minFilter !== NearestFilter && texture.minFilter !== LinearFilter;
 
 			parser.associations.set( texture, { textures: textureIndex } );
 
@@ -16279,11 +16724,16 @@ class PointerInteractableHandler extends InteractableHandler {
         let intersections = raycaster.intersectObjects(objects);
         for(let intersection of intersections) {
             let interactable = this._getObjectInteractable(intersection.object);
-            if(!interactable || this._ignoredInteractables.has(interactable))
+            let instancedComponent;
+            if(!interactable || this._ignoredInteractables.has(interactable)) {
                 continue;
-            if(this._checkClipped(intersection.object, intersection.point)) {
+            } else if(this._checkClipped(intersection)) {
                 this._ignoredInteractables.add(interactable);
                 continue;
+            } else if(instancedComponent = this._checkInstanced(intersection)) {
+                if(instancedComponent == true) continue;
+                interactable = this._getObjectInteractable(instancedComponent);
+                if(!interactable) continue;
             }
             let distance = intersection.distance;
             let userDistance = distance;
@@ -16301,7 +16751,8 @@ class PointerInteractableHandler extends InteractableHandler {
         }
     }
 
-    _checkClipped(object, point) {
+    _checkClipped(intersection) {
+        let { object, point } = intersection;
         let clippingPlanes = object?.material?.clippingPlanes;
         if(clippingPlanes && clippingPlanes.length > 0) {
             for(let plane of clippingPlanes) {
@@ -16309,6 +16760,14 @@ class PointerInteractableHandler extends InteractableHandler {
             }
         }
         return false;
+    }
+
+    _checkInstanced(intersection) {
+        let { object, point, instanceId } = intersection;
+        if(!object.isUIManagedInstancedMesh) return false;
+        let id = object.ids[instanceId];
+        let component = instancedBackgroundManager.getComponent(id);
+        return component || true;
     }
 
     _updateInteractables(controller) {
@@ -16746,8 +17205,8 @@ class InteractableComponent extends LayoutComponent {
         this._touchDragAction = (e) => this._touchDrag(e);
     }
 
-    _createBackground() {
-        super._createBackground();
+    createBackground() {
+        super.createBackground();
         this.pointerInteractable.object = this._background;
         this.touchInteractable.object = this._background;
     }
@@ -16832,26 +17291,66 @@ class InteractableComponent extends LayoutComponent {
         this[callbackName] = newCallback;
     }
 
+    _checkInstancedPointerListenerUpdate(isOnlyGroup) {
+        if(isOnlyGroup) {
+            instancedBackgroundManager.checkRemovePointerInteractableListener(
+                    this._instancedBackgroundId);
+        } else {
+            instancedBackgroundManager.checkAddPointerInteractableListener(
+                this._instancedBackgroundId);
+        }
+    }
+
+    _checkInstancedTouchListenerUpdate(isOnlyGroup) {
+        if(isOnlyGroup) {
+            instancedBackgroundManager.checkRemoveTouchInteractableListener(
+                    this._instancedBackgroundId);
+        } else {
+            instancedBackgroundManager.checkAddTouchInteractableListener(
+                this._instancedBackgroundId);
+        }
+    }
+
     get onClick() { return this._onClick; }
     get onDrag() { return this._onDrag; }
     get onTouch() { return this._onTouch; }
     get onTouchDrag() { return this._onTouchDrag; }
 
     set onClick(v) {
+        let wasOnlyGroup = this.pointerInteractable.isOnlyGroup();
         this._setCallback(this.pointerInteractable, 'click', 'click', v);
+        let isOnlyGroup = this.pointerInteractable.isOnlyGroup();
+        if(this._instancedBackgroundId && wasOnlyGroup != isOnlyGroup)
+            this._checkInstancedPointerListenerUpdate(isOnlyGroup);
     }
+
     set onClickAndTouch(v) {
-        this._setCallback(this.pointerInteractable, 'click', 'click', v);
-        this._setCallback(this.touchInteractable, 'click', 'touch', v);
+        this.onClick = v;
+        this.onTouch = v;
     }
+
     set onDrag(v) {
+        let wasOnlyGroup = this.pointerInteractable.isOnlyGroup();
         this._setCallback(this.pointerInteractable, 'drag', 'drag', v);
+        let isOnlyGroup = this.pointerInteractable.isOnlyGroup();
+        if(this._instancedBackgroundId && wasOnlyGroup != isOnlyGroup)
+            this._checkInstancedPointerListenerUpdate(isOnlyGroup);
     }
+
     set onTouch(v) {
+        let wasOnlyGroup = this.touchInteractable.isOnlyGroup();
         this._setCallback(this.touchInteractable, 'click', 'touch', v);
+        let isOnlyGroup = this.touchInteractable.isOnlyGroup();
+        if(this._instancedBackgroundId && wasOnlyGroup != isOnlyGroup)
+            this._checkInstancedTouchListenerUpdate(isOnlyGroup);
     }
+
     set onTouchDrag(v) {
+        let wasOnlyGroup = this.touchInteractable.isOnlyGroup();
         this._setCallback(this.touchInteractable, 'drag', 'touchDrag', v);
+        let isOnlyGroup = this.touchInteractable.isOnlyGroup();
+        if(this._instancedBackgroundId && wasOnlyGroup != isOnlyGroup)
+            this._checkInstancedTouchListenerUpdate(isOnlyGroup);
     }
 }
 
@@ -16876,27 +17375,31 @@ class ScrollableComponent extends InteractableComponent {
         this._scrollOwner;
         this._scrollable = false;
         this._scrollableByAncestor = false;
+        this._wasScrollable = false;
+        this._scrollableAncestor;
         this._downAction = (e) => this.pointerInteractable.capture(e.owner);
         this._touchDownAction = (e) => this.touchInteractable.capture(e.owner);
     }
 
-    updateLayout() {
-        super.updateLayout();
+    updateLayout(recursive) {
+        super.updateLayout(recursive);
         this._updateScrollInteractables();
     }
 
     _updateScrollInteractables() {
-        let wasScrollable = this._scrollable || this._scrollableByAncestor;
+        let scrollableAncestor = this._scrollableAncestor;
         this._updateScrollable();
-        if(wasScrollable == (this._scrollable || this._scrollableByAncestor))
+        let scrollable = this._scrollable || this._scrollableByAncestor;
+        if(scrollable == this._wasScrollable) {
+            if(scrollableAncestor != this._scrollableAncestor)
+                this._updateChildrenScrollInteractables();
             return;
-        for(let child of this._content.children) {
-            if(child instanceof ScrollableComponent)
-                child._updateScrollInteractables();
         }
-        let functionName = (wasScrollable)
-            ? 'removeEventListener'
-            : 'addEventListener';
+        this._wasScrollable = scrollable;
+        this._updateChildrenScrollInteractables();
+        let functionName = (scrollable)
+            ? 'addEventListener'
+            : 'removeEventListener';
         this.pointerInteractable[functionName]('down', this._downAction);
         this.touchInteractable[functionName]('down', this._touchDownAction);
         if(!this._onClick)
@@ -16909,18 +17412,30 @@ class ScrollableComponent extends InteractableComponent {
             this.touchInteractable[functionName]('drag', this._touchDragAction);
     }
 
+    _updateChildrenScrollInteractables() {
+        for(let child of this._content.children) {
+            if(child instanceof ScrollableComponent)
+                child._updateScrollInteractables();
+        }
+    }
+
     _updateScrollable() {
         let height = this.computedHeight;
         let width = this.computedWidth;
         let contentHeight = this._getContentHeight();
         let contentWidth = this._getContentWidth();
+        let paddedContentHeight = this._getPaddedContentHeight();
+        let paddedContentWidth = this._getPaddedContentWidth();
         let overflowScroll = (this.overflow == 'scroll');
-        this._verticallyScrollable = contentHeight > height && overflowScroll;
-        this._horizontallyScrollable = contentWidth > width && overflowScroll;
+        this._verticallyScrollable = paddedContentHeight > height
+            && overflowScroll;
+        this._horizontallyScrollable = paddedContentWidth > width
+            && overflowScroll;
         this._scrollable = this._verticallyScrollable
             || this._horizontallyScrollable;
+        this._scrollableAncestor = this._getScrollableAncestor();
         this._scrollableByAncestor = this._onClick != null
-            && this._getScrollableAncestor() != null;
+            && this._scrollableAncestor != null;
         if(!this._scrollable) {
             this._content.position.x = 0;
             this._content.position.y = 0;
@@ -17173,7 +17688,6 @@ class Body extends ScrollableComponent {
         this._defaults['backgroundVisible'] = true;
         this._defaults['height'] = 1;
         this._defaults['width'] = 1;
-        this.updateLayout();
     }
 }
 
@@ -17363,8 +17877,17 @@ function defineMainThreadModule(options) {
     var init = options.init;
 
     // Resolve dependencies
-    dependencies = Array.isArray(dependencies) ? dependencies.map(function (dep) { return dep && dep._getInitResult ? dep._getInitResult() : dep; }
-    ) : [];
+    dependencies = Array.isArray(dependencies) ? dependencies.map(function (dep) {
+      if (dep) {
+        // If it's a worker module, use its main thread impl
+        dep = dep.onMainThread || dep;
+        // If it's a main thread worker module, use its init return value
+        if (dep._getInitResult) {
+          dep = dep._getInitResult();
+        }
+      }
+      return dep
+    }) : [];
 
     // Invoke init with the resolved dependencies
     var initPromise = Promise.all(dependencies).then(function (deps) {
@@ -17437,9 +17960,7 @@ function defineWorkerModule(options) {
   var getTransferables = options.getTransferables;
   var workerId = options.workerId;
 
-  if (!supportsWorkers()) {
-    return defineMainThreadModule(options)
-  }
+  var onMainThread = defineMainThreadModule(options);
 
   if (workerId == null) {
     workerId = '#default';
@@ -17470,6 +17991,10 @@ function defineWorkerModule(options) {
     var args = [], len = arguments.length;
     while ( len-- ) args[ len ] = arguments[ len ];
 
+    if (!supportsWorkers()) {
+      return onMainThread.apply(void 0, args)
+    }
+
     // Register this module if needed
     if (!registrationPromise) {
       registrationPromise = callWorker(workerId,'registerModule', moduleFunc.workerModuleData);
@@ -17499,6 +18024,9 @@ function defineWorkerModule(options) {
     init: stringifyFunction(init),
     getTransferables: getTransferables && stringifyFunction(getTransferables)
   };
+
+  moduleFunc.onMainThread = onMainThread;
+
   return moduleFunc
 }
 
@@ -19493,41 +20021,42 @@ let materialInstanceId = 1e10;
  * @param {THREE.Material} baseMaterial - the original material to derive from
  *
  * @param {Object} options - How the base material should be modified.
- * @param {Object} options.defines - Custom `defines` for the material
- * @param {Object} options.extensions - Custom `extensions` for the material, e.g. `{derivatives: true}`
- * @param {Object} options.uniforms - Custom `uniforms` for use in the modified shader. These can
+ * @param {Object=} options.defines - Custom `defines` for the material
+ * @param {Object=} options.extensions - Custom `extensions` for the material, e.g. `{derivatives: true}`
+ * @param {Object=} options.uniforms - Custom `uniforms` for use in the modified shader. These can
  *        be accessed and manipulated via the resulting material's `uniforms` property, just like
  *        in a ShaderMaterial. You do not need to repeat the base material's own uniforms here.
- * @param {String} options.timeUniform - If specified, a uniform of this name will be injected into
+ * @param {String=} options.timeUniform - If specified, a uniform of this name will be injected into
  *        both shaders, and it will automatically be updated on each render frame with a number of
  *        elapsed milliseconds. The "zero" epoch time is not significant so don't rely on this as a
  *        true calendar time.
- * @param {String} options.vertexDefs - Custom GLSL code to inject into the vertex shader's top-level
+ * @param {String=} options.vertexDefs - Custom GLSL code to inject into the vertex shader's top-level
  *        definitions, above the `void main()` function.
- * @param {String} options.vertexMainIntro - Custom GLSL code to inject at the top of the vertex
+ * @param {String=} options.vertexMainIntro - Custom GLSL code to inject at the top of the vertex
  *        shader's `void main` function.
- * @param {String} options.vertexMainOutro - Custom GLSL code to inject at the end of the vertex
+ * @param {String=} options.vertexMainOutro - Custom GLSL code to inject at the end of the vertex
  *        shader's `void main` function.
- * @param {String} options.vertexTransform - Custom GLSL code to manipulate the `position`, `normal`,
+ * @param {String=} options.vertexTransform - Custom GLSL code to manipulate the `position`, `normal`,
  *        and/or `uv` vertex attributes. This code will be wrapped within a standalone function with
  *        those attributes exposed by their normal names as read/write values.
- * @param {String} options.fragmentDefs - Custom GLSL code to inject into the fragment shader's top-level
+ * @param {String=} options.fragmentDefs - Custom GLSL code to inject into the fragment shader's top-level
  *        definitions, above the `void main()` function.
- * @param {String} options.fragmentMainIntro - Custom GLSL code to inject at the top of the fragment
+ * @param {String=} options.fragmentMainIntro - Custom GLSL code to inject at the top of the fragment
  *        shader's `void main` function.
- * @param {String} options.fragmentMainOutro - Custom GLSL code to inject at the end of the fragment
+ * @param {String=} options.fragmentMainOutro - Custom GLSL code to inject at the end of the fragment
  *        shader's `void main` function. You can manipulate `gl_FragColor` here but keep in mind it goes
  *        after any of ThreeJS's color postprocessing shader chunks (tonemapping, fog, etc.), so if you
  *        want those to apply to your changes use `fragmentColorTransform` instead.
- * @param {String} options.fragmentColorTransform - Custom GLSL code to manipulate the `gl_FragColor`
+ * @param {String=} options.fragmentColorTransform - Custom GLSL code to manipulate the `gl_FragColor`
  *        output value. Will be injected near the end of the `void main` function, but before any
  *        of ThreeJS's color postprocessing shader chunks (tonemapping, fog, etc.), and before the
  *        `fragmentMainOutro`.
- * @param {function<{vertexShader,fragmentShader}>:{vertexShader,fragmentShader}} options.customRewriter - A function
+ * @param {function({fragmentShader: string, vertexShader:string}):
+ *        {fragmentShader: string, vertexShader:string}} options.customRewriter - A function
  *        for performing custom rewrites of the full shader code. Useful if you need to do something
  *        special that's not covered by the other builtin options. This function will be executed before
  *        any other transforms are applied.
- * @param {boolean} options.chained - Set to `true` to prototype-chain the derived material to the base
+ * @param {boolean=} options.chained - Set to `true` to prototype-chain the derived material to the base
  *        material, rather than the default behavior of copying it. This allows the derived material to
  *        automatically pick up changes made to the base material and its properties. This can be useful
  *        where the derived material is hidden from the user as an implementation detail, allowing them
@@ -19625,6 +20154,20 @@ function createDerivedMaterial(baseMaterial, options) {
   const descriptor = {
     constructor: {value: DerivedMaterial},
     isDerivedMaterial: {value: true},
+
+    type: {
+      get: () => baseMaterial.type,
+      set: (value) => {baseMaterial.type = value;}
+    },
+
+    isDerivedFrom: {
+      writable: true,
+      configurable: true,
+      value: function (testMaterial) {
+        const base = this.baseMaterial;
+        return testMaterial === base || (base.isDerivedMaterial && base.isDerivedFrom(testMaterial)) || false
+      }
+    },
 
     customProgramCacheKey: {
       writable: true,
@@ -19760,7 +20303,7 @@ function upgradeShaders(material, {vertexShader, fragmentShader}, options, key) 
     // this particular derivation doesn't have a fragmentColorTransform, other derivations may,
     // so we still mark them.
     fragmentShader = fragmentShader.replace(
-      /^[ \t]*#include <((?:tonemapping|encodings|fog|premultiplied_alpha|dithering)_fragment)>/gm,
+      /^[ \t]*#include <((?:tonemapping|encodings|colorspace|fog|premultiplied_alpha|dithering)_fragment)>/gm,
       '\n//!BEGIN_POST_CHUNK $1\n$&\n//!END_POST_CHUNK\n'
     );
     fragmentShader = expandShaderIncludes(fragmentShader);
@@ -20460,13 +21003,13 @@ function createFontResolver(fontParser, unicodeFontResolverClient) {
           // - this character is whitespace
           if (
             (prevCharResult === RESOLVED && fontResolutions[charResolutions[i - 1]].supportsCodePoint(codePoint)) ||
-            /\s/.test(text[i])
+            (i > 0 && /\s/.test(text[i]))
           ) {
             charResolutions[i] = charResolutions[i - 1];
             if (prevCharResult === NEEDS_FALLBACK) {
               fallbackRanges[fallbackRanges.length - 1][1] = i;
             }
-          }  else {
+          } else {
             for (let j = charResolutions[i], jLen = userFonts.length; j <= jLen; j++) {
               if (j === jLen) {
                 // none of the user fonts matched; needs fallback
@@ -21459,6 +22002,7 @@ const CONFIG = {
   sdfMargin: 1 / 16,
   sdfExponent: 9,
   textureWidth: 2048,
+  useWorker: true,
 };
 const tempColor = /*#__PURE__*/new Color();
 let hasRequested = false;
@@ -21497,6 +22041,7 @@ function now$1() {
  *                 reasonably large number of glyphs (default glyph size of 64^2 and safe texture size of
  *                 2048^2, times 4 channels, allows for 4096 glyphs.) This can be increased if you need to
  *                 increase the glyph size and/or have an extraordinary number of glyphs.
+ * @param {Boolean} config.useWorker - Whether to run typesetting in a web worker. Defaults to true.
  */
 function configureTextBuilder(config) {
   if (hasRequested) {
@@ -21635,7 +22180,8 @@ function getTextRenderInfo(args, callback) {
   const {sdfTexture, sdfCanvas} = atlas;
 
   // Issue request to the typesetting engine in the worker
-  typesetInWorker(args).then(result => {
+  const typeset = CONFIG.useWorker ? typesetInWorker : typesetOnMainThread;
+  typeset(args).then(result => {
     const {glyphIds, glyphFontIndices, fontData, glyphPositions, fontSize, timings} = result;
     const neededSDFs = [];
     const glyphBounds = new Float32Array(glyphIds.length * 4);
@@ -21922,6 +22468,8 @@ const typesetInWorker = /*#__PURE__*/defineWorkerModule({
   }
 });
 
+const typesetOnMainThread = typesetInWorker.onMainThread;
+
 function dumpSDFTextures() {
   Object.keys(atlases).forEach(size => {
     const canvas = atlases[size].sdfCanvas;
@@ -21942,29 +22490,7 @@ const templateGeometries = {};
 function getTemplateGeometry(detail) {
   let geom = templateGeometries[detail];
   if (!geom) {
-    // Geometry is two planes back-to-back, which will always be rendered FrontSide only but
-    // appear as DoubleSide by default. FrontSide/BackSide are emulated using drawRange.
-    // We do it this way to avoid the performance hit of two draw calls for DoubleSide materials
-    // introduced by Three.js in r130 - see https://github.com/mrdoob/three.js/pull/21967
-    const front = new PlaneGeometry(1, 1, detail, detail);
-    const back = front.clone();
-    const frontAttrs = front.attributes;
-    const backAttrs = back.attributes;
-    const combined = new BufferGeometry();
-    const vertCount = frontAttrs.uv.count;
-    for (let i = 0; i < vertCount; i++) {
-      backAttrs.position.array[i * 3] *= -1; // flip position x
-      backAttrs.normal.array[i * 3 + 2] *= -1; // flip normal z
-    }
-    ['position', 'normal', 'uv'].forEach(name => {
-      combined.setAttribute(name, new Float32BufferAttribute(
-        [...frontAttrs[name].array, ...backAttrs[name].array],
-        frontAttrs[name].itemSize)
-      );
-    });
-    combined.setIndex([...front.index.array, ...back.index.array.map(n => n + vertCount)]);
-    combined.translate(0.5, 0.5, 0);
-    geom = templateGeometries[detail] = combined;
+    geom = templateGeometries[detail] = new PlaneGeometry(1, 1, detail, detail).translate(0.5, 0.5, 0);
   }
   return geom
 }
@@ -22030,13 +22556,6 @@ class GlyphsGeometry extends InstancedBufferGeometry {
     // No-op; we'll sync the boundingBox proactively when needed.
   }
 
-  // Since our base geometry contains triangles for both front and back sides, we can emulate
-  // the "side" by restricting the draw range.
-  setSide(side) {
-    const verts = this.getIndex().count;
-    this.setDrawRange(side === BackSide ? verts / 2 : 0, side === DoubleSide ? verts : verts / 2);
-  }
-
   set detail(detail) {
     if (detail !== this._detail) {
       this._detail = detail;
@@ -22078,9 +22597,9 @@ class GlyphsGeometry extends InstancedBufferGeometry {
    */
   updateGlyphs(glyphBounds, glyphAtlasIndices, blockBounds, chunkedBounds, glyphColors) {
     // Update the instance attributes
-    updateBufferAttr(this, glyphBoundsAttrName, glyphBounds, 4);
-    updateBufferAttr(this, glyphIndexAttrName, glyphAtlasIndices, 1);
-    updateBufferAttr(this, glyphColorAttrName, glyphColors, 3);
+    this.updateAttributeData(glyphBoundsAttrName, glyphBounds, 4);
+    this.updateAttributeData(glyphIndexAttrName, glyphAtlasIndices, 1);
+    this.updateAttributeData(glyphColorAttrName, glyphColors, 3);
     this._blockBounds = blockBounds;
     this._chunkedBounds = chunkedBounds;
     this.instanceCount = glyphAtlasIndices.length;
@@ -22142,29 +22661,31 @@ class GlyphsGeometry extends InstancedBufferGeometry {
     }
     this.instanceCount = count;
   }
-}
 
-
-function updateBufferAttr(geom, attrName, newArray, itemSize) {
-  const attr = geom.getAttribute(attrName);
-  if (newArray) {
-    // If length isn't changing, just update the attribute's array data
-    if (attr && attr.array.length === newArray.length) {
-      attr.array.set(newArray);
-      attr.needsUpdate = true;
-    } else {
-      geom.setAttribute(attrName, new InstancedBufferAttribute(newArray, itemSize));
-      // If the new attribute has a different size, we also have to (as of r117) manually clear the
-      // internal cached max instance count. See https://github.com/mrdoob/three.js/issues/19706
-      // It's unclear if this is a threejs bug or a truly unsupported scenario; discussion in
-      // that ticket is ambiguous as to whether replacing a BufferAttribute with one of a
-      // different size is supported, but https://github.com/mrdoob/three.js/pull/17418 strongly
-      // implies it should be supported. It's possible we need to
-      delete geom._maxInstanceCount; //for r117+, could be fragile
-      geom.dispose(); //for r118+, more robust feeling, but more heavy-handed than I'd like
+  /**
+   * Utility for updating instance attributes with automatic resizing
+   */
+  updateAttributeData(attrName, newArray, itemSize) {
+    const attr = this.getAttribute(attrName);
+    if (newArray) {
+      // If length isn't changing, just update the attribute's array data
+      if (attr && attr.array.length === newArray.length) {
+        attr.array.set(newArray);
+        attr.needsUpdate = true;
+      } else {
+        this.setAttribute(attrName, new InstancedBufferAttribute(newArray, itemSize));
+        // If the new attribute has a different size, we also have to (as of r117) manually clear the
+        // internal cached max instance count. See https://github.com/mrdoob/three.js/issues/19706
+        // It's unclear if this is a threejs bug or a truly unsupported scenario; discussion in
+        // that ticket is ambiguous as to whether replacing a BufferAttribute with one of a
+        // different size is supported, but https://github.com/mrdoob/three.js/pull/17418 strongly
+        // implies it should be supported. It's possible we need to
+        delete this._maxInstanceCount; //for r117+, could be fragile
+        this.dispose(); //for r118+, more robust feeling, but more heavy-handed than I'd like
+      }
+    } else if (attr) {
+      this.deleteAttribute(attrName);
     }
-  } else if (attr) {
-    geom.deleteAttribute(attrName);
   }
 }
 
@@ -22176,7 +22697,7 @@ uniform vec4 uTroikaTotalBounds;
 uniform vec4 uTroikaClipRect;
 uniform mat3 uTroikaOrient;
 uniform bool uTroikaUseGlyphColors;
-uniform float uTroikaDistanceOffset;
+uniform float uTroikaEdgeOffset;
 uniform float uTroikaBlurRadius;
 uniform vec2 uTroikaPositionOffset;
 uniform float uTroikaCurveRadius;
@@ -22197,8 +22718,8 @@ bounds.xz += uTroikaPositionOffset.x;
 bounds.yw -= uTroikaPositionOffset.y;
 
 vec4 outlineBounds = vec4(
-  bounds.xy - uTroikaDistanceOffset - uTroikaBlurRadius,
-  bounds.zw + uTroikaDistanceOffset + uTroikaBlurRadius
+  bounds.xy - uTroikaEdgeOffset - uTroikaBlurRadius,
+  bounds.zw + uTroikaEdgeOffset + uTroikaBlurRadius
 );
 vec4 clippedBounds = vec4(
   clamp(outlineBounds.xy, uTroikaClipRect.xy, uTroikaClipRect.zw),
@@ -22244,9 +22765,8 @@ uniform sampler2D uTroikaSDFTexture;
 uniform vec2 uTroikaSDFTextureSize;
 uniform float uTroikaSDFGlyphSize;
 uniform float uTroikaSDFExponent;
-uniform float uTroikaDistanceOffset;
+uniform float uTroikaEdgeOffset;
 uniform float uTroikaFillOpacity;
-uniform float uTroikaOutlineOpacity;
 uniform float uTroikaBlurRadius;
 uniform vec3 uTroikaStrokeColor;
 uniform float uTroikaStrokeWidth;
@@ -22349,7 +22869,7 @@ float aaDist = troikaGetAADist();
 float fragDistance = troikaGetFragDistValue();
 float edgeAlpha = uTroikaSDFDebug ?
   troikaGlyphUvToSdfValue(vTroikaGlyphUV) :
-  troikaGetEdgeAlpha(fragDistance, uTroikaDistanceOffset, max(aaDist, uTroikaBlurRadius));
+  troikaGetEdgeAlpha(fragDistance, uTroikaEdgeOffset, max(aaDist, uTroikaBlurRadius));
 
 #if !defined(IS_DEPTH_MATERIAL) && !defined(IS_DISTANCE_MATERIAL)
 vec4 fillRGBA = gl_FragColor;
@@ -22386,8 +22906,7 @@ function createTextDerivedMaterial(baseMaterial) {
       uTroikaSDFExponent: {value: 0},
       uTroikaTotalBounds: {value: new Vector4(0,0,0,0)},
       uTroikaClipRect: {value: new Vector4(0,0,0,0)},
-      uTroikaDistanceOffset: {value: 0},
-      uTroikaOutlineOpacity: {value: 0},
+      uTroikaEdgeOffset: {value: 0},
       uTroikaFillOpacity: {value: 1},
       uTroikaPositionOffset: {value: new Vector2()},
       uTroikaCurveRadius: {value: 0},
@@ -22424,6 +22943,9 @@ function createTextDerivedMaterial(baseMaterial) {
 
   // Force transparency - TODO is this reasonable?
   textMaterial.transparent = true;
+
+  // Force single draw call when double-sided
+  textMaterial.forceSinglePass = true;
 
   Object.defineProperties(textMaterial, {
     isTroikaTextMaterial: {value: true},
@@ -22917,22 +23439,6 @@ class Text extends Mesh {
     if (material.isTroikaTextMaterial) {
       this._prepareForRender(material);
     }
-
-    // We need to force the material to FrontSide to avoid the double-draw-call performance hit
-    // introduced in Three.js r130: https://github.com/mrdoob/three.js/pull/21967 - The sidedness
-    // is instead applied via drawRange in the GlyphsGeometry.
-    material._hadOwnSide = material.hasOwnProperty('side');
-    this.geometry.setSide(material._actualSide = material.side);
-    material.side = FrontSide;
-  }
-
-  onAfterRender(renderer, scene, camera, geometry, material, group) {
-    // Restore original material side
-    if (material._hadOwnSide) {
-      material.side = material._actualSide;
-    } else {
-      delete material.side; // back to inheriting from base material
-    }
   }
 
   /**
@@ -22957,13 +23463,21 @@ class Text extends Mesh {
     return this._textRenderInfo || null
   }
 
+  /**
+   * Create the text derived material from the base material. Can be overridden to use a custom
+   * derived material.
+   */
+  createDerivedMaterial(baseMaterial) {
+    return createTextDerivedMaterial(baseMaterial)
+  }
+
   // Handler for automatically wrapping the base material with our upgrades. We do the wrapping
   // lazily on _read_ rather than write to avoid unnecessary wrapping on transient values.
   get material() {
     let derivedMaterial = this._derivedMaterial;
     const baseMaterial = this._baseMaterial || this._defaultMaterial || (this._defaultMaterial = defaultMaterial.clone());
-    if (!derivedMaterial || derivedMaterial.baseMaterial !== baseMaterial) {
-      derivedMaterial = this._derivedMaterial = createTextDerivedMaterial(baseMaterial);
+    if (!derivedMaterial || !derivedMaterial.isDerivedFrom(baseMaterial)) {
+      derivedMaterial = this._derivedMaterial = this.createDerivedMaterial(baseMaterial);
       // dispose the derived material when its base material is disposed:
       baseMaterial.addEventListener('dispose', function onDispose() {
         baseMaterial.removeEventListener('dispose', onDispose);
@@ -22974,7 +23488,7 @@ class Text extends Mesh {
     // feature (see GlyphsGeometry which sets up `groups` for this purpose) Doing it with multi
     // materials ensures the layers are always rendered consecutively in a consistent order.
     // Each layer will trigger onBeforeRender with the appropriate material.
-    if (this.outlineWidth || this.outlineBlur || this.outlineOffsetX || this.outlineOffsetY) {
+    if (this.hasOutline()) {
       let outlineMaterial = derivedMaterial._outlineMtl;
       if (!outlineMaterial) {
         outlineMaterial = derivedMaterial._outlineMtl = Object.create(derivedMaterial, {
@@ -23003,6 +23517,10 @@ class Text extends Mesh {
     } else {
       this._baseMaterial = baseMaterial;
     }
+  }
+
+  hasOutline() {
+    return !!(this.outlineWidth || this.outlineBlur || this.outlineOffsetX || this.outlineOffsetY)
   }
 
   get glyphGeometryDetail() {
@@ -23067,7 +23585,7 @@ class Text extends Mesh {
         fillOpacity = this.fillOpacity;
       }
 
-      uniforms.uTroikaDistanceOffset.value = distanceOffset;
+      uniforms.uTroikaEdgeOffset.value = distanceOffset;
       uniforms.uTroikaPositionOffset.value.set(offsetX, offsetY);
       uniforms.uTroikaBlurRadius.value = blurRadius;
       uniforms.uTroikaStrokeWidth.value = strokeWidth;
@@ -23222,6 +23740,476 @@ SYNCABLE_PROPS.forEach(prop => {
     }
   });
 });
+
+const syncStartEvent$1 = { type: "syncstart" };
+const syncCompleteEvent$1 = { type: "synccomplete" };
+const memberIndexAttrName = "aTroikaTextBatchMemberIndex";
+
+
+/*
+Data texture packing strategy:
+
+# Common:
+0-15: matrix
+16-19: uTroikaTotalBounds
+20-23: uTroikaClipRect
+24: diffuse (color/outlineColor)
+25: uTroikaFillOpacity (fillOpacity/outlineOpacity)
+26: uTroikaCurveRadius
+27: <blank>
+
+# Main:
+28: uTroikaStrokeWidth
+29: uTroikaStrokeColor
+30: uTroikaStrokeOpacity
+
+# Outline:
+28-29: uTroikaPositionOffset
+30: uTroikaEdgeOffset
+31: uTroikaBlurRadius
+*/
+const floatsPerMember = 32;
+
+const tempBox3 = new Box3();
+const tempColor$1 = new Color();
+
+/**
+ * @experimental
+ *
+ * A specialized `Text` implementation that accepts any number of `Text` children
+ * and automatically batches them together to render in a single draw call.
+ *
+ * The `material` of each child `Text` will be ignored, and the `material` of the
+ * `BatchedText` will be used for all of them instead.
+ *
+ * NOTE: This only works in WebGL2 or where the OES_texture_float extension is available.
+ */
+class BatchedText extends Text {
+  constructor () {
+    super();
+
+    /**
+     * @typedef {Object} PackingInfo
+     * @property {number} index - the packing order index when last packed, or -1
+     * @property {boolean} dirty - whether it has synced since last pack
+     */
+
+    /**
+     * @type {Map<Text, PackingInfo>}
+     */
+    this._members = new Map();
+    this._dataTextures = {};
+
+    this._onMemberSynced = (e) => {
+      this._members.get(e.target).dirty = true;
+    };
+    this._onMemberRemoved = (e) => {
+      this.removeText(e.target);
+    };
+  }
+
+  /**
+   * @override
+   * Batch any Text objects added as children
+   */
+  add (...objects) {
+    for (let i = 0; i < objects.length; i++) {
+      if (objects[i] instanceof Text) {
+        this.addText(objects[i]);
+      } else {
+        super.add(objects[i]);
+      }
+    }
+    return this;
+  }
+
+  /**
+   * @param {Text} text
+   */
+  addText (text) {
+    if (!this._members.has(text)) {
+      this._members.set(text, {
+        index: -1,
+        glyphCount: -1,
+        dirty: true
+      });
+      text.addEventListener("removed", this._onMemberRemoved);
+      text.addEventListener("synccomplete", this._onMemberSynced);
+    }
+  }
+
+  /**
+   * @param {Text} text
+   */
+  removeText (text) {
+    text.removeEventListener("removed", this._onMemberRemoved);
+    text.removeEventListener("synccomplete", this._onMemberSynced);
+    this._members.delete(text);
+  }
+
+  /**
+   * Use the custom derivation with extra batching logic
+   */
+  createDerivedMaterial (baseMaterial) {
+    return createBatchedTextMaterial(baseMaterial);
+  }
+
+  updateMatrixWorld (force) {
+    super.updateMatrixWorld(force);
+    this.updateBounds();
+  }
+
+  /**
+   * Update the batched geometry bounds to hold all members
+   */
+  updateBounds () {
+    // Update member local matrices and the overall bounds
+    const bbox = this.geometry.boundingBox.makeEmpty();
+    this._members.forEach((_, text) => {
+      if (text.matrixAutoUpdate) text.updateMatrix(); // ignore world matrix
+      tempBox3.copy(text.geometry.boundingBox).applyMatrix4(text.matrix);
+      bbox.union(tempBox3);
+    });
+    bbox.getBoundingSphere(this.geometry.boundingSphere);
+  }
+
+  /** @override */
+  hasOutline() {
+    return this._members.keys().some(m => m.hasOutline())
+  }
+
+  /**
+   * @override
+   * Copy member matrices and uniform values into the data texture
+   */
+  _prepareForRender (material) {
+    const isOutline = material.isTextOutlineMaterial;
+    material.uniforms.uTroikaIsOutline.value = isOutline;
+
+    // Resize the texture to fit in powers of 2
+    let texture = this._dataTextures[isOutline ? 'outline' : 'main'];
+    const dataLength = Math.pow(2, Math.ceil(Math.log2(this._members.size * floatsPerMember)));
+    if (!texture || dataLength !== texture.image.data.length) {
+      // console.log(`resizing: ${dataLength}`);
+      if (texture) texture.dispose();
+      const width = Math.min(dataLength / 4, 1024);
+      texture = this[isOutline ? 'outline' : 'main'] = new DataTexture(
+        new Float32Array(dataLength),
+        width,
+        dataLength / 4 / width,
+        RGBAFormat,
+        FloatType
+      );
+    }
+
+    const texData = texture.image.data;
+    const setTexData = (index, value) => {
+      if (value !== texData[index]) {
+        texData[index] = value;
+        texture.needsUpdate = true;
+      }
+    };
+    this._members.forEach(({ index, dirty }, text) => {
+      if (index > -1) {
+        const startIndex = index * floatsPerMember;
+
+        // Matrix
+        const matrix = text.matrix.elements;
+        for (let i = 0; i < 16; i++) {
+          setTexData(startIndex + i, matrix[i]);
+        }
+
+        // Let the member populate the uniforms, since that does all the appropriate
+        // logic and handling of defaults, and we'll just grab the results from there
+        text._prepareForRender(material);
+        const {
+          uTroikaTotalBounds,
+          uTroikaClipRect,
+          uTroikaPositionOffset,
+          uTroikaEdgeOffset,
+          uTroikaBlurRadius,
+          uTroikaStrokeWidth,
+          uTroikaStrokeColor,
+          uTroikaStrokeOpacity,
+          uTroikaFillOpacity,
+          uTroikaCurveRadius,
+        } = material.uniforms;
+
+        // Total bounds for uv
+        for (let i = 0; i < 4; i++) {
+          setTexData(startIndex + 16 + i, uTroikaTotalBounds.value.getComponent(i));
+        }
+
+        // Clip rect
+        for (let i = 0; i < 4; i++) {
+          setTexData(startIndex + 20 + i, uTroikaClipRect.value.getComponent(i));
+        }
+
+        // Color
+        let color = isOutline ? (text.outlineColor || 0) : text.color;
+        if (color == null) color = this.color;
+        if (color == null) color = this.material.color;
+        if (color == null) color = 0xffffff;
+        setTexData(startIndex + 24, tempColor$1.set(color).getHex());
+
+        // Fill opacity / outline opacity
+        setTexData(startIndex + 25, uTroikaFillOpacity.value);
+
+        // Curve radius
+        setTexData(startIndex + 26, uTroikaCurveRadius.value);
+
+        if (isOutline) {
+          // Outline properties
+          setTexData(startIndex + 28, uTroikaPositionOffset.value.x);
+          setTexData(startIndex + 29, uTroikaPositionOffset.value.y);
+          setTexData(startIndex + 30, uTroikaEdgeOffset.value);
+          setTexData(startIndex + 31, uTroikaBlurRadius.value);
+        } else {
+          // Stroke properties
+          setTexData(startIndex + 28, uTroikaStrokeWidth.value);
+          setTexData(startIndex + 29, tempColor$1.set(uTroikaStrokeColor.value).getHex());
+          setTexData(startIndex + 30, uTroikaStrokeOpacity.value);
+        }
+      }
+    });
+    material.setMatrixTexture(texture);
+
+    // For the non-member-specific uniforms:
+    super._prepareForRender(material);
+  }
+
+  sync (callback) {
+    // TODO: skip members updating their geometries, just use textRenderInfo directly
+
+    // Trigger sync on all members that need it
+    let syncPromises;
+    this._members.forEach((packingInfo, text) => {
+      if (packingInfo.dirty || text._needsSync) {
+        packingInfo.dirty = false;
+        (syncPromises || (syncPromises = [])).push(new Promise(resolve => {
+          if (text._needsSync) {
+            text.sync(resolve);
+          } else {
+            resolve();
+          }
+        }));
+      }
+    });
+
+    // If any needed syncing, wait for them and then repack the batched geometry
+    if (syncPromises) {
+      this.dispatchEvent(syncStartEvent$1);
+
+      Promise.all(syncPromises).then(() => {
+        const { geometry } = this;
+        const batchedAttributes = geometry.attributes;
+        let memberIndexes = batchedAttributes[memberIndexAttrName] && batchedAttributes[memberIndexAttrName].array || new Uint16Array(0);
+        let batchedGlyphIndexes = batchedAttributes[glyphIndexAttrName] && batchedAttributes[glyphIndexAttrName].array || new Float32Array(0);
+        let batchedGlyphBounds = batchedAttributes[glyphBoundsAttrName] && batchedAttributes[glyphBoundsAttrName].array || new Float32Array(0);
+
+        // Initial pass to collect total glyph count and resize the arrays if needed
+        let totalGlyphCount = 0;
+        this._members.forEach((packingInfo, { textRenderInfo }) => {
+          if (textRenderInfo) {
+            totalGlyphCount += textRenderInfo.glyphAtlasIndices.length;
+            this._textRenderInfo = textRenderInfo; // TODO - need this, but be smarter
+          }
+        });
+        if (totalGlyphCount !== memberIndexes.length) {
+          memberIndexes = cloneAndResize(memberIndexes, totalGlyphCount);
+          batchedGlyphIndexes = cloneAndResize(batchedGlyphIndexes, totalGlyphCount);
+          batchedGlyphBounds = cloneAndResize(batchedGlyphBounds, totalGlyphCount * 4);
+        }
+
+        // Populate batch arrays
+        let memberIndex = 0;
+        let glyphIndex = 0;
+        this._members.forEach((packingInfo, { textRenderInfo }) => {
+          if (textRenderInfo) {
+            const glyphCount = textRenderInfo.glyphAtlasIndices.length;
+            memberIndexes.fill(memberIndex, glyphIndex, glyphIndex + glyphCount);
+
+            // TODO can skip these for members that are not dirty or shifting overall position:
+            batchedGlyphIndexes.set(textRenderInfo.glyphAtlasIndices, glyphIndex, glyphIndex + glyphCount);
+            batchedGlyphBounds.set(textRenderInfo.glyphBounds, glyphIndex * 4, (glyphIndex + glyphCount) * 4);
+
+            glyphIndex += glyphCount;
+            packingInfo.index = memberIndex++;
+          }
+        });
+
+        // Update the geometry attributes
+        geometry.updateAttributeData(memberIndexAttrName, memberIndexes, 1);
+        geometry.getAttribute(memberIndexAttrName).setUsage(DynamicDrawUsage);
+        geometry.updateAttributeData(glyphIndexAttrName, batchedGlyphIndexes, 1);
+        geometry.updateAttributeData(glyphBoundsAttrName, batchedGlyphBounds, 4);
+
+        this.updateBounds();
+
+        this.dispatchEvent(syncCompleteEvent$1);
+        if (callback) {
+          callback();
+        }
+      });
+    }
+  }
+
+  copy (source) {
+    if (source instanceof BatchedText) {
+      super.copy(source);
+      this._members.forEach((_, text) => this.removeText(text));
+      source._members.forEach((_, text) => this.addText(text));
+    }
+    return this;
+  }
+
+  dispose () {
+    super.dispose();
+    Object.values(this._dataTextures).forEach(tex => tex.dispose());
+  }
+}
+
+function cloneAndResize (source, newLength) {
+  const copy = new source.constructor(newLength);
+  copy.set(source.subarray(0, newLength));
+  return copy;
+}
+
+function createBatchedTextMaterial (baseMaterial) {
+  const texUniformName = "uTroikaMatricesTexture";
+  const texSizeUniformName = "uTroikaMatricesTextureSize";
+
+  // Due to how vertexTransform gets injected, the matrix transforms must happen
+  // in the base material of TextDerivedMaterial, but other transforms to its
+  // shader must come after, so we sandwich it between two derivations.
+
+  // Transform the vertex position
+  let batchMaterial = createDerivedMaterial(baseMaterial, {
+    chained: true,
+    uniforms: {
+      [texSizeUniformName]: { value: new Vector2() },
+      [texUniformName]: { value: null }
+    },
+    // language=GLSL
+    vertexDefs: `
+      uniform highp sampler2D ${texUniformName};
+      uniform vec2 ${texSizeUniformName};
+      attribute float ${memberIndexAttrName};
+
+      vec4 troikaBatchTexel(float offset) {
+        offset += ${memberIndexAttrName} * ${floatsPerMember.toFixed(1)} / 4.0;
+        float w = ${texSizeUniformName}.x;
+        vec2 uv = (vec2(mod(offset, w), floor(offset / w)) + 0.5) / ${texSizeUniformName};
+        return texture2D(${texUniformName}, uv);
+      }
+    `,
+    // language=GLSL prefix="void main() {" suffix="}"
+    vertexTransform: `
+      mat4 matrix = mat4(
+        troikaBatchTexel(0.0),
+        troikaBatchTexel(1.0),
+        troikaBatchTexel(2.0),
+        troikaBatchTexel(3.0)
+      );
+      position.xyz = (matrix * vec4(position, 1.0)).xyz;
+    `,
+  });
+
+  // Add the text shaders
+  batchMaterial = createTextDerivedMaterial(batchMaterial);
+
+  // Now make other changes to the derived text shader code
+  batchMaterial = createDerivedMaterial(batchMaterial, {
+    chained: true,
+    uniforms: {
+      uTroikaIsOutline: {value: false},
+    },
+    customRewriter(shaders) {
+      // Convert some text shader uniforms to varyings
+      const varyingUniforms = [
+        'uTroikaTotalBounds',
+        'uTroikaClipRect',
+        'uTroikaPositionOffset',
+        'uTroikaEdgeOffset',
+        'uTroikaBlurRadius',
+        'uTroikaStrokeWidth',
+        'uTroikaStrokeColor',
+        'uTroikaStrokeOpacity',
+        'uTroikaFillOpacity',
+        'uTroikaCurveRadius',
+        'diffuse'
+      ];
+      varyingUniforms.forEach(uniformName => {
+        shaders = uniformToVarying(shaders, uniformName);
+      });
+      return shaders
+    },
+    // language=GLSL
+    vertexDefs: `
+      uniform bool uTroikaIsOutline;
+      vec3 troikaFloatToColor(float v) {
+        return mod(floor(vec3(v / 65536.0, v / 256.0, v)), 256.0) / 256.0;
+      }
+    `,
+    // language=GLSL prefix="void main() {" suffix="}"
+    vertexTransform: `
+      uTroikaTotalBounds = troikaBatchTexel(4.0);
+      uTroikaClipRect = troikaBatchTexel(5.0);
+      
+      vec4 data = troikaBatchTexel(6.0);
+      diffuse = troikaFloatToColor(data.x);
+      uTroikaFillOpacity = data.y;
+      uTroikaCurveRadius = data.z;
+      
+      data = troikaBatchTexel(7.0);
+      if (uTroikaIsOutline) {
+        if (data == vec4(0.0)) { // degenerate if zero outline
+          position = vec3(0.0);
+        } else {
+          uTroikaPositionOffset = data.xy;
+          uTroikaEdgeOffset = data.z;
+          uTroikaBlurRadius = data.w;
+        }
+      } else {
+        uTroikaStrokeWidth = data.x;
+        uTroikaStrokeColor = troikaFloatToColor(data.y);
+        uTroikaStrokeOpacity = data.z;
+      }
+    `,
+  });
+
+  batchMaterial.setMatrixTexture = (texture) => {
+    batchMaterial.uniforms[texUniformName].value = texture;
+    batchMaterial.uniforms[texSizeUniformName].value.set(texture.image.width, texture.image.height);
+  };
+  return batchMaterial;
+}
+
+/**
+ * Turn a uniform into a varying/writeable value.
+ * - If the uniform was used in the fragment shader, it will become a varying in both shaders.
+ * - If the uniform was only used in the vertex shader, it will become a writeable var.
+ */
+function uniformToVarying({vertexShader, fragmentShader}, uniformName, varyingName = uniformName) {
+  const uniformRE = new RegExp(`uniform\\s+(bool|float|vec[234]|mat[34])\\s+${uniformName}\\b`);
+
+  let type;
+  let hadFragmentUniform = false;
+  fragmentShader = fragmentShader.replace(uniformRE, ($0, $1) => {
+    hadFragmentUniform = true;
+    return `varying ${type = $1} ${varyingName}`
+  });
+
+  let hadVertexUniform = false;
+  vertexShader = vertexShader.replace(uniformRE, (_, $1) => {
+    hadVertexUniform = true;
+    return `${hadFragmentUniform ? 'varying' : ''} ${type = $1} ${varyingName}`
+  });
+  if (!hadVertexUniform) {
+    vertexShader = `${hadFragmentUniform ? 'varying' : ''} ${type} ${varyingName};\n${vertexShader}`;
+  }
+  return {vertexShader, fragmentShader}
+}
 
 //=== Utility functions for dealing with carets and selection ranges ===//
 
@@ -23379,6 +24367,7 @@ function groupCaretsByRow(textRenderInfo) {
 
 var troikaThreeText_esm = /*#__PURE__*/Object.freeze({
     __proto__: null,
+    BatchedText: BatchedText,
     GlyphsGeometry: GlyphsGeometry,
     Text: Text,
     configureTextBuilder: configureTextBuilder,
@@ -23420,11 +24409,10 @@ class Checkbox extends InteractableComponent {
         this.onClick = this.onTouch = () => this._change();
         if(this.overflow != 'visible')
             this._text.material.clippingPlanes = this._getClippingPlanes();
-        this.updateLayout();
     }
 
-    updateLayout() {
-        super.updateLayout();
+    updateLayout(recursive) {
+        super.updateLayout(recursive);
         this._text.fontSize = Math.min(this.computedHeight, this.computedWidth)
             * 0.65;
     }
@@ -23476,7 +24464,6 @@ class Checkbox extends InteractableComponent {
 class Div extends ScrollableComponent {
     constructor(...styles) {
         super(...styles);
-        this.updateLayout();
     }
 }
 
@@ -23496,7 +24483,6 @@ let Image$1 = class Image extends InteractableComponent {
         this._defaults['textureFit'] = 'fill';
         this._imageHeight = 0;
         this._imageWidth = 0;
-        this.updateLayout();
         this.updateTexture(url);
     }
 
@@ -23528,10 +24514,10 @@ let Image$1 = class Image extends InteractableComponent {
         return this[computedParam];
     }
 
-    updateLayout() {
+    updateLayout(recursive) {
         let oldHeight = this.computedHeight;
         let oldWidth = this.computedWidth;
-        super.updateLayout();
+        super.updateLayout(recursive);
         this._updateFit(oldHeight, oldWidth);
     }
 
@@ -23598,8 +24584,8 @@ let Image$1 = class Image extends InteractableComponent {
         if(oldTexture) oldTexture.dispose();
     }
 
-    _createBackground() {
-        super._createBackground();
+    createBackground() {
+        super.createBackground();
         let minX = this.computedWidth / 2;
         let minY = this.computedHeight / 2;
         let attPos = this._background.geometry.attributes.position;
@@ -23624,10 +24610,10 @@ class HueSaturationWheel extends Image$1 {
         super(texture, ...styles);
     }
 
-    _createBackground() {
+    createBackground() {
         this._defaults['borderRadius'] = Math.min(this.computedHeight,
             this.computedHeight) / 2;
-        super._createBackground();
+        super.createBackground();
     }
 }
 
@@ -23933,7 +24919,6 @@ class Span extends ScrollableComponent {
     constructor(...styles) {
         super(...styles);
         this._defaults['contentDirection'] = 'row';
-        this.updateLayout();
     }
 }
 
@@ -23960,7 +24945,7 @@ class TextComponent extends LayoutComponent {
         this._text.anchorY = 'middle';
         this._text.overflowWrap = 'break-word';
         if(typeof this.maxWidth == Number) this._text.maxWidth = this.maxWidth;
-        this._text.addEventListener('synccomplete', () => this.updateLayout());
+        this._text.addEventListener('synccomplete', () => this._updateLayout());
         this._text.sync();
         this._text.text = text || '';
         this._text.sync();
@@ -23974,12 +24959,12 @@ class TextComponent extends LayoutComponent {
 
     _handleStyleUpdateForFont() {
         this._text.font = this.font;
-        if(this.width == 'auto' || this.height == 'auto') this.updateLayout();
+        if(this.width == 'auto' || this.height == 'auto') this._updateLayout();
     }
 
     _handleStyleUpdateForFontSize() {
         this._text.fontSize = this.fontSize;
-        if(this.width == 'auto' || this.height == 'auto') this.updateLayout();
+        if(this.width == 'auto' || this.height == 'auto') this._updateLayout();
     }
 
     _handleStyleUpdateForTextAlign() {
@@ -24249,13 +25234,12 @@ class Keyboard extends InteractableComponent {
         this._setLayout(KeyboardLayouts.ENGLISH);
         this.types = { NUMBER: 'NUMBER' };
         this.onClick = () => {};
-        this.updateLayout();
     }
 
-    _createBackground() {
+    createBackground() {
         this._defaults['borderRadius'] = Math.min(this.computedHeight,
             this.computedHeight) / 20;
-        super._createBackground();
+        super.createBackground();
     }
 
     _createOptionsPanel() {
@@ -24858,7 +25842,6 @@ class TextArea extends ScrollableComponent {
             this._updateCaret();
             this._checkForCaretScroll();
         };
-        this.updateLayout();
         if(this.overflow != 'visible' && !this.clippingPlanes)
             this._createClippingPlanes();
     }
@@ -25219,7 +26202,6 @@ class TextInput extends TextArea {
         this._latestValue['alignItems'] = null;
         this._text._overrideStyle.maxWidth = null;
         this._text._text.whiteSpace = 'nowrap';
-        this.updateLayout();
     }
 
     _displayMobileTextArea() {
@@ -25364,7 +26346,6 @@ class NumberInput extends TextInput {
         this._minValue = -Infinity;
         this._maxValue = Infinity;
         this._lastValidValue = '';
-        this.updateLayout();
     }
 
     _addListeners() {
@@ -25611,15 +26592,14 @@ class Radio extends InteractableComponent {
         this._name = name;
         this._toggleMaterial = DEFAULT_MATERIAL$2.clone();
         this.onClick = this.onTouch = () => this._select();
-        this.updateLayout();
         if(!(name in RADIO_MAP)) RADIO_MAP[name] = new Set();
         RADIO_MAP[name].add(this);
     }
 
-    _createBackground() {
+    createBackground() {
         this._defaults['borderRadius'] = Math.min(this.computedHeight,
             this.computedHeight) / 2;
-        super._createBackground();
+        super.createBackground();
         if(this._toggleChild?.parent)
             this._toggleChild.parent.remove(this._toggleChild);
         this._toggleChild = new THREE.Mesh(this._background.geometry,
@@ -25645,7 +26625,7 @@ class Radio extends InteractableComponent {
         }
         this._selected = true;
         this.borderMaterial.color.set(0x0030ff);
-        this._toggleChild.visible = true;
+        if(this._toggleChild) this._toggleChild.visible = true;
         if(!ignoreOnChange) {
             if(this._onChange) this._onChange(this._selected);
             if(this._onSelect) this._onSelect();
@@ -25655,7 +26635,7 @@ class Radio extends InteractableComponent {
     _unselect(ignoreOnChange) {
         this._selected = false;
         this.borderMaterial.color.set(0x4f4f4f);
-        this._toggleChild.visible = false;
+        if(this._toggleChild) this._toggleChild.visible = false;
         if(this._onChange && !ignoreOnChange) this._onChange(this._selected);
     }
 
@@ -25715,13 +26695,12 @@ class Range extends InteractableComponent {
         this.onTouch = (e) => this._touchSelect(e);
         this.onDrag = (e) => this._drag(e);
         this.onTouchDrag = (e) => this._touchDrag(e);
-        this.updateLayout();
     }
 
-    _createBackground() {
+    createBackground() {
         this._defaults['borderRadius'] = Math.min(this.computedHeight,
             this.computedWidth) / 2;
-        super._createBackground();
+        super.createBackground();
         if(this._scrubberChild?.parent)
             this._scrubberChild.parent.remove(this._scrubberChild);
         if(this._scrubberValue?.parent)
@@ -25736,6 +26715,7 @@ class Range extends InteractableComponent {
     }
 
     _updateScrubber() {
+        if(!this._scrubberChild) return;
         this._scrubberChild.position.setX((this._value - 0.5) * this.width);
         this._scrubberValue.scale.setX(this._value);
         this._scrubberValue.position.setX(this.width * (this._value-1)/2);
@@ -25902,11 +26882,10 @@ class Select extends ScrollableComponent {
             this.hideOptions();
         };
         this.onClick = this.onTouch = () => this._select();
-        this.updateLayout();
     }
 
-    updateLayout() {
-        super.updateLayout();
+    updateLayout(recursive) {
+        super.updateLayout(recursive);
         if(this._optionsStyle.minHeight != this.computedHeight)
             this._optionsStyle.minHeight = this.computedHeight;
         if(this._optionsTextStyle.minWidth != this.unpaddedWidth * 0.9)
@@ -26008,11 +26987,10 @@ class Toggle extends InteractableComponent {
         this._defaults['width'] = 0.14;
         this._toggleMaterial = DEFAULT_MATERIAL.clone();
         this.onClick = this.onTouch = () => this._change();
-        this.updateLayout();
     }
 
-    _createBackground() {
-        super._createBackground();
+    createBackground() {
+        super.createBackground();
         if(this._toggleChild?.parent)
             this._toggleChild.parent.remove(this._toggleChild);
         let borderRadius = this.borderRadius || 0;
@@ -26031,7 +27009,7 @@ class Toggle extends InteractableComponent {
         bottomLeftRadius = Math.max(bottomLeftRadius - padding / 2, 0);
         bottomRightRadius = Math.max(bottomRightRadius - padding / 2, 0);
         let renderOrder = this._materialOffset + 1;
-        let shape = Toggle.createShape(width, height, topLeftRadius,
+        let shape = this.createShape(width, height, topLeftRadius,
             topRightRadius, bottomLeftRadius, bottomRightRadius);
         let geometry = new THREE.ShapeGeometry(shape);
         this._toggleChild = new THREE.Mesh(geometry, this._toggleMaterial);
@@ -26056,11 +27034,13 @@ class Toggle extends InteractableComponent {
     _change() {
         this._checked = !this._checked;
         if(this._checked) {
-            this.material.color.set(0x0030ff);
-            this._toggleChild.position.setX(this._toggleOffset);
+            this.materialColor = 0x0030ff;
+            if(this._toggleChild)
+                this._toggleChild.position.setX(this._toggleOffset);
         } else {
-            this.material.color.set(0xcccccc);
-            this._toggleChild.position.setX(-this._toggleOffset);
+            this.materialColor = 0xcccccc;
+            if(this._toggleChild)
+                this._toggleChild.position.setX(-this._toggleOffset);
         }
         if(this._onChange) this._onChange(this._checked);
     }
@@ -26072,11 +27052,13 @@ class Toggle extends InteractableComponent {
         if(checked == this._checked) return;
         this._checked = checked;
         if(checked) {
-            this.material.color.set(0x0030ff);
-            this._toggleChild.position.setX(this._toggleOffset);
+            this.materialColor = 0x0030ff;
+            if(this._toggleChild)
+                this._toggleChild.position.setX(this._toggleOffset);
         } else {
-            this.material.color.set(0xcccccc);
-            this._toggleChild.position.setX(-this._toggleOffset);
+            this.materialColor = 0xcccccc;
+            if(this._toggleChild)
+                this._toggleChild.position.setX(-this._toggleOffset);
         }
     }
     set onChange(onChange) { this._onChange = onChange; }
@@ -26122,6 +27104,13 @@ class GripInteractable extends Interactable {
     // bounding box by calling _getBoundingObject()
     distanceToSphere(sphere) {
         return sphere.distanceToPoint(this._boundingBox.getCenter(vector3));
+    }
+
+    get object() { return this._object; }
+
+    set object(object) {
+        this._object = object;
+        if(object) object.gripInteractable = this;
     }
 }
 
@@ -26361,7 +27350,7 @@ THREE.BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
 THREE.BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
 THREE.Mesh.prototype.raycast = acceleratedRaycast;
 
-const version = '0.1.7';
+const version = '0.1.9';
 
 const addGripInteractable = (interactable) => {
     gripInteractableHandler.addInteractable(interactable);
@@ -26435,6 +27424,8 @@ const update = (frame) => {
     }
     pointerInteractableHandler.update();
     updateHandler.update();
+    layoutUpdateHandler.update();
+    instancedBackgroundManager.update();
 };
 
 export { Body, Checkbox, delayedClickHandler as DelayedClickHandler, DeviceTypes, Div, GripInteractable, gripInteractableHandler as GripInteractableHandler, HSLColor, Handedness, Image$1 as Image, inputHandler as InputHandler, Interactable, InteractableStates, interactionToolHandler as InteractionToolHandler, keyboard as Keyboard, NumberInput, PointerInteractable, pointerInteractableHandler as PointerInteractableHandler, Radio, Range, Select, Span, Style, TextComponent as Text, TextArea, TextInput, ThreeMeshBVH, Toggle, TouchInteractable, touchInteractableHandler as TouchInteractableHandler, troikaThreeText_esm as TroikaThreeText, updateHandler as UpdateHandler, XRInputDeviceTypes, addGripInteractable, addPointerInteractable, addTouchInteractable, init, removeGripInteractable, removePointerInteractable, removeTouchInteractable, update, utils, version };
