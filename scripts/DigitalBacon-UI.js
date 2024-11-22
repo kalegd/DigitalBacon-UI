@@ -49,7 +49,7 @@ THREE.BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
 THREE.BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
 THREE.Mesh.prototype.raycast = acceleratedRaycast;
 
-const version = '0.1.9';
+const version = '0.2.0';
 
 const addGripInteractable = (interactable) => {
     GripInteractableHandler.addInteractable(interactable);
@@ -132,6 +132,7 @@ export { Checkbox };
 export { Div };
 export { HSLColor };
 export { Image };
+export { InstancedBackgroundManager };
 export { Keyboard };
 export { NumberInput };
 export { Radio };
@@ -153,6 +154,7 @@ export { TouchInteractableHandler };
 export { DelayedClickHandler };
 export { InputHandler };
 export { InteractionToolHandler };
+export { LayoutUpdateHandler };
 export { UpdateHandler };
 export { DeviceTypes };
 export { Handedness };

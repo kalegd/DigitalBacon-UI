@@ -27350,7 +27350,7 @@ THREE.BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
 THREE.BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
 THREE.Mesh.prototype.raycast = acceleratedRaycast;
 
-const version = '0.1.9';
+const version = '0.2.0';
 
 const addGripInteractable = (interactable) => {
     gripInteractableHandler.addInteractable(interactable);
@@ -27428,4 +27428,4 @@ const update = (frame) => {
     instancedBackgroundManager.update();
 };
 
-export { Body, Checkbox, delayedClickHandler as DelayedClickHandler, DeviceTypes, Div, GripInteractable, gripInteractableHandler as GripInteractableHandler, HSLColor, Handedness, Image$1 as Image, inputHandler as InputHandler, Interactable, InteractableStates, interactionToolHandler as InteractionToolHandler, keyboard as Keyboard, NumberInput, PointerInteractable, pointerInteractableHandler as PointerInteractableHandler, Radio, Range, Select, Span, Style, TextComponent as Text, TextArea, TextInput, ThreeMeshBVH, Toggle, TouchInteractable, touchInteractableHandler as TouchInteractableHandler, troikaThreeText_esm as TroikaThreeText, updateHandler as UpdateHandler, XRInputDeviceTypes, addGripInteractable, addPointerInteractable, addTouchInteractable, init, removeGripInteractable, removePointerInteractable, removeTouchInteractable, update, utils, version };
+export { Body, Checkbox, delayedClickHandler as DelayedClickHandler, DeviceTypes, Div, GripInteractable, gripInteractableHandler as GripInteractableHandler, HSLColor, Handedness, Image$1 as Image, inputHandler as InputHandler, instancedBackgroundManager as InstancedBackgroundManager, Interactable, InteractableStates, interactionToolHandler as InteractionToolHandler, keyboard as Keyboard, layoutUpdateHandler as LayoutUpdateHandler, NumberInput, PointerInteractable, pointerInteractableHandler as PointerInteractableHandler, Radio, Range, Select, Span, Style, TextComponent as Text, TextArea, TextInput, ThreeMeshBVH, Toggle, TouchInteractable, touchInteractableHandler as TouchInteractableHandler, troikaThreeText_esm as TroikaThreeText, updateHandler as UpdateHandler, XRInputDeviceTypes, addGripInteractable, addPointerInteractable, addTouchInteractable, init, removeGripInteractable, removePointerInteractable, removeTouchInteractable, update, utils, version };
