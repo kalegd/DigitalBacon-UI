@@ -108,7 +108,7 @@ class LayoutComponent extends UIComponent {
         borderMaterial.polygonOffset = true;
         borderMaterial.polygonOffsetFactor = borderMaterial.polygonOffsetUnits
             = -1 * this._materialOffset;
-        this._border.material = borderMaterial;
+        if(this._border) this._border.material = borderMaterial;
     }
 
     _handleStyleUpdateForJustifyContent() {
