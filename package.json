@@ -1,6 +1,6 @@
 {
   "name": "digitalbacon-ui",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "type": "module",
   "description": "UI library for three.js that supports touch screen, mouse, and WebXR hardware",
   "main": "/build/DigitalBacon-UI.min.js",
@@ -35,7 +35,7 @@
   "dependencies": {
     "nipplejs": "^0.10.1",
     "runes2": "^1.1.4",
-    "three": "^0.170.0",
+    "three": "^0.171.0",
     "three-mesh-bvh": "^0.8.3",
     "troika-three-text": "^0.52.0"
   }

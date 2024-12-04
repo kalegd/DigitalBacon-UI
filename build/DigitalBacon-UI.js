@@ -9680,7 +9680,7 @@ class LayoutComponent extends UIComponent {
         borderMaterial.polygonOffset = true;
         borderMaterial.polygonOffsetFactor = borderMaterial.polygonOffsetUnits
             = -1 * this._materialOffset;
-        this._border.material = borderMaterial;
+        if(this._border) this._border.material = borderMaterial;
     }
 
     _handleStyleUpdateForJustifyContent() {
@@ -27352,7 +27352,7 @@ THREE.BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
 THREE.BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
 THREE.Mesh.prototype.raycast = acceleratedRaycast;
 
-const version = '0.2.0';
+const version = '0.2.1';
 
 const addGripInteractable = (interactable) => {
     gripInteractableHandler.addInteractable(interactable);
