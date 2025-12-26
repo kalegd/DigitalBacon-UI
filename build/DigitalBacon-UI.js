@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { Vector3, Vector2, Plane, Line3, Box3, Mesh, BatchedMesh, Triangle, Sphere, Matrix4, BufferAttribute, FrontSide, Group, LineBasicMaterial, MeshBasicMaterial, DataTexture, NearestFilter, UnsignedIntType, IntType, FloatType, RGBAFormat, RGIntegerFormat, BufferGeometry, Matrix3, Object3D, REVISION, Ray, UnsignedByteType, UnsignedShortType, ByteType, ShortType, RGBAIntegerFormat, Vector4, RGFormat, RedFormat, RedIntegerFormat, BackSide, DoubleSide, TrianglesDrawMode, TriangleFanDrawMode, TriangleStripDrawMode, Quaternion, Loader, LoaderUtils, FileLoader, Color, LinearSRGBColorSpace, SpotLight, PointLight, DirectionalLight, SRGBColorSpace, MeshPhysicalMaterial, InstancedMesh, InstancedBufferAttribute, TextureLoader, ImageBitmapLoader, InterleavedBuffer, InterleavedBufferAttribute, LinearFilter, LinearMipmapLinearFilter, RepeatWrapping, PointsMaterial, Material, MeshStandardMaterial, PropertyBinding, SkinnedMesh, LineSegments, Line, LineLoop, Points, PerspectiveCamera, MathUtils, OrthographicCamera, Skeleton, AnimationClip, Bone, InterpolateLinear, ColorManagement, NearestMipmapNearestFilter, LinearMipmapNearestFilter, NearestMipmapLinearFilter, ClampToEdgeWrapping, MirroredRepeatWrapping, InterpolateDiscrete, Texture, VectorKeyframeTrack, NumberKeyframeTrack, QuaternionKeyframeTrack, Interpolant, SphereGeometry, UniformsUtils, MeshDepthMaterial, RGBADepthPacking, MeshDistanceMaterial, ShaderChunk, InstancedBufferGeometry, DynamicDrawUsage, PlaneGeometry } from 'three';
+import { Vector3, Mesh, BatchedMesh, Triangle, Plane, Line3, Vector2, Matrix4, BufferAttribute, Box3, FrontSide, Group, LineBasicMaterial, MeshBasicMaterial, Sphere, DataTexture, NearestFilter, UnsignedIntType, IntType, FloatType, RGBAFormat, RGIntegerFormat, BufferGeometry, Matrix3, Object3D, REVISION, Ray, UnsignedByteType, UnsignedShortType, ByteType, ShortType, RGBAIntegerFormat, Vector4, RGFormat, RedFormat, RedIntegerFormat, BackSide, DoubleSide, TrianglesDrawMode, TriangleFanDrawMode, TriangleStripDrawMode, Quaternion, Loader, LoaderUtils, FileLoader, Color, LinearSRGBColorSpace, SpotLight, PointLight, DirectionalLight, SRGBColorSpace, MeshPhysicalMaterial, InstancedMesh, InstancedBufferAttribute, TextureLoader, ImageBitmapLoader, InterleavedBuffer, InterleavedBufferAttribute, LinearFilter, LinearMipmapLinearFilter, RepeatWrapping, PointsMaterial, Material, MeshStandardMaterial, PropertyBinding, SkinnedMesh, LineSegments, Line, LineLoop, Points, PerspectiveCamera, MathUtils, OrthographicCamera, Skeleton, AnimationClip, Bone, InterpolateLinear, ColorManagement, NearestMipmapNearestFilter, LinearMipmapNearestFilter, NearestMipmapLinearFilter, ClampToEdgeWrapping, MirroredRepeatWrapping, InterpolateDiscrete, Texture, VectorKeyframeTrack, NumberKeyframeTrack, QuaternionKeyframeTrack, Interpolant, SphereGeometry, UniformsUtils, MeshDepthMaterial, RGBADepthPacking, MeshDistanceMaterial, ShaderChunk, InstancedBufferGeometry, DynamicDrawUsage, PlaneGeometry } from 'three';
 
 /*
  * This Source Code Form is subject to the terms of the Mozilla Public
@@ -376,7 +376,11 @@ const TRAVERSAL_COST = 1;
 
 // Build constants
 const BYTES_PER_NODE = 6 * 4 + 4 + 4;
+const UINT32_PER_NODE = BYTES_PER_NODE / 4;
 const IS_LEAFNODE_FLAG = 0xFFFF;
+
+// Bit masks for 32 bit node data
+const LEAFNODE_MASK_32 = IS_LEAFNODE_FLAG << 16;
 
 // EPSILON for computing floating point error during build
 // https://en.wikipedia.org/wiki/Machine_epsilon#Values_for_standard_hardware_floating_point_arithmetics
@@ -457,6 +461,8 @@ function getFullGeometryRange( geo, range ) {
 
 }
 
+// Function that extracts a set of mutually exclusive ranges representing the triangles being
+// drawn as determined by the geometry groups, draw range, and user specified range
 function getRootIndexRanges( geo, range ) {
 
 	if ( ! geo.groups || ! geo.groups.length ) {
@@ -466,51 +472,67 @@ function getRootIndexRanges( geo, range ) {
 	}
 
 	const ranges = [];
-	const rangeBoundaries = new Set();
-
 	const drawRange = range ? range : geo.drawRange;
 	const drawRangeStart = drawRange.start / 3;
 	const drawRangeEnd = ( drawRange.start + drawRange.count ) / 3;
+
+	// Create events for group boundaries
+	const triCount = getTriCount( geo );
+	const events = [];
 	for ( const group of geo.groups ) {
 
-		const groupStart = group.start / 3;
-		const groupEnd = ( group.start + group.count ) / 3;
-		rangeBoundaries.add( Math.max( drawRangeStart, groupStart ) );
-		rangeBoundaries.add( Math.min( drawRangeEnd, groupEnd ) );
+		// Account for cases where group size is set to Infinity
+		const { start, count } = group;
+		const groupStart = start / 3;
+		const groupCount = isFinite( count ) ? count : ( triCount * 3 - start );
+		const groupEnd = ( start + groupCount ) / 3;
+
+		// Only add events if the group intersects with the draw range
+		if ( groupStart < drawRangeEnd && groupEnd > drawRangeStart ) {
+
+			events.push( { pos: Math.max( drawRangeStart, groupStart ), isStart: true } );
+			events.push( { pos: Math.min( drawRangeEnd, groupEnd ), isStart: false } );
+
+		}
 
 	}
 
+	// Sort events by position, with 'end' events before 'start' events at the same position
+	events.sort( ( a, b ) => {
 
-	// note that if you don't pass in a comparator, it sorts them lexicographically as strings :-(
-	const sortedBoundaries = Array.from( rangeBoundaries.values() ).sort( ( a, b ) => a - b );
-	for ( let i = 0; i < sortedBoundaries.length - 1; i ++ ) {
+		if ( a.pos !== b.pos ) {
 
-		const start = sortedBoundaries[ i ];
-		const end = sortedBoundaries[ i + 1 ];
+			return a.pos - b.pos;
 
-		ranges.push( {
-			offset: Math.floor( start ),
-			count: Math.floor( end - start ),
-		} );
+		} else {
+
+			return a.type === 'end' ? - 1 : 1;
+
+		}
+
+	} );
+
+	// sweep through events and create ranges where activeGroups > 0
+	let activeGroups = 0;
+	let lastPos = null;
+	for ( const event of events ) {
+
+		const newPos = event.pos;
+		if ( activeGroups !== 0 && newPos !== lastPos ) {
+
+			ranges.push( {
+				offset: lastPos,
+				count: newPos - lastPos,
+			} );
+
+		}
+
+		activeGroups += event.isStart ? 1 : - 1;
+		lastPos = newPos;
 
 	}
 
 	return ranges;
-
-}
-
-function hasGroupGaps( geometry, range ) {
-
-	const vertexCount = getTriCount( geometry );
-	const groups = getRootIndexRanges( geometry, range )
-		.sort( ( a, b ) => a.offset - b.offset );
-
-	const finalGroup = groups[ groups.length - 1 ];
-	finalGroup.count = Math.min( vertexCount - finalGroup.offset, finalGroup.count );
-
-	let total = 0;
-	groups.forEach( ( { count } ) => total += count );
-	return vertexCount !== total;
 
 }
 
@@ -533,7 +555,8 @@ function getBounds( triangleBounds, offset, count, target, centroidTarget ) {
 	let cmaxy = - Infinity;
 	let cmaxz = - Infinity;
 
-	for ( let i = offset * 6, end = ( offset + count ) * 6; i < end; i += 6 ) {
+	const boundsOffset = triangleBounds.offset || 0;
+	for ( let i = ( offset - boundsOffset ) * 6, end = ( offset + count - boundsOffset ) * 6; i < end; i += 6 ) {
 
 		const cx = triangleBounds[ i + 0 ];
 		const hx = triangleBounds[ i + 1 ];
@@ -583,27 +606,29 @@ function getBounds( triangleBounds, offset, count, target, centroidTarget ) {
 }
 
 // precomputes the bounding box for each triangle; required for quickly calculating tree splits.
-// result is an array of size tris.length * 6 where triangle i maps to a
-// [x_center, x_delta, y_center, y_delta, z_center, z_delta] tuple starting at index i * 6,
+// result is an array of size count * 6 where triangle i maps to a
+// [x_center, x_delta, y_center, y_delta, z_center, z_delta] tuple starting at index (i - offset) * 6,
 // representing the center and half-extent in each dimension of triangle i
-function computeTriangleBounds( geo, target = null, offset = null, count = null ) {
+function computeTriangleBounds( geo, offset, count = null, indirectBuffer = null, targetBuffer = null ) {
 
 	const posAttr = geo.attributes.position;
 	const index = geo.index ? geo.index.array : null;
-	const triCount = getTriCount( geo );
 	const normalized = posAttr.normalized;
-	let triangleBounds;
-	if ( target === null ) {
 
-		triangleBounds = new Float32Array( triCount * 6 );
-		offset = 0;
-		count = triCount;
+	if ( targetBuffer === null ) {
+
+		// store offset on the array for later use & allocate only for the
+		// range being computed
+		targetBuffer = new Float32Array( count * 6 );
+		targetBuffer.offset = offset;
 
 	} else {
 
-		triangleBounds = target;
-		offset = offset || 0;
-		count = count || triCount;
+		if ( offset < 0 || count + offset > targetBuffer.length / 6 ) {
+
+			throw new Error( 'MeshBVH: compute triangle bounds range is invalid.' );
+
+		}
 
 	}
 
@@ -621,11 +646,14 @@ function computeTriangleBounds( geo, target = null, offset = null, count = null 
 
 	// used for normalized positions
 	const getters = [ 'getX', 'getY', 'getZ' ];
+	const writeOffset = targetBuffer.offset;
 
-	for ( let tri = offset; tri < offset + count; tri ++ ) {
+	// iterate over the triangle range
+	for ( let i = offset, l = offset + count; i < l; i ++ ) {
 
+		const tri = indirectBuffer ? indirectBuffer[ i ] : i;
 		const tri3 = tri * 3;
-		const tri6 = tri * 6;
+		const boundsIndexOffset = ( i - writeOffset ) * 6;
 
 		let ai = tri3 + 0;
 		let bi = tri3 + 1;
@@ -680,14 +708,14 @@ function computeTriangleBounds( geo, target = null, offset = null, count = null 
 			// worked with.
 			const halfExtents = ( max - min ) / 2;
 			const el2 = el * 2;
-			triangleBounds[ tri6 + el2 + 0 ] = min + halfExtents;
-			triangleBounds[ tri6 + el2 + 1 ] = halfExtents + ( Math.abs( min ) + halfExtents ) * FLOAT32_EPSILON;
+			targetBuffer[ boundsIndexOffset + el2 + 0 ] = min + halfExtents;
+			targetBuffer[ boundsIndexOffset + el2 + 1 ] = halfExtents + ( Math.abs( min ) + halfExtents ) * FLOAT32_EPSILON;
 
 		}
 
 	}
 
-	return triangleBounds;
+	return targetBuffer;
 
 }
 
@@ -795,7 +823,7 @@ function computeSurfaceArea( bounds ) {
 
 const BIN_COUNT = 32;
 const binsSort = ( a, b ) => a.candidate - b.candidate;
-const sahBins = new Array( BIN_COUNT ).fill().map( () => {
+const sahBins = /* @__PURE__ */ new Array( BIN_COUNT ).fill().map( () => {
 
 	return {
 
@@ -808,7 +836,7 @@ const sahBins = new Array( BIN_COUNT ).fill().map( () => {
 	};
 
 } );
-const leftBounds = new Float32Array( 6 );
+const leftBounds = /* @__PURE__ */ new Float32Array( 6 );
 
 function getOptimalSplit( nodeBoundingData, centroidBoundingData, triangleBounds, offset, count, strategy ) {
 
@@ -840,8 +868,9 @@ function getOptimalSplit( nodeBoundingData, centroidBoundingData, triangleBounds
 		let bestCost = TRIANGLE_INTERSECT_COST * count;
 
 		// iterate over all axes
-		const cStart = offset * 6;
-		const cEnd = ( offset + count ) * 6;
+		const boundsOffset = triangleBounds.offset || 0;
+		const cStart = ( offset - boundsOffset ) * 6;
+		const cEnd = ( offset + count - boundsOffset ) * 6;
 		for ( let a = 0; a < 3; a ++ ) {
 
 			const axisLeft = centroidBoundingData[ a ];
@@ -1088,9 +1117,10 @@ function getOptimalSplit( nodeBoundingData, centroidBoundingData, triangleBounds
 function getAverage( triangleBounds, offset, count, axis ) {
 
 	let avg = 0;
+	const boundsOffset = triangleBounds.offset;
 	for ( let i = offset, end = offset + count; i < end; i ++ ) {
 
-		avg += triangleBounds[ i * 6 + axis * 2 ];
+		avg += triangleBounds[ ( i - boundsOffset ) * 6 + axis * 2 ];
 
 	}
 
@@ -1123,18 +1153,19 @@ function partition( indirectBuffer, index, triangleBounds, offset, count, split 
 	let right = offset + count - 1;
 	const pos = split.pos;
 	const axisOffset = split.axis * 2;
+	const boundsOffset = triangleBounds.offset || 0;
 
 	// hoare partitioning, see e.g. https://en.wikipedia.org/wiki/Quicksort#Hoare_partition_scheme
 	while ( true ) {
 
-		while ( left <= right && triangleBounds[ left * 6 + axisOffset ] < pos ) {
+		while ( left <= right && triangleBounds[ ( left - boundsOffset ) * 6 + axisOffset ] < pos ) {
 
 			left ++;
 
 		}
 
 		// if a triangle center lies on the partition plane it is considered to be on the right side
-		while ( left <= right && triangleBounds[ right * 6 + axisOffset ] >= pos ) {
+		while ( left <= right && triangleBounds[ ( right - boundsOffset ) * 6 + axisOffset ] >= pos ) {
 
 			right --;
 
@@ -1158,9 +1189,11 @@ function partition( indirectBuffer, index, triangleBounds, offset, count, split 
 			// swap bounds
 			for ( let i = 0; i < 6; i ++ ) {
 
-				let tb = triangleBounds[ left * 6 + i ];
-				triangleBounds[ left * 6 + i ] = triangleBounds[ right * 6 + i ];
-				triangleBounds[ right * 6 + i ] = tb;
+				const l = left - boundsOffset;
+				const r = right - boundsOffset;
+				const tb = triangleBounds[ l * 6 + i ];
+				triangleBounds[ l * 6 + i ] = triangleBounds[ r * 6 + i ];
+				triangleBounds[ r * 6 + i ] = tb;
 
 			}
 
@@ -1189,18 +1222,19 @@ function partition_indirect( indirectBuffer, index, triangleBounds, offset, coun
 	let right = offset + count - 1;
 	const pos = split.pos;
 	const axisOffset = split.axis * 2;
+	const boundsOffset = triangleBounds.offset || 0;
 
 	// hoare partitioning, see e.g. https://en.wikipedia.org/wiki/Quicksort#Hoare_partition_scheme
 	while ( true ) {
 
-		while ( left <= right && triangleBounds[ left * 6 + axisOffset ] < pos ) {
+		while ( left <= right && triangleBounds[ ( left - boundsOffset ) * 6 + axisOffset ] < pos ) {
 
 			left ++;
 
 		}
 
 		// if a triangle center lies on the partition plane it is considered to be on the right side
-		while ( left <= right && triangleBounds[ right * 6 + axisOffset ] >= pos ) {
+		while ( left <= right && triangleBounds[ ( right - boundsOffset ) * 6 + axisOffset ] >= pos ) {
 
 			right --;
 
@@ -1219,9 +1253,11 @@ function partition_indirect( indirectBuffer, index, triangleBounds, offset, coun
 			// swap bounds
 			for ( let i = 0; i < 6; i ++ ) {
 
-				let tb = triangleBounds[ left * 6 + i ];
-				triangleBounds[ left * 6 + i ] = triangleBounds[ right * 6 + i ];
-				triangleBounds[ right * 6 + i ] = tb;
+				const l = left - boundsOffset;
+				const r = right - boundsOffset;
+				const tb = triangleBounds[ l * 6 + i ];
+				triangleBounds[ l * 6 + i ] = triangleBounds[ r * 6 + i ];
+				triangleBounds[ r * 6 + i ] = tb;
 
 			}
 
@@ -1235,48 +1271,6 @@ function partition_indirect( indirectBuffer, index, triangleBounds, offset, coun
 		}
 
 	}
-
-}
-
-function IS_LEAF( n16, uint16Array ) {
-
-	return uint16Array[ n16 + 15 ] === 0xFFFF;
-
-}
-
-function OFFSET( n32, uint32Array ) {
-
-	return uint32Array[ n32 + 6 ];
-
-}
-
-function COUNT( n16, uint16Array ) {
-
-	return uint16Array[ n16 + 14 ];
-
-}
-
-function LEFT_NODE( n32 ) {
-
-	return n32 + 8;
-
-}
-
-function RIGHT_NODE( n32, uint32Array ) {
-
-	return uint32Array[ n32 + 6 ];
-
-}
-
-function SPLIT_AXIS( n32, uint32Array ) {
-
-	return uint32Array[ n32 + 7 ];
-
-}
-
-function BOUNDING_DATA_INDEX( n32 ) {
-
-	return n32;
 
 }
 
@@ -1314,13 +1308,13 @@ function populateBuffer( byteOffset, node, buffer ) {
 // splitAxis / isLeaf + count 	: 1 uint32 / 2 uint16
 function _populateBuffer( byteOffset, node ) {
 
-	const stride4Offset = byteOffset / 4;
-	const stride2Offset = byteOffset / 2;
+	const node32Index = byteOffset / 4;
+	const node16Index = byteOffset / 2;
 	const isLeaf = 'count' in node;
 	const boundingData = node.boundingData;
 	for ( let i = 0; i < 6; i ++ ) {
 
-		float32Array[ stride4Offset + i ] = boundingData[ i ];
+		float32Array[ node32Index + i ] = boundingData[ i ];
 
 	}
 
@@ -1328,70 +1322,73 @@ function _populateBuffer( byteOffset, node ) {
 
 		if ( node.buffer ) {
 
-			const buffer = node.buffer;
-			uint8Array.set( new Uint8Array( buffer ), byteOffset );
-
-			for ( let offset = byteOffset, l = byteOffset + buffer.byteLength; offset < l; offset += BYTES_PER_NODE ) {
-
-				const offset2 = offset / 2;
-				if ( ! IS_LEAF( offset2, uint16Array ) ) {
-
-					uint32Array[ ( offset / 4 ) + 6 ] += stride4Offset;
-
-
-				}
-
-			}
-
-			return byteOffset + buffer.byteLength;
+			uint8Array.set( new Uint8Array( node.buffer ), byteOffset );
+			return byteOffset + node.buffer.byteLength;
 
 		} else {
 
-			const offset = node.offset;
-			const count = node.count;
-			uint32Array[ stride4Offset + 6 ] = offset;
-			uint16Array[ stride2Offset + 14 ] = count;
-			uint16Array[ stride2Offset + 15 ] = IS_LEAFNODE_FLAG;
+			uint32Array[ node32Index + 6 ] = node.offset;
+			uint16Array[ node16Index + 14 ] = node.count;
+			uint16Array[ node16Index + 15 ] = IS_LEAFNODE_FLAG;
 			return byteOffset + BYTES_PER_NODE;
 
 		}
 
 	} else {
 
-		const left = node.left;
-		const right = node.right;
-		const splitAxis = node.splitAxis;
+		const { left, right, splitAxis } = node;
 
-		let nextUnusedPointer;
-		nextUnusedPointer = _populateBuffer( byteOffset + BYTES_PER_NODE, left );
+		// fill in the left node contents
+		const leftByteOffset = byteOffset + BYTES_PER_NODE;
+		let rightByteOffset = _populateBuffer( leftByteOffset, left );
 
-		if ( ( nextUnusedPointer / 4 ) > MAX_POINTER ) {
+		// calculate relative offset from parent to right child
+		const currentNodeIndex = byteOffset / BYTES_PER_NODE;
+		const rightNodeIndex = rightByteOffset / BYTES_PER_NODE;
+		const relativeRightIndex = rightNodeIndex - currentNodeIndex;
 
-			throw new Error( 'MeshBVH: Cannot store child pointer greater than 32 bits.' );
+		// check if the relative offset is too high
+		if ( relativeRightIndex > MAX_POINTER ) {
+
+			throw new Error( 'MeshBVH: Cannot store relative child node offset greater than 32 bits.' );
 
 		}
 
-		uint32Array[ stride4Offset + 6 ] = nextUnusedPointer / 4;
-		nextUnusedPointer = _populateBuffer( nextUnusedPointer, right );
+		// fill in the right node contents (store as relative offset)
+		uint32Array[ node32Index + 6 ] = relativeRightIndex;
+		uint32Array[ node32Index + 7 ] = splitAxis;
 
-		uint32Array[ stride4Offset + 7 ] = splitAxis;
-		return nextUnusedPointer;
+		// return the next available buffer pointer
+		return _populateBuffer( rightByteOffset, right );
 
 	}
 
 }
 
-function generateIndirectBuffer( geometry, useSharedArrayBuffer ) {
+// construct a new buffer that points to the set of triangles represented by the given ranges
+function generateIndirectBuffer( geometry, useSharedArrayBuffer, ranges ) {
 
 	const triCount = ( geometry.index ? geometry.index.count : geometry.attributes.position.count ) / 3;
 	const useUint32 = triCount > 2 ** 16;
+
+	// use getRootIndexRanges which excludes gaps
+	const length = ranges.reduce( ( acc, val ) => acc + val.count, 0 );
 	const byteCount = useUint32 ? 4 : 2;
-
-	const buffer = useSharedArrayBuffer ? new SharedArrayBuffer( triCount * byteCount ) : new ArrayBuffer( triCount * byteCount );
+	const buffer = useSharedArrayBuffer ? new SharedArrayBuffer( length * byteCount ) : new ArrayBuffer( length * byteCount );
 	const indirectBuffer = useUint32 ? new Uint32Array( buffer ) : new Uint16Array( buffer );
-	for ( let i = 0, l = indirectBuffer.length; i < l; i ++ ) {
 
-		indirectBuffer[ i ] = i;
+	// construct a compact form of the triangles in these ranges
+	let index = 0;
+	for ( let r = 0; r < ranges.length; r ++ ) {
+
+		const { offset, count } = ranges[ r ];
+		for ( let i = 0; i < count; i ++ ) {
+
+			indirectBuffer[ index + i ] = offset + i;
+
+		}
+
+		index += count;
 
 	}
 
@@ -1401,7 +1398,7 @@ function generateIndirectBuffer( geometry, useSharedArrayBuffer ) {
 
 function buildTree( bvh, triangleBounds, offset, count, options ) {
 
-	// epxand variables
+	// expand variables
 	const {
 		maxDepth,
 		verbose,
@@ -1513,32 +1510,29 @@ function buildTree( bvh, triangleBounds, offset, count, options ) {
 
 function buildPackedTree( bvh, options ) {
 
+	const BufferConstructor = options.useSharedArrayBuffer ? SharedArrayBuffer : ArrayBuffer;
 	const geometry = bvh.geometry;
+	let triangleBounds, geometryRanges;
 	if ( options.indirect ) {
 
-		bvh._indirectBuffer = generateIndirectBuffer( geometry, options.useSharedArrayBuffer );
+		// construct an buffer that is indirectly sorts the triangles used for the BVH
+		const ranges = getRootIndexRanges( geometry, options.range );
+		const indirectBuffer = generateIndirectBuffer( geometry, options.useSharedArrayBuffer, ranges );
+		bvh._indirectBuffer = indirectBuffer;
+		triangleBounds = computeTriangleBounds( geometry, 0, indirectBuffer.length, indirectBuffer );
+		geometryRanges = [ { offset: 0, count: indirectBuffer.length } ];
 
-		if ( hasGroupGaps( geometry, options.range ) && ! options.verbose ) {
-
-			console.warn(
-				'MeshBVH: Provided geometry contains groups or a range that do not fully span the vertex contents while using the "indirect" option. ' +
-				'BVH may incorrectly report intersections on unrendered portions of the geometry.'
-			);
-
-		}
-
-	}
-
-	if ( ! bvh._indirectBuffer ) {
+	} else {
 
 		ensureIndex( geometry, options );
 
+		const fullRange = getFullGeometryRange( geometry, options.range )[ 0 ];
+		triangleBounds = computeTriangleBounds( geometry, fullRange.offset, fullRange.count );
+		geometryRanges = getRootIndexRanges( geometry, options.range );
+
 	}
 
-	const BufferConstructor = options.useSharedArrayBuffer ? SharedArrayBuffer : ArrayBuffer;
-
-	const triangleBounds = computeTriangleBounds( geometry );
-	const geometryRanges = options.indirect ? getFullGeometryRange( geometry, options.range ) : getRootIndexRanges( geometry, options.range );
+	// Build BVH roots
 	bvh._roots = geometryRanges.map( range => {
 
 		const root = buildTree( bvh, triangleBounds, range.offset, range.count, options );
@@ -1606,7 +1600,7 @@ class SeparatingAxisBounds {
 
 SeparatingAxisBounds.prototype.setFromBox = ( function () {
 
-	const p = new Vector3();
+	const p = /* @__PURE__ */ new Vector3();
 	return function setFromBox( axis, box ) {
 
 		const boxMin = box.min;
@@ -1643,9 +1637,9 @@ SeparatingAxisBounds.prototype.setFromBox = ( function () {
 const closestPointLineToLine = ( function () {
 
 	// https://github.com/juj/MathGeoLib/blob/master/src/Geometry/Line.cpp#L56
-	const dir1 = new Vector3();
-	const dir2 = new Vector3();
-	const v02 = new Vector3();
+	const dir1 = /* @__PURE__ */ new Vector3();
+	const dir2 = /* @__PURE__ */ new Vector3();
+	const v02 = /* @__PURE__ */ new Vector3();
 	return function closestPointLineToLine( l1, l2, result ) {
 
 		const v0 = l1.start;
@@ -1698,9 +1692,9 @@ const closestPointLineToLine = ( function () {
 const closestPointsSegmentToSegment = ( function () {
 
 	// https://github.com/juj/MathGeoLib/blob/master/src/Geometry/LineSegment.cpp#L187
-	const paramResult = new Vector2();
-	const temp1 = new Vector3();
-	const temp2 = new Vector3();
+	const paramResult = /* @__PURE__ */ new Vector2();
+	const temp1 = /* @__PURE__ */ new Vector3();
+	const temp2 = /* @__PURE__ */ new Vector3();
 	return function closestPointsSegmentToSegment( l1, l2, target1, target2 ) {
 
 		closestPointLineToLine( l1, l2, paramResult );
@@ -1800,10 +1794,10 @@ const closestPointsSegmentToSegment = ( function () {
 const sphereIntersectTriangle = ( function () {
 
 	// https://stackoverflow.com/questions/34043955/detect-collision-between-sphere-and-triangle-in-three-js
-	const closestPointTemp = new Vector3();
-	const projectedPointTemp = new Vector3();
-	const planeTemp = new Plane();
-	const lineTemp = new Line3();
+	const closestPointTemp = /* @__PURE__ */ new Vector3();
+	const projectedPointTemp = /* @__PURE__ */ new Vector3();
+	const planeTemp = /* @__PURE__ */ new Plane();
+	const lineTemp = /* @__PURE__ */ new Line3();
 	return function sphereIntersectTriangle( sphere, triangle ) {
 
 		const { radius, center } = sphere;
@@ -1842,7 +1836,9 @@ const sphereIntersectTriangle = ( function () {
 
 } )();
 
+const componentKeys = [ 'x', 'y', 'z' ];
 const ZERO_EPSILON = 1e-15;
+const ZERO_EPSILON_SQR = ZERO_EPSILON * ZERO_EPSILON;
 function isNearZero( value ) {
 
 	return Math.abs( value ) < ZERO_EPSILON;
@@ -1859,8 +1855,10 @@ class ExtendedTriangle extends Triangle {
 		this.satAxes = new Array( 4 ).fill().map( () => new Vector3() );
 		this.satBounds = new Array( 4 ).fill().map( () => new SeparatingAxisBounds() );
 		this.points = [ this.a, this.b, this.c ];
-		this.sphere = new Sphere();
 		this.plane = new Plane();
+		this.isDegenerateIntoSegment = false;
+		this.isDegenerateIntoPoint = false;
+		this.degenerateSegment = new Line3();
 		this.needsUpdate = true;
 
 	}
@@ -1901,8 +1899,51 @@ class ExtendedTriangle extends Triangle {
 		axis3.subVectors( c, a );
 		sab3.setFromPoints( axis3, points );
 
-		this.sphere.setFromPoints( this.points );
+		const lengthAB = axis1.length();
+		const lengthBC = axis2.length();
+		const lengthCA = axis3.length();
+
+		this.isDegenerateIntoPoint = false;
+		this.isDegenerateIntoSegment = false;
+
+		if ( lengthAB < ZERO_EPSILON ) {
+
+			if ( lengthBC < ZERO_EPSILON || lengthCA < ZERO_EPSILON ) {
+
+				this.isDegenerateIntoPoint = true;
+
+			} else {
+
+				this.isDegenerateIntoSegment = true;
+				this.degenerateSegment.start.copy( a );
+				this.degenerateSegment.end.copy( c );
+
+			}
+
+		} else if ( lengthBC < ZERO_EPSILON ) {
+
+			if ( lengthCA < ZERO_EPSILON ) {
+
+				this.isDegenerateIntoPoint = true;
+
+			} else {
+
+				this.isDegenerateIntoSegment = true;
+				this.degenerateSegment.start.copy( b );
+				this.degenerateSegment.end.copy( a );
+
+			}
+
+		} else if ( lengthCA < ZERO_EPSILON ) {
+
+			this.isDegenerateIntoSegment = true;
+			this.degenerateSegment.start.copy( c );
+			this.degenerateSegment.end.copy( b );
+
+		}
+
 		this.plane.setFromNormalAndCoplanarPoint( axis0, a );
+
 		this.needsUpdate = false;
 
 	}
@@ -1911,9 +1952,9 @@ class ExtendedTriangle extends Triangle {
 
 ExtendedTriangle.prototype.closestPointToSegment = ( function () {
 
-	const point1 = new Vector3();
-	const point2 = new Vector3();
-	const edge = new Line3();
+	const point1 = /* @__PURE__ */ new Vector3();
+	const point2 = /* @__PURE__ */ new Vector3();
+	const edge = /* @__PURE__ */ new Line3();
 
 	return function distanceToSegment( segment, target1 = null, target2 = null ) {
 
@@ -1971,95 +2012,360 @@ ExtendedTriangle.prototype.closestPointToSegment = ( function () {
 
 ExtendedTriangle.prototype.intersectsTriangle = ( function () {
 
-	const saTri2 = new ExtendedTriangle();
-	const arr1 = new Array( 3 );
-	const arr2 = new Array( 3 );
-	const cachedSatBounds = new SeparatingAxisBounds();
-	const cachedSatBounds2 = new SeparatingAxisBounds();
-	const cachedAxis = new Vector3();
-	const dir = new Vector3();
-	const dir1 = new Vector3();
-	const dir2 = new Vector3();
-	const tempDir = new Vector3();
-	const edge = new Line3();
-	const edge1 = new Line3();
-	const edge2 = new Line3();
-	const tempPoint = new Vector3();
+	const saTri2 = /* @__PURE__ */ new ExtendedTriangle();
+	const cachedSatBounds = /* @__PURE__ */ new SeparatingAxisBounds();
+	const cachedSatBounds2 = /* @__PURE__ */ new SeparatingAxisBounds();
+	const tmpVec = /* @__PURE__ */ new Vector3();
+	const dir1 = /* @__PURE__ */ new Vector3();
+	const dir2 = /* @__PURE__ */ new Vector3();
+	const tempDir = /* @__PURE__ */ new Vector3();
+	const edge1 = /* @__PURE__ */ new Line3();
+	const edge2 = /* @__PURE__ */ new Line3();
+	const tempPoint = /* @__PURE__ */ new Vector3();
+	const bounds1 = /* @__PURE__ */ new Vector2();
+	const bounds2 = /* @__PURE__ */ new Vector2();
 
-	function triIntersectPlane( tri, plane, targetEdge ) {
+	function coplanarIntersectsTriangle( self, other, target, suppressLog ) {
 
-		// find the edge that intersects the other triangle plane
-		const points = tri.points;
-		let count = 0;
-		let startPointIntersection = - 1;
-		for ( let i = 0; i < 3; i ++ ) {
+		// Perform separating axis intersection test only for coplanar triangles
+		// There should be at least one non-degenerate triangle when calling this
+		// Otherwise we won't know the plane normal
+		const planeNormal = tmpVec;
+		if ( ! self.isDegenerateIntoPoint && ! self.isDegenerateIntoSegment ) {
 
-			const { start, end } = edge;
-			start.copy( points[ i ] );
-			end.copy( points[ ( i + 1 ) % 3 ] );
-			edge.delta( dir );
+			planeNormal.copy( self.plane.normal );
 
-			const startIntersects = isNearZero( plane.distanceToPoint( start ) );
-			if ( isNearZero( plane.normal.dot( dir ) ) && startIntersects ) {
+		} else {
 
-				// if the edge lies on the plane then take the line
-				targetEdge.copy( edge );
-				count = 2;
-				break;
+			planeNormal.copy( other.plane.normal );
+
+		}
+
+		const satBounds1 = self.satBounds;
+		const satAxes1 = self.satAxes;
+		for ( let i = 1; i < 4; i ++ ) {
+
+			const sb = satBounds1[ i ];
+			const sa = satAxes1[ i ];
+			cachedSatBounds.setFromPoints( sa, other.points );
+			if ( sb.isSeparated( cachedSatBounds ) ) return false;
+
+			tempDir.copy( planeNormal ).cross( sa );
+			cachedSatBounds.setFromPoints( tempDir, self.points );
+			cachedSatBounds2.setFromPoints( tempDir, other.points );
+			if ( cachedSatBounds.isSeparated( cachedSatBounds2 ) ) return false;
+
+		}
+
+		const satBounds2 = other.satBounds;
+		const satAxes2 = other.satAxes;
+		for ( let i = 1; i < 4; i ++ ) {
+
+			const sb = satBounds2[ i ];
+			const sa = satAxes2[ i ];
+			cachedSatBounds.setFromPoints( sa, self.points );
+			if ( sb.isSeparated( cachedSatBounds ) ) return false;
+
+			tempDir.crossVectors( planeNormal, sa );
+			cachedSatBounds.setFromPoints( tempDir, self.points );
+			cachedSatBounds2.setFromPoints( tempDir, other.points );
+			if ( cachedSatBounds.isSeparated( cachedSatBounds2 ) ) return false;
+
+		}
+
+		if ( target ) {
+
+			// TODO find two points that intersect on the edges and make that the result
+			if ( ! suppressLog ) {
+
+				console.warn( 'ExtendedTriangle.intersectsTriangle: Triangles are coplanar which does not support an output edge. Setting edge to 0, 0, 0.' );
 
 			}
 
-			// check if the start point is near the plane because "intersectLine" is not robust to that case
-			const doesIntersect = plane.intersectLine( edge, tempPoint );
-			if ( ! doesIntersect && startIntersects ) {
+			target.start.set( 0, 0, 0 );
+			target.end.set( 0, 0, 0 );
 
-				tempPoint.copy( start );
+		}
+
+		return true;
+
+	}
+
+	function findSingleBounds( a, b, c, aProj, bProj, cProj, aDist, bDist, cDist, bounds, edge ) {
+
+		let t = aDist / ( aDist - bDist );
+		bounds.x = aProj + ( bProj - aProj ) * t;
+		edge.start.subVectors( b, a ).multiplyScalar( t ).add( a );
+
+		t = aDist / ( aDist - cDist );
+		bounds.y = aProj + ( cProj - aProj ) * t;
+		edge.end.subVectors( c, a ).multiplyScalar( t ).add( a );
+
+	}
+
+	/**
+	 * Calculates intersection segment of a triangle with intersection line.
+	 * Intersection line is snapped to its biggest component.
+	 * And triangle points are passed as a projection on that component.
+	 * @returns whether this is a coplanar case or not
+	 */
+	function findIntersectionLineBounds( self, aProj, bProj, cProj, abDist, acDist, aDist, bDist, cDist, bounds, edge ) {
+
+		if ( abDist > 0 ) {
+
+			// then bcDist < 0
+			findSingleBounds( self.c, self.a, self.b, cProj, aProj, bProj, cDist, aDist, bDist, bounds, edge );
+
+		} else if ( acDist > 0 ) {
+
+			findSingleBounds( self.b, self.a, self.c, bProj, aProj, cProj, bDist, aDist, cDist, bounds, edge );
+
+		} else if ( bDist * cDist > 0 || aDist != 0 ) {
+
+			findSingleBounds( self.a, self.b, self.c, aProj, bProj, cProj, aDist, bDist, cDist, bounds, edge );
+
+		} else if ( bDist != 0 ) {
+
+			findSingleBounds( self.b, self.a, self.c, bProj, aProj, cProj, bDist, aDist, cDist, bounds, edge );
+
+		} else if ( cDist != 0 ) {
+
+			findSingleBounds( self.c, self.a, self.b, cProj, aProj, bProj, cDist, aDist, bDist, bounds, edge );
+
+		} else {
+
+			return true;
+
+		}
+
+		return false;
+
+	}
+
+	function intersectTriangleSegment( triangle, degenerateTriangle, target, suppressLog ) {
+
+		const segment = degenerateTriangle.degenerateSegment;
+		const startDist = triangle.plane.distanceToPoint( segment.start );
+		const endDist = triangle.plane.distanceToPoint( segment.end );
+		if ( isNearZero( startDist ) ) {
+
+			if ( isNearZero( endDist ) ) {
+
+				return coplanarIntersectsTriangle( triangle, degenerateTriangle, target, suppressLog );
+
+			} else {
+
+				// Is this fine to modify target even if there might be no intersection?
+				if ( target ) {
+
+					target.start.copy( segment.start );
+					target.end.copy( segment.start );
+
+				}
+
+				return triangle.containsPoint( segment.start );
 
 			}
 
-			// ignore the end point
-			if ( ( doesIntersect || startIntersects ) && ! isNearZero( tempPoint.distanceTo( end ) ) ) {
+		} else if ( isNearZero( endDist ) ) {
 
-				if ( count <= 1 ) {
+			if ( target ) {
 
-					// assign to the start or end point and save which index was snapped to
-					// the start point if necessary
-					const point = count === 1 ? targetEdge.start : targetEdge.end;
-					point.copy( tempPoint );
-					if ( startIntersects ) {
+				target.start.copy( segment.end );
+				target.end.copy( segment.end );
 
-						startPointIntersection = count;
+			}
 
-					}
+			return triangle.containsPoint( segment.end );
 
-				} else if ( count >= 2 ) {
+		} else {
 
-					// if we're here that means that there must have been one point that had
-					// snapped to the start point so replace it here
-					const point = startPointIntersection === 1 ? targetEdge.start : targetEdge.end;
-					point.copy( tempPoint );
-					count = 2;
-					break;
+			if ( triangle.plane.intersectLine( segment, tmpVec ) != null ) {
+
+				if ( target ) {
+
+					target.start.copy( tmpVec );
+					target.end.copy( tmpVec );
 
 				}
 
-				count ++;
-				if ( count === 2 && startPointIntersection === - 1 ) {
+				return triangle.containsPoint( tmpVec );
 
-					break;
+			} else {
 
-				}
+				return false;
 
 			}
 
 		}
 
-		return count;
+	}
+
+	function intersectTrianglePoint( triangle, degenerateTriangle, target ) {
+
+		const point = degenerateTriangle.a;
+
+		if ( isNearZero( triangle.plane.distanceToPoint( point ) ) && triangle.containsPoint( point ) ) {
+
+			if ( target ) {
+
+				target.start.copy( point );
+				target.end.copy( point );
+
+			}
+
+			return true;
+
+		} else {
+
+			return false;
+
+		}
 
 	}
 
-	// TODO: If the triangles are coplanar and intersecting the target is nonsensical. It should at least
-	// be a line contained by both triangles if not a different special case somehow represented in the return result.
+	function intersectSegmentPoint( segmentTri, pointTri, target ) {
+
+		const segment = segmentTri.degenerateSegment;
+		const point = pointTri.a;
+
+		segment.closestPointToPoint( point, true, tmpVec );
+
+		if ( point.distanceToSquared( tmpVec ) < ZERO_EPSILON_SQR ) {
+
+			if ( target ) {
+
+				target.start.copy( point );
+				target.end.copy( point );
+
+			}
+
+			return true;
+
+		} else {
+
+			return false;
+
+		}
+
+	}
+
+	function handleDegenerateCases( self, other, target, suppressLog ) {
+
+		if ( self.isDegenerateIntoSegment ) {
+
+			if ( other.isDegenerateIntoSegment ) {
+
+				// TODO: replace with Line.distanceSqToLine3 after r179
+				const segment1 = self.degenerateSegment;
+				const segment2 = other.degenerateSegment;
+				const delta1 = dir1;
+				const delta2 = dir2;
+				segment1.delta( delta1 );
+				segment2.delta( delta2 );
+				const startDelta = tmpVec.subVectors( segment2.start, segment1.start );
+
+				const denom = delta1.x * delta2.y - delta1.y * delta2.x;
+				if ( isNearZero( denom ) ) {
+
+					return false;
+
+				}
+
+				const t = ( startDelta.x * delta2.y - startDelta.y * delta2.x ) / denom;
+				const u = - ( delta1.x * startDelta.y - delta1.y * startDelta.x ) / denom;
+
+				if ( t < 0 || t > 1 || u < 0 || u > 1 ) {
+
+					return false;
+
+				}
+
+				const z1 = segment1.start.z + delta1.z * t;
+				const z2 = segment2.start.z + delta2.z * u;
+
+				if ( isNearZero( z1 - z2 ) ) {
+
+					if ( target ) {
+
+						target.start.copy( segment1.start ).addScaledVector( delta1, t );
+						target.end.copy( segment1.start ).addScaledVector( delta1, t );
+
+					}
+
+					return true;
+
+				} else {
+
+					return false;
+
+				}
+
+			} else if ( other.isDegenerateIntoPoint ) {
+
+				return intersectSegmentPoint( self, other, target );
+
+			} else {
+
+				return intersectTriangleSegment( other, self, target, suppressLog );
+
+			}
+
+		} else if ( self.isDegenerateIntoPoint ) {
+
+			if ( other.isDegenerateIntoPoint ) {
+
+				if ( other.a.distanceToSquared( self.a ) < ZERO_EPSILON_SQR ) {
+
+					if ( target ) {
+
+						target.start.copy( self.a );
+						target.end.copy( self.a );
+
+					}
+
+					return true;
+
+				} else {
+
+					return false;
+
+				}
+
+			} else if ( other.isDegenerateIntoSegment ) {
+
+				return intersectSegmentPoint( other, self, target );
+
+			} else {
+
+				return intersectTrianglePoint( other, self, target );
+
+			}
+
+		} else {
+
+			if ( other.isDegenerateIntoPoint ) {
+
+				return intersectTrianglePoint( self, other, target );
+
+			} else if ( other.isDegenerateIntoSegment ) {
+
+				return intersectTriangleSegment( self, other, target, suppressLog );
+
+			} /* else this is a general triangle-traingle case, so return undefined */
+
+		}
+
+	}
+
+	/* TODO: If the triangles are coplanar and intersecting the target is nonsensical. It should at least
+	 * be a line contained by both triangles if not a different special case somehow represented in the return result.
+	 *
+	 * General triangle intersection code is based on Moller's algorithm from here: https://web.stanford.edu/class/cs277/resources/papers/Moller1997b.pdf
+	 * Reference implementation from here: https://github.com/erich666/jgt-code/blob/master/Volume_08/Number_1/Shen2003/tri_tri_test/include/Moller97.c#L570
+	 * All degeneracies are handled before the general algorithm.
+	 * Coplanar check is different from Moller's and based on SAT tests.
+	 */
 	return function intersectsTriangle( other, target = null, suppressLog = false ) {
 
 		if ( this.needsUpdate ) {
@@ -2080,168 +2386,155 @@ ExtendedTriangle.prototype.intersectsTriangle = ( function () {
 
 		}
 
+		const res = handleDegenerateCases( this, other, target, suppressLog );
+		if ( res !== undefined ) {
+
+			return res;
+
+		}
+
 		const plane1 = this.plane;
 		const plane2 = other.plane;
 
-		if ( Math.abs( plane1.normal.dot( plane2.normal ) ) > 1.0 - 1e-10 ) {
+		let a1Dist = plane2.distanceToPoint( this.a );
+		let b1Dist = plane2.distanceToPoint( this.b );
+		let c1Dist = plane2.distanceToPoint( this.c );
 
-			// perform separating axis intersection test only for coplanar triangles
-			const satBounds1 = this.satBounds;
-			const satAxes1 = this.satAxes;
-			arr2[ 0 ] = other.a;
-			arr2[ 1 ] = other.b;
-			arr2[ 2 ] = other.c;
-			for ( let i = 0; i < 4; i ++ ) {
+		if ( isNearZero( a1Dist ) )
+			a1Dist = 0;
 
-				const sb = satBounds1[ i ];
-				const sa = satAxes1[ i ];
-				cachedSatBounds.setFromPoints( sa, arr2 );
-				if ( sb.isSeparated( cachedSatBounds ) ) return false;
+		if ( isNearZero( b1Dist ) )
+			b1Dist = 0;
 
-			}
+		if ( isNearZero( c1Dist ) )
+			c1Dist = 0;
 
-			const satBounds2 = other.satBounds;
-			const satAxes2 = other.satAxes;
-			arr1[ 0 ] = this.a;
-			arr1[ 1 ] = this.b;
-			arr1[ 2 ] = this.c;
-			for ( let i = 0; i < 4; i ++ ) {
+		const a1b1Dist = a1Dist * b1Dist;
+		const a1c1Dist = a1Dist * c1Dist;
+		if ( a1b1Dist > 0 && a1c1Dist > 0 ) {
 
-				const sb = satBounds2[ i ];
-				const sa = satAxes2[ i ];
-				cachedSatBounds.setFromPoints( sa, arr1 );
-				if ( sb.isSeparated( cachedSatBounds ) ) return false;
-
-			}
-
-			// check crossed axes
-			for ( let i = 0; i < 4; i ++ ) {
-
-				const sa1 = satAxes1[ i ];
-				for ( let i2 = 0; i2 < 4; i2 ++ ) {
-
-					const sa2 = satAxes2[ i2 ];
-					cachedAxis.crossVectors( sa1, sa2 );
-					cachedSatBounds.setFromPoints( cachedAxis, arr1 );
-					cachedSatBounds2.setFromPoints( cachedAxis, arr2 );
-					if ( cachedSatBounds.isSeparated( cachedSatBounds2 ) ) return false;
-
-				}
-
-			}
-
-			if ( target ) {
-
-				// TODO find two points that intersect on the edges and make that the result
-				if ( ! suppressLog ) {
-
-					console.warn( 'ExtendedTriangle.intersectsTriangle: Triangles are coplanar which does not support an output edge. Setting edge to 0, 0, 0.' );
-
-				}
-
-				target.start.set( 0, 0, 0 );
-				target.end.set( 0, 0, 0 );
-
-			}
-
-			return true;
-
-		} else {
-
-			// find the edge that intersects the other triangle plane
-			const count1 = triIntersectPlane( this, plane2, edge1 );
-			if ( count1 === 1 && other.containsPoint( edge1.end ) ) {
-
-				if ( target ) {
-
-					target.start.copy( edge1.end );
-					target.end.copy( edge1.end );
-
-				}
-
-				return true;
-
-			} else if ( count1 !== 2 ) {
-
-				return false;
-
-			}
-
-			// find the other triangles edge that intersects this plane
-			const count2 = triIntersectPlane( other, plane1, edge2 );
-			if ( count2 === 1 && this.containsPoint( edge2.end ) ) {
-
-				if ( target ) {
-
-					target.start.copy( edge2.end );
-					target.end.copy( edge2.end );
-
-				}
-
-				return true;
-
-			} else if ( count2 !== 2 ) {
-
-				return false;
-
-			}
-
-			// find swap the second edge so both lines are running the same direction
-			edge1.delta( dir1 );
-			edge2.delta( dir2 );
-
-			if ( dir1.dot( dir2 ) < 0 ) {
-
-				let tmp = edge2.start;
-				edge2.start = edge2.end;
-				edge2.end = tmp;
-
-			}
-
-			// check if the edges are overlapping
-			const s1 = edge1.start.dot( dir1 );
-			const e1 = edge1.end.dot( dir1 );
-			const s2 = edge2.start.dot( dir1 );
-			const e2 = edge2.end.dot( dir1 );
-			const separated1 = e1 < s2;
-			const separated2 = s1 < e2;
-
-			if ( s1 !== e2 && s2 !== e1 && separated1 === separated2 ) {
-
-				return false;
-
-			}
-
-			// assign the target output
-			if ( target ) {
-
-				tempDir.subVectors( edge1.start, edge2.start );
-				if ( tempDir.dot( dir1 ) > 0 ) {
-
-					target.start.copy( edge1.start );
-
-				} else {
-
-					target.start.copy( edge2.start );
-
-				}
-
-				tempDir.subVectors( edge1.end, edge2.end );
-				if ( tempDir.dot( dir1 ) < 0 ) {
-
-					target.end.copy( edge1.end );
-
-				} else {
-
-					target.end.copy( edge2.end );
-
-				}
-
-			}
-
-			return true;
+			return false;
 
 		}
+
+		let a2Dist = plane1.distanceToPoint( other.a );
+		let b2Dist = plane1.distanceToPoint( other.b );
+		let c2Dist = plane1.distanceToPoint( other.c );
+
+		if ( isNearZero( a2Dist ) )
+			a2Dist = 0;
+
+		if ( isNearZero( b2Dist ) )
+			b2Dist = 0;
+
+		if ( isNearZero( c2Dist ) )
+			c2Dist = 0;
+
+		const a2b2Dist = a2Dist * b2Dist;
+		const a2c2Dist = a2Dist * c2Dist;
+		if ( a2b2Dist > 0 && a2c2Dist > 0 ) {
+
+			return false;
+
+		}
+
+		dir1.copy( plane1.normal );
+		dir2.copy( plane2.normal );
+		const intersectionLine = dir1.cross( dir2 );
+
+		let componentIndex = 0;
+		let maxComponent = Math.abs( intersectionLine.x );
+		const comp1 = Math.abs( intersectionLine.y );
+		if ( comp1 > maxComponent ) {
+
+			maxComponent = comp1;
+			componentIndex = 1;
+
+		}
+
+		const comp2 = Math.abs( intersectionLine.z );
+		if ( comp2 > maxComponent ) {
+
+			componentIndex = 2;
+
+		}
+
+		const key = componentKeys[ componentIndex ];
+		const a1Proj = this.a[ key ];
+		const b1Proj = this.b[ key ];
+		const c1Proj = this.c[ key ];
+
+		const a2Proj = other.a[ key ];
+		const b2Proj = other.b[ key ];
+		const c2Proj = other.c[ key ];
+
+		if ( findIntersectionLineBounds( this, a1Proj, b1Proj, c1Proj, a1b1Dist, a1c1Dist, a1Dist, b1Dist, c1Dist, bounds1, edge1 ) ) {
+
+			return coplanarIntersectsTriangle( this, other, target, suppressLog );
+
+		}
+
+		if ( findIntersectionLineBounds( other, a2Proj, b2Proj, c2Proj, a2b2Dist, a2c2Dist, a2Dist, b2Dist, c2Dist, bounds2, edge2 ) ) {
+
+			return coplanarIntersectsTriangle( this, other, target, suppressLog );
+
+		}
+
+		if ( bounds1.y < bounds1.x ) {
+
+			const tmp = bounds1.y;
+			bounds1.y = bounds1.x;
+			bounds1.x = tmp;
+
+			tempPoint.copy( edge1.start );
+			edge1.start.copy( edge1.end );
+			edge1.end.copy( tempPoint );
+
+		}
+
+		if ( bounds2.y < bounds2.x ) {
+
+			const tmp = bounds2.y;
+			bounds2.y = bounds2.x;
+			bounds2.x = tmp;
+
+			tempPoint.copy( edge2.start );
+			edge2.start.copy( edge2.end );
+			edge2.end.copy( tempPoint );
+
+		}
+
+		if ( bounds1.y < bounds2.x || bounds2.y < bounds1.x ) {
+
+			return false;
+
+		}
+
+		if ( target ) {
+
+			if ( bounds2.x > bounds1.x ) {
+
+				target.start.copy( edge2.start );
+
+			} else {
+
+				target.start.copy( edge1.start );
+
+			}
+
+			if ( bounds2.y < bounds1.y ) {
+
+				target.end.copy( edge2.end );
+
+			} else {
+
+				target.end.copy( edge1.end );
+
+			}
+
+		}
+
+		return true;
 
 	};
 
@@ -2250,7 +2543,7 @@ ExtendedTriangle.prototype.intersectsTriangle = ( function () {
 
 ExtendedTriangle.prototype.distanceToPoint = ( function () {
 
-	const target = new Vector3();
+	const target = /* @__PURE__ */ new Vector3();
 	return function distanceToPoint( point ) {
 
 		this.closestPointToPoint( point, target );
@@ -2263,11 +2556,11 @@ ExtendedTriangle.prototype.distanceToPoint = ( function () {
 
 ExtendedTriangle.prototype.distanceToTriangle = ( function () {
 
-	const point = new Vector3();
-	const point2 = new Vector3();
+	const point = /* @__PURE__ */ new Vector3();
+	const point2 = /* @__PURE__ */ new Vector3();
 	const cornerFields = [ 'a', 'b', 'c' ];
-	const line1 = new Line3();
-	const line2 = new Line3();
+	const line1 = /* @__PURE__ */ new Line3();
+	const line2 = /* @__PURE__ */ new Line3();
 
 	return function distanceToTriangle( other, target1 = null, target2 = null ) {
 
@@ -2452,7 +2745,7 @@ OrientedBox.prototype.update = ( function () {
 
 OrientedBox.prototype.intersectsBox = ( function () {
 
-	const aabbBounds = new SeparatingAxisBounds();
+	const aabbBounds = /* @__PURE__ */ new SeparatingAxisBounds();
 	return function intersectsBox( box ) {
 
 		// TODO: should this be doing SAT against the AABB?
@@ -2497,11 +2790,11 @@ OrientedBox.prototype.intersectsBox = ( function () {
 
 OrientedBox.prototype.intersectsTriangle = ( function () {
 
-	const saTri = new ExtendedTriangle();
-	const pointsArr = new Array( 3 );
-	const cachedSatBounds = new SeparatingAxisBounds();
-	const cachedSatBounds2 = new SeparatingAxisBounds();
-	const cachedAxis = new Vector3();
+	const saTri = /* @__PURE__ */ new ExtendedTriangle();
+	const pointsArr = /* @__PURE__ */ new Array( 3 );
+	const cachedSatBounds = /* @__PURE__ */ new SeparatingAxisBounds();
+	const cachedSatBounds2 = /* @__PURE__ */ new SeparatingAxisBounds();
+	const cachedAxis = /* @__PURE__ */ new Vector3();
 	return function intersectsTriangle( triangle ) {
 
 		if ( this.needsUpdate ) {
@@ -2609,11 +2902,11 @@ OrientedBox.prototype.distanceToPoint = ( function () {
 OrientedBox.prototype.distanceToBox = ( function () {
 
 	const xyzFields = [ 'x', 'y', 'z' ];
-	const segments1 = new Array( 12 ).fill().map( () => new Line3() );
-	const segments2 = new Array( 12 ).fill().map( () => new Line3() );
+	const segments1 = /* @__PURE__ */ new Array( 12 ).fill().map( () => new Line3() );
+	const segments2 = /* @__PURE__ */ new Array( 12 ).fill().map( () => new Line3() );
 
-	const point1 = new Vector3();
-	const point2 = new Vector3();
+	const point1 = /* @__PURE__ */ new Vector3();
+	const point2 = /* @__PURE__ */ new Vector3();
 
 	// early out if we find a value below threshold
 	return function distanceToBox( box, threshold = 0, target1 = null, target2 = null ) {
@@ -2814,6 +3107,52 @@ class ExtendedTrianglePoolBase extends PrimitivePool {
 
 const ExtendedTrianglePool = /* @__PURE__ */ new ExtendedTrianglePoolBase();
 
+function IS_LEAF( n16, uint16Array ) {
+
+	return uint16Array[ n16 + 15 ] === IS_LEAFNODE_FLAG;
+
+}
+
+function OFFSET( n32, uint32Array ) {
+
+	return uint32Array[ n32 + 6 ];
+
+}
+
+function COUNT( n16, uint16Array ) {
+
+	return uint16Array[ n16 + 14 ];
+
+}
+
+// Returns the uint32-aligned offset of the left child node for performance
+function LEFT_NODE( n32 ) {
+
+	return n32 + UINT32_PER_NODE;
+
+}
+
+// Returns the uint32-aligned offset of the right child node for performance
+function RIGHT_NODE( n32, uint32Array ) {
+
+	// stored value is relative offset from parent, convert to absolute uint32 index
+	const relativeOffset = uint32Array[ n32 + 6 ];
+	return n32 + relativeOffset * UINT32_PER_NODE;
+
+}
+
+function SPLIT_AXIS( n32, uint32Array ) {
+
+	return uint32Array[ n32 + 7 ];
+
+}
+
+function BOUNDING_DATA_INDEX( n32 ) {
+
+	return n32;
+
+}
+
 class _BufferStack {
 
 	constructor() {
@@ -2858,13 +3197,13 @@ class _BufferStack {
 
 }
 
-const BufferStack = new _BufferStack();
+const BufferStack = /* @__PURE__ */ new _BufferStack();
 
 let _box1$1, _box2$1;
-const boxStack = [];
+const boxStack =  [];
 const boxPool = /* @__PURE__ */ new PrimitivePool( () => new Box3() );
 
-function shapecast( bvh, root, intersectsBounds, intersectsRange, boundsTraverseOrder, byteOffset ) {
+function shapecast( bvh, root, intersectsBounds, intersectsRange, boundsTraverseOrder, nodeOffset ) {
 
 	// setup
 	_box1$1 = boxPool.getPrimitive();
@@ -2872,7 +3211,7 @@ function shapecast( bvh, root, intersectsBounds, intersectsRange, boundsTraverse
 	boxStack.push( _box1$1, _box2$1 );
 	BufferStack.setBuffer( bvh._roots[ root ] );
 
-	const result = shapecastTraverse( 0, bvh.geometry, intersectsBounds, intersectsRange, boundsTraverseOrder, byteOffset );
+	const result = shapecastTraverse( 0, bvh.geometry, intersectsBounds, intersectsRange, boundsTraverseOrder, nodeOffset );
 
 	// cleanup
 	BufferStack.clearBuffer();
@@ -2899,7 +3238,7 @@ function shapecastTraverse(
 	intersectsBoundsFunc,
 	intersectsRangeFunc,
 	nodeScoreFunc = null,
-	nodeIndexByteOffset = 0, // offset for unique node identifier
+	nodeIndexOffset = 0, // offset for unique node identifier
 	depth = 0
 ) {
 
@@ -2912,7 +3251,7 @@ function shapecastTraverse(
 		const offset = OFFSET( nodeIndex32, uint32Array );
 		const count = COUNT( nodeIndex16, uint16Array );
 		arrayToBox( BOUNDING_DATA_INDEX( nodeIndex32 ), float32Array, _box1$1 );
-		return intersectsRangeFunc( offset, count, false, depth, nodeIndexByteOffset + nodeIndex32, _box1$1 );
+		return intersectsRangeFunc( offset, count, false, depth, nodeIndexOffset + nodeIndex32 / UINT32_PER_NODE, _box1$1 );
 
 	} else {
 
@@ -2960,7 +3299,7 @@ function shapecastTraverse(
 		}
 
 		const isC1Leaf = IS_LEAF( c1 * 2, uint16Array );
-		const c1Intersection = intersectsBoundsFunc( box1, isC1Leaf, score1, depth + 1, nodeIndexByteOffset + c1 );
+		const c1Intersection = intersectsBoundsFunc( box1, isC1Leaf, score1, depth + 1, nodeIndexOffset + c1 / UINT32_PER_NODE );
 
 		let c1StopTraversal;
 		if ( c1Intersection === CONTAINED ) {
@@ -2969,7 +3308,7 @@ function shapecastTraverse(
 			const end = getRightEndOffset( c1 );
 			const count = end - offset;
 
-			c1StopTraversal = intersectsRangeFunc( offset, count, true, depth + 1, nodeIndexByteOffset + c1, box1 );
+			c1StopTraversal = intersectsRangeFunc( offset, count, true, depth + 1, nodeIndexOffset + c1 / UINT32_PER_NODE, box1 );
 
 		} else {
 
@@ -2981,7 +3320,7 @@ function shapecastTraverse(
 					intersectsBoundsFunc,
 					intersectsRangeFunc,
 					nodeScoreFunc,
-					nodeIndexByteOffset,
+					nodeIndexOffset,
 					depth + 1
 				);
 
@@ -2995,7 +3334,7 @@ function shapecastTraverse(
 		arrayToBox( BOUNDING_DATA_INDEX( c2 ), float32Array, box2 );
 
 		const isC2Leaf = IS_LEAF( c2 * 2, uint16Array );
-		const c2Intersection = intersectsBoundsFunc( box2, isC2Leaf, score2, depth + 1, nodeIndexByteOffset + c2 );
+		const c2Intersection = intersectsBoundsFunc( box2, isC2Leaf, score2, depth + 1, nodeIndexOffset + c2 / UINT32_PER_NODE );
 
 		let c2StopTraversal;
 		if ( c2Intersection === CONTAINED ) {
@@ -3004,7 +3343,7 @@ function shapecastTraverse(
 			const end = getRightEndOffset( c2 );
 			const count = end - offset;
 
-			c2StopTraversal = intersectsRangeFunc( offset, count, true, depth + 1, nodeIndexByteOffset + c2, box2 );
+			c2StopTraversal = intersectsRangeFunc( offset, count, true, depth + 1, nodeIndexOffset + c2 / UINT32_PER_NODE, box2 );
 
 		} else {
 
@@ -3016,7 +3355,7 @@ function shapecastTraverse(
 					intersectsBoundsFunc,
 					intersectsRangeFunc,
 					nodeScoreFunc,
-					nodeIndexByteOffset,
+					nodeIndexOffset,
 					depth + 1
 				);
 
@@ -3146,6 +3485,7 @@ function closestPointToPoint(
 }
 
 const IS_GT_REVISION_169 = parseInt( REVISION ) >= 169;
+const IS_LT_REVISION_161 = parseInt( REVISION ) <= 161;
 
 // Ripped and modified From THREE.js Mesh raycast
 // https://github.com/mrdoob/three.js/blob/0aa87c999fe61e216c1133fba7a95772b503eddf/src/objects/Mesh.js#L115
@@ -3200,16 +3540,19 @@ function checkBufferGeometryIntersection( ray, position, normal, uv, uv1, a, b, 
 
 	if ( intersection ) {
 
-		const barycoord = new Vector3();
-		Triangle.getBarycoord( _intersectionPoint, _vA, _vB, _vC, barycoord );
-
 		if ( uv ) {
 
 			_uvA.fromBufferAttribute( uv, a );
 			_uvB.fromBufferAttribute( uv, b );
 			_uvC.fromBufferAttribute( uv, c );
 
-			intersection.uv = Triangle.getInterpolation( _intersectionPoint, _vA, _vB, _vC, _uvA, _uvB, _uvC, new Vector2() );
+			intersection.uv = new Vector2();
+			const res = Triangle.getInterpolation( _intersectionPoint, _vA, _vB, _vC, _uvA, _uvB, _uvC, intersection.uv );
+			if ( ! IS_GT_REVISION_169 ) {
+
+				intersection.uv = res;
+
+			}
 
 		}
 
@@ -3219,7 +3562,19 @@ function checkBufferGeometryIntersection( ray, position, normal, uv, uv1, a, b, 
 			_uvB.fromBufferAttribute( uv1, b );
 			_uvC.fromBufferAttribute( uv1, c );
 
-			intersection.uv1 = Triangle.getInterpolation( _intersectionPoint, _vA, _vB, _vC, _uvA, _uvB, _uvC, new Vector2() );
+			intersection.uv1 = new Vector2();
+			const res = Triangle.getInterpolation( _intersectionPoint, _vA, _vB, _vC, _uvA, _uvB, _uvC, intersection.uv1 );
+			if ( ! IS_GT_REVISION_169 ) {
+
+				intersection.uv1 = res;
+
+			}
+
+			if ( IS_LT_REVISION_161 ) {
+
+				intersection.uv2 = intersection.uv1;
+
+			}
 
 		}
 
@@ -3229,10 +3584,17 @@ function checkBufferGeometryIntersection( ray, position, normal, uv, uv1, a, b, 
 			_normalB.fromBufferAttribute( normal, b );
 			_normalC.fromBufferAttribute( normal, c );
 
-			intersection.normal = Triangle.getInterpolation( _intersectionPoint, _vA, _vB, _vC, _normalA, _normalB, _normalC, new Vector3() );
+			intersection.normal = new Vector3();
+			const res = Triangle.getInterpolation( _intersectionPoint, _vA, _vB, _vC, _normalA, _normalB, _normalC, intersection.normal );
 			if ( intersection.normal.dot( ray.direction ) > 0 ) {
 
 				intersection.normal.multiplyScalar( - 1 );
+
+			}
+
+			if ( ! IS_GT_REVISION_169 ) {
+
+				intersection.normal = res;
 
 			}
 
@@ -3253,6 +3615,9 @@ function checkBufferGeometryIntersection( ray, position, normal, uv, uv1, a, b, 
 
 		if ( IS_GT_REVISION_169 ) {
 
+			const barycoord = new Vector3();
+			Triangle.getBarycoord( _intersectionPoint, _vA, _vB, _vC, barycoord );
+
 			intersection.barycoord = barycoord;
 
 		}
@@ -3263,16 +3628,22 @@ function checkBufferGeometryIntersection( ray, position, normal, uv, uv1, a, b, 
 
 }
 
+function getSide( materialOrSide ) {
+
+	return materialOrSide && materialOrSide.isMaterial ? materialOrSide.side : materialOrSide;
+
+}
+
 // https://github.com/mrdoob/three.js/blob/0aa87c999fe61e216c1133fba7a95772b503eddf/src/objects/Mesh.js#L258
-function intersectTri( geo, side, ray, tri, intersections, near, far ) {
+function intersectTri( geometry, materialOrSide, ray, tri, intersections, near, far ) {
 
 	const triOffset = tri * 3;
 	let a = triOffset + 0;
 	let b = triOffset + 1;
 	let c = triOffset + 2;
 
-	const index = geo.index;
-	if ( geo.index ) {
+	const { index, groups } = geometry;
+	if ( geometry.index ) {
 
 		a = index.getX( a );
 		b = index.getX( b );
@@ -3280,14 +3651,61 @@ function intersectTri( geo, side, ray, tri, intersections, near, far ) {
 
 	}
 
-	const { position, normal, uv, uv1 } = geo.attributes;
-	const intersection = checkBufferGeometryIntersection( ray, position, normal, uv, uv1, a, b, c, side, near, far );
+	const { position, normal, uv, uv1 } = geometry.attributes;
+	if ( Array.isArray( materialOrSide ) ) {
 
-	if ( intersection ) {
+		// check which groups a triangle is present in and run the intersections
+		// TODO: we shouldn't need to run and intersection test multiple times
+		const firstIndex = tri * 3;
+		for ( let i = 0, l = groups.length; i < l; i ++ ) {
 
-		intersection.faceIndex = tri;
-		if ( intersections ) intersections.push( intersection );
-		return intersection;
+			const { start, count, materialIndex } = groups[ i ];
+			if ( firstIndex >= start && firstIndex < start + count ) {
+
+				const side = getSide( materialOrSide[ materialIndex ] );
+				const intersection = checkBufferGeometryIntersection( ray, position, normal, uv, uv1, a, b, c, side, near, far );
+				if ( intersection ) {
+
+					intersection.faceIndex = tri;
+					intersection.face.materialIndex = materialIndex;
+
+					if ( intersections ) {
+
+						intersections.push( intersection );
+
+					} else {
+
+						return intersection;
+
+					}
+
+				}
+
+			}
+
+		}
+
+	} else {
+
+		// run the intersection for the single material
+		const side = getSide( materialOrSide );
+		const intersection = checkBufferGeometryIntersection( ray, position, normal, uv, uv1, a, b, c, side, near, far );
+		if ( intersection ) {
+
+			intersection.faceIndex = tri;
+			intersection.face.materialIndex = 0;
+
+			if ( intersections ) {
+
+				intersections.push( intersection );
+
+			} else {
+
+				return intersection;
+
+			}
+
+		}
 
 	}
 
@@ -3421,22 +3839,21 @@ function getTriangleHitPointInfo( point, geometry, triangleIndex, target ) {
 /*************************************************************/
 /* This file is generated from "iterationUtils.template.js". */
 /*************************************************************/
-/* eslint-disable indent */
 
-function intersectTris( bvh, side, ray, offset, count, intersections, near, far ) {
+function intersectTris( bvh, materialOrSide, ray, offset, count, intersections, near, far ) {
 
 	const { geometry, _indirectBuffer } = bvh;
 	for ( let i = offset, end = offset + count; i < end; i ++ ) {
 
 
-		intersectTri( geometry, side, ray, i, intersections, near, far );
+		intersectTri( geometry, materialOrSide, ray, i, intersections, near, far );
 
 
 	}
 
 }
 
-function intersectClosestTri( bvh, side, ray, offset, count, near, far ) {
+function intersectClosestTri( bvh, materialOrSide, ray, offset, count, near, far ) {
 
 	const { geometry, _indirectBuffer } = bvh;
 	let dist = Infinity;
@@ -3445,7 +3862,7 @@ function intersectClosestTri( bvh, side, ray, offset, count, near, far ) {
 
 		let intersection;
 
-		intersection = intersectTri( geometry, side, ray, i, null, near, far );
+		intersection = intersectTri( geometry, materialOrSide, ray, i, null, near, far );
 
 
 		if ( intersection && intersection.distance < dist ) {
@@ -3526,14 +3943,13 @@ function refit( bvh, nodeIndices = null ) {
 
 	}
 
-	function _traverse( node32Index, byteOffset, force = false ) {
+	function _traverse( nodeIndex32, byteOffset, force = false ) {
 
-		const node16Index = node32Index * 2;
-		const isLeaf = uint16Array[ node16Index + 15 ] === IS_LEAFNODE_FLAG;
-		if ( isLeaf ) {
+		const nodeIndex16 = nodeIndex32 * 2;
+		if ( IS_LEAF( nodeIndex16, uint16Array ) ) {
 
-			const offset = uint32Array[ node32Index + 6 ];
-			const count = uint16Array[ node16Index + 14 ];
+			const offset = uint32Array[ nodeIndex32 + 6 ];
+			const count = uint16Array[ nodeIndex16 + 14 ];
 
 			let minx = Infinity;
 			let miny = Infinity;
@@ -3563,22 +3979,22 @@ function refit( bvh, nodeIndices = null ) {
 
 
 			if (
-				float32Array[ node32Index + 0 ] !== minx ||
-				float32Array[ node32Index + 1 ] !== miny ||
-				float32Array[ node32Index + 2 ] !== minz ||
+				float32Array[ nodeIndex32 + 0 ] !== minx ||
+				float32Array[ nodeIndex32 + 1 ] !== miny ||
+				float32Array[ nodeIndex32 + 2 ] !== minz ||
 
-				float32Array[ node32Index + 3 ] !== maxx ||
-				float32Array[ node32Index + 4 ] !== maxy ||
-				float32Array[ node32Index + 5 ] !== maxz
+				float32Array[ nodeIndex32 + 3 ] !== maxx ||
+				float32Array[ nodeIndex32 + 4 ] !== maxy ||
+				float32Array[ nodeIndex32 + 5 ] !== maxz
 			) {
 
-				float32Array[ node32Index + 0 ] = minx;
-				float32Array[ node32Index + 1 ] = miny;
-				float32Array[ node32Index + 2 ] = minz;
+				float32Array[ nodeIndex32 + 0 ] = minx;
+				float32Array[ nodeIndex32 + 1 ] = miny;
+				float32Array[ nodeIndex32 + 2 ] = minz;
 
-				float32Array[ node32Index + 3 ] = maxx;
-				float32Array[ node32Index + 4 ] = maxy;
-				float32Array[ node32Index + 5 ] = maxz;
+				float32Array[ nodeIndex32 + 3 ] = maxx;
+				float32Array[ nodeIndex32 + 4 ] = maxy;
+				float32Array[ nodeIndex32 + 5 ] = maxz;
 
 				return true;
 
@@ -3590,13 +4006,11 @@ function refit( bvh, nodeIndices = null ) {
 
 		} else {
 
-			const left = node32Index + 8;
-			const right = uint32Array[ node32Index + 6 ];
+			const left = LEFT_NODE( nodeIndex32 );
+			const right = RIGHT_NODE( nodeIndex32, uint32Array );
 
 			// the identifying node indices provided by the shapecast function include offsets of all
 			// root buffers to guarantee they're unique between roots so offset left and right indices here.
-			const offsetLeft = left + byteOffset;
-			const offsetRight = right + byteOffset;
 			let forceChildren = force;
 			let includesLeft = false;
 			let includesRight = false;
@@ -3607,8 +4021,10 @@ function refit( bvh, nodeIndices = null ) {
 				// then we assume that all children need to be updated.
 				if ( ! forceChildren ) {
 
-					includesLeft = nodeIndices.has( offsetLeft );
-					includesRight = nodeIndices.has( offsetRight );
+					const leftNodeId = left / UINT32_PER_NODE + byteOffset / BYTES_PER_NODE;
+					const rightNodeId = right / UINT32_PER_NODE + byteOffset / BYTES_PER_NODE;
+					includesLeft = nodeIndices.has( leftNodeId );
+					includesRight = nodeIndices.has( rightNodeId );
 					forceChildren = ! includesLeft && ! includesRight;
 
 				}
@@ -3642,15 +4058,15 @@ function refit( bvh, nodeIndices = null ) {
 
 				for ( let i = 0; i < 3; i ++ ) {
 
-					const lefti = left + i;
-					const righti = right + i;
-					const minLeftValue = float32Array[ lefti ];
-					const maxLeftValue = float32Array[ lefti + 3 ];
-					const minRightValue = float32Array[ righti ];
-					const maxRightValue = float32Array[ righti + 3 ];
+					const left_i = left + i;
+					const right_i = right + i;
+					const minLeftValue = float32Array[ left_i ];
+					const maxLeftValue = float32Array[ left_i + 3 ];
+					const minRightValue = float32Array[ right_i ];
+					const maxRightValue = float32Array[ right_i + 3 ];
 
-					float32Array[ node32Index + i ] = minLeftValue < minRightValue ? minLeftValue : minRightValue;
-					float32Array[ node32Index + i + 3 ] = maxLeftValue > maxRightValue ? maxLeftValue : maxRightValue;
+					float32Array[ nodeIndex32 + i ] = minLeftValue < minRightValue ? minLeftValue : minRightValue;
+					float32Array[ nodeIndex32 + i + 3 ] = maxLeftValue > maxRightValue ? maxLeftValue : maxRightValue;
 
 				}
 
@@ -3746,22 +4162,21 @@ function intersectRay( nodeIndex32, array, ray, near, far ) {
 /*************************************************************/
 /* This file is generated from "iterationUtils.template.js". */
 /*************************************************************/
-/* eslint-disable indent */
 
-function intersectTris_indirect( bvh, side, ray, offset, count, intersections, near, far ) {
+function intersectTris_indirect( bvh, materialOrSide, ray, offset, count, intersections, near, far ) {
 
 	const { geometry, _indirectBuffer } = bvh;
 	for ( let i = offset, end = offset + count; i < end; i ++ ) {
 
 		let vi = _indirectBuffer ? _indirectBuffer[ i ] : i;
-		intersectTri( geometry, side, ray, vi, intersections, near, far );
+		intersectTri( geometry, materialOrSide, ray, vi, intersections, near, far );
 
 
 	}
 
 }
 
-function intersectClosestTri_indirect( bvh, side, ray, offset, count, near, far ) {
+function intersectClosestTri_indirect( bvh, materialOrSide, ray, offset, count, near, far ) {
 
 	const { geometry, _indirectBuffer } = bvh;
 	let dist = Infinity;
@@ -3769,7 +4184,7 @@ function intersectClosestTri_indirect( bvh, side, ray, offset, count, near, far 
 	for ( let i = offset, end = offset + count; i < end; i ++ ) {
 
 		let intersection;
-		intersection = intersectTri( geometry, side, ray, _indirectBuffer ? _indirectBuffer[ i ] : i, null, near, far );
+		intersection = intersectTri( geometry, materialOrSide, ray, _indirectBuffer ? _indirectBuffer[ i ] : i, null, near, far );
 
 
 		if ( intersection && intersection.distance < dist ) {
@@ -3822,15 +4237,15 @@ function iterateOverTriangles_indirect(
 /* This file is generated from "raycast.template.js". */
 /******************************************************/
 
-function raycast( bvh, root, side, ray, intersects, near, far ) {
+function raycast( bvh, root, materialOrSide, ray, intersects, near, far ) {
 
 	BufferStack.setBuffer( bvh._roots[ root ] );
-	_raycast$1( 0, bvh, side, ray, intersects, near, far );
+	_raycast$1( 0, bvh, materialOrSide, ray, intersects, near, far );
 	BufferStack.clearBuffer();
 
 }
 
-function _raycast$1( nodeIndex32, bvh, side, ray, intersects, near, far ) {
+function _raycast$1( nodeIndex32, bvh, materialOrSide, ray, intersects, near, far ) {
 
 	const { float32Array, uint16Array, uint32Array } = BufferStack;
 	const nodeIndex16 = nodeIndex32 * 2;
@@ -3841,7 +4256,7 @@ function _raycast$1( nodeIndex32, bvh, side, ray, intersects, near, far ) {
 		const count = COUNT( nodeIndex16, uint16Array );
 
 
-		intersectTris( bvh, side, ray, offset, count, intersects, near, far );
+		intersectTris( bvh, materialOrSide, ray, offset, count, intersects, near, far );
 
 
 	} else {
@@ -3849,14 +4264,14 @@ function _raycast$1( nodeIndex32, bvh, side, ray, intersects, near, far ) {
 		const leftIndex = LEFT_NODE( nodeIndex32 );
 		if ( intersectRay( leftIndex, float32Array, ray, near, far ) ) {
 
-			_raycast$1( leftIndex, bvh, side, ray, intersects, near, far );
+			_raycast$1( leftIndex, bvh, materialOrSide, ray, intersects, near, far );
 
 		}
 
 		const rightIndex = RIGHT_NODE( nodeIndex32, uint32Array );
 		if ( intersectRay( rightIndex, float32Array, ray, near, far ) ) {
 
-			_raycast$1( rightIndex, bvh, side, ray, intersects, near, far );
+			_raycast$1( rightIndex, bvh, materialOrSide, ray, intersects, near, far );
 
 		}
 
@@ -3870,17 +4285,17 @@ function _raycast$1( nodeIndex32, bvh, side, ray, intersects, near, far ) {
 
 const _xyzFields$1 = [ 'x', 'y', 'z' ];
 
-function raycastFirst( bvh, root, side, ray, near, far ) {
+function raycastFirst( bvh, root, materialOrSide, ray, near, far ) {
 
 	BufferStack.setBuffer( bvh._roots[ root ] );
-	const result = _raycastFirst$1( 0, bvh, side, ray, near, far );
+	const result = _raycastFirst$1( 0, bvh, materialOrSide, ray, near, far );
 	BufferStack.clearBuffer();
 
 	return result;
 
 }
 
-function _raycastFirst$1( nodeIndex32, bvh, side, ray, near, far ) {
+function _raycastFirst$1( nodeIndex32, bvh, materialOrSide, ray, near, far ) {
 
 	const { float32Array, uint16Array, uint32Array } = BufferStack;
 	let nodeIndex16 = nodeIndex32 * 2;
@@ -3893,7 +4308,7 @@ function _raycastFirst$1( nodeIndex32, bvh, side, ray, near, far ) {
 
 
 		// eslint-disable-next-line no-unreachable
-		return intersectClosestTri( bvh, side, ray, offset, count, near, far );
+		return intersectClosestTri( bvh, materialOrSide, ray, offset, count, near, far );
 
 
 	} else {
@@ -3920,7 +4335,7 @@ function _raycastFirst$1( nodeIndex32, bvh, side, ray, near, far ) {
 		}
 
 		const c1Intersection = intersectRay( c1, float32Array, ray, near, far );
-		const c1Result = c1Intersection ? _raycastFirst$1( c1, bvh, side, ray, near, far ) : null;
+		const c1Result = c1Intersection ? _raycastFirst$1( c1, bvh, materialOrSide, ray, near, far ) : null;
 
 		// if we got an intersection in the first node and it's closer than the second node's bounding
 		// box, we don't need to consider the second node because it couldn't possibly be a better result
@@ -3944,7 +4359,7 @@ function _raycastFirst$1( nodeIndex32, bvh, side, ray, near, far ) {
 		// either there was no intersection in the first node, or there could still be a closer
 		// intersection in the second, so check the second node and then take the better of the two
 		const c2Intersection = intersectRay( c2, float32Array, ray, near, far );
-		const c2Result = c2Intersection ? _raycastFirst$1( c2, bvh, side, ray, near, far ) : null;
+		const c2Result = c2Intersection ? _raycastFirst$1( c2, bvh, materialOrSide, ray, near, far ) : null;
 
 		if ( c1Result && c2Result ) {
 
@@ -4008,8 +4423,8 @@ function _intersectsGeometry$1( nodeIndex32, bvh, otherGeometry, geometryToBvh, 
 		const thisIndex = thisGeometry.index;
 		const thisPos = thisGeometry.attributes.position;
 
-		const index = otherGeometry.index;
-		const pos = otherGeometry.attributes.position;
+		const otherIndex = otherGeometry.index;
+		const otherPos = otherGeometry.attributes.position;
 
 		const offset = OFFSET( nodeIndex32, uint32Array );
 		const count = COUNT( nodeIndex16, uint16Array );
@@ -4064,6 +4479,8 @@ function _intersectsGeometry$1( nodeIndex32, bvh, otherGeometry, geometryToBvh, 
 		} else {
 
 			// if we're just dealing with raw geometry
+			const otherTriangleCount = getTriCount( otherGeometry );
+
 
 			for ( let i = offset * 3, l = ( count + offset ) * 3; i < l; i += 3 ) {
 
@@ -4076,9 +4493,9 @@ function _intersectsGeometry$1( nodeIndex32, bvh, otherGeometry, geometryToBvh, 
 				triangle$1.c.applyMatrix4( invertedMat$1 );
 				triangle$1.needsUpdate = true;
 
-				for ( let i2 = 0, l2 = index.count; i2 < l2; i2 += 3 ) {
+				for ( let i2 = 0, l2 = otherTriangleCount * 3; i2 < l2; i2 += 3 ) {
 
-					setTriangle( triangle2$1, i2, index, pos );
+					setTriangle( triangle2$1, i2, otherIndex, otherPos );
 					triangle2$1.needsUpdate = true;
 
 					if ( triangle$1.intersectsTriangle( triangle2$1 ) ) {
@@ -4097,8 +4514,8 @@ function _intersectsGeometry$1( nodeIndex32, bvh, otherGeometry, geometryToBvh, 
 
 	} else {
 
-		const left = nodeIndex32 + 8;
-		const right = uint32Array[ nodeIndex32 + 6 ];
+		const left = LEFT_NODE( nodeIndex32 );
+		const right = RIGHT_NODE( nodeIndex32, uint32Array );
 
 		arrayToBox( BOUNDING_DATA_INDEX( left ), float32Array, boundingBox$2 );
 		const leftIntersection =
@@ -4400,14 +4817,13 @@ function refit_indirect( bvh, nodeIndices = null ) {
 
 	}
 
-	function _traverse( node32Index, byteOffset, force = false ) {
+	function _traverse( nodeIndex32, byteOffset, force = false ) {
 
-		const node16Index = node32Index * 2;
-		const isLeaf = uint16Array[ node16Index + 15 ] === IS_LEAFNODE_FLAG;
-		if ( isLeaf ) {
+		const nodeIndex16 = nodeIndex32 * 2;
+		if ( IS_LEAF( nodeIndex16, uint16Array ) ) {
 
-			const offset = uint32Array[ node32Index + 6 ];
-			const count = uint16Array[ node16Index + 14 ];
+			const offset = uint32Array[ nodeIndex32 + 6 ];
+			const count = uint16Array[ nodeIndex16 + 14 ];
 
 			let minx = Infinity;
 			let miny = Infinity;
@@ -4444,22 +4860,22 @@ function refit_indirect( bvh, nodeIndices = null ) {
 
 
 			if (
-				float32Array[ node32Index + 0 ] !== minx ||
-				float32Array[ node32Index + 1 ] !== miny ||
-				float32Array[ node32Index + 2 ] !== minz ||
+				float32Array[ nodeIndex32 + 0 ] !== minx ||
+				float32Array[ nodeIndex32 + 1 ] !== miny ||
+				float32Array[ nodeIndex32 + 2 ] !== minz ||
 
-				float32Array[ node32Index + 3 ] !== maxx ||
-				float32Array[ node32Index + 4 ] !== maxy ||
-				float32Array[ node32Index + 5 ] !== maxz
+				float32Array[ nodeIndex32 + 3 ] !== maxx ||
+				float32Array[ nodeIndex32 + 4 ] !== maxy ||
+				float32Array[ nodeIndex32 + 5 ] !== maxz
 			) {
 
-				float32Array[ node32Index + 0 ] = minx;
-				float32Array[ node32Index + 1 ] = miny;
-				float32Array[ node32Index + 2 ] = minz;
+				float32Array[ nodeIndex32 + 0 ] = minx;
+				float32Array[ nodeIndex32 + 1 ] = miny;
+				float32Array[ nodeIndex32 + 2 ] = minz;
 
-				float32Array[ node32Index + 3 ] = maxx;
-				float32Array[ node32Index + 4 ] = maxy;
-				float32Array[ node32Index + 5 ] = maxz;
+				float32Array[ nodeIndex32 + 3 ] = maxx;
+				float32Array[ nodeIndex32 + 4 ] = maxy;
+				float32Array[ nodeIndex32 + 5 ] = maxz;
 
 				return true;
 
@@ -4471,13 +4887,11 @@ function refit_indirect( bvh, nodeIndices = null ) {
 
 		} else {
 
-			const left = node32Index + 8;
-			const right = uint32Array[ node32Index + 6 ];
+			const left = LEFT_NODE( nodeIndex32 );
+			const right = RIGHT_NODE( nodeIndex32, uint32Array );
 
 			// the identifying node indices provided by the shapecast function include offsets of all
 			// root buffers to guarantee they're unique between roots so offset left and right indices here.
-			const offsetLeft = left + byteOffset;
-			const offsetRight = right + byteOffset;
 			let forceChildren = force;
 			let includesLeft = false;
 			let includesRight = false;
@@ -4488,8 +4902,10 @@ function refit_indirect( bvh, nodeIndices = null ) {
 				// then we assume that all children need to be updated.
 				if ( ! forceChildren ) {
 
-					includesLeft = nodeIndices.has( offsetLeft );
-					includesRight = nodeIndices.has( offsetRight );
+					const leftNodeId = left / UINT32_PER_NODE + byteOffset / BYTES_PER_NODE;
+					const rightNodeId = right / UINT32_PER_NODE + byteOffset / BYTES_PER_NODE;
+					includesLeft = nodeIndices.has( leftNodeId );
+					includesRight = nodeIndices.has( rightNodeId );
 					forceChildren = ! includesLeft && ! includesRight;
 
 				}
@@ -4523,15 +4939,15 @@ function refit_indirect( bvh, nodeIndices = null ) {
 
 				for ( let i = 0; i < 3; i ++ ) {
 
-					const lefti = left + i;
-					const righti = right + i;
-					const minLeftValue = float32Array[ lefti ];
-					const maxLeftValue = float32Array[ lefti + 3 ];
-					const minRightValue = float32Array[ righti ];
-					const maxRightValue = float32Array[ righti + 3 ];
+					const left_i = left + i;
+					const right_i = right + i;
+					const minLeftValue = float32Array[ left_i ];
+					const maxLeftValue = float32Array[ left_i + 3 ];
+					const minRightValue = float32Array[ right_i ];
+					const maxRightValue = float32Array[ right_i + 3 ];
 
-					float32Array[ node32Index + i ] = minLeftValue < minRightValue ? minLeftValue : minRightValue;
-					float32Array[ node32Index + i + 3 ] = maxLeftValue > maxRightValue ? maxLeftValue : maxRightValue;
+					float32Array[ nodeIndex32 + i ] = minLeftValue < minRightValue ? minLeftValue : minRightValue;
+					float32Array[ nodeIndex32 + i + 3 ] = maxLeftValue > maxRightValue ? maxLeftValue : maxRightValue;
 
 				}
 
@@ -4549,15 +4965,15 @@ function refit_indirect( bvh, nodeIndices = null ) {
 /* This file is generated from "raycast.template.js". */
 /******************************************************/
 
-function raycast_indirect( bvh, root, side, ray, intersects, near, far ) {
+function raycast_indirect( bvh, root, materialOrSide, ray, intersects, near, far ) {
 
 	BufferStack.setBuffer( bvh._roots[ root ] );
-	_raycast( 0, bvh, side, ray, intersects, near, far );
+	_raycast( 0, bvh, materialOrSide, ray, intersects, near, far );
 	BufferStack.clearBuffer();
 
 }
 
-function _raycast( nodeIndex32, bvh, side, ray, intersects, near, far ) {
+function _raycast( nodeIndex32, bvh, materialOrSide, ray, intersects, near, far ) {
 
 	const { float32Array, uint16Array, uint32Array } = BufferStack;
 	const nodeIndex16 = nodeIndex32 * 2;
@@ -4567,7 +4983,7 @@ function _raycast( nodeIndex32, bvh, side, ray, intersects, near, far ) {
 		const offset = OFFSET( nodeIndex32, uint32Array );
 		const count = COUNT( nodeIndex16, uint16Array );
 
-		intersectTris_indirect( bvh, side, ray, offset, count, intersects, near, far );
+		intersectTris_indirect( bvh, materialOrSide, ray, offset, count, intersects, near, far );
 
 
 	} else {
@@ -4575,14 +4991,14 @@ function _raycast( nodeIndex32, bvh, side, ray, intersects, near, far ) {
 		const leftIndex = LEFT_NODE( nodeIndex32 );
 		if ( intersectRay( leftIndex, float32Array, ray, near, far ) ) {
 
-			_raycast( leftIndex, bvh, side, ray, intersects, near, far );
+			_raycast( leftIndex, bvh, materialOrSide, ray, intersects, near, far );
 
 		}
 
 		const rightIndex = RIGHT_NODE( nodeIndex32, uint32Array );
 		if ( intersectRay( rightIndex, float32Array, ray, near, far ) ) {
 
-			_raycast( rightIndex, bvh, side, ray, intersects, near, far );
+			_raycast( rightIndex, bvh, materialOrSide, ray, intersects, near, far );
 
 		}
 
@@ -4596,17 +5012,17 @@ function _raycast( nodeIndex32, bvh, side, ray, intersects, near, far ) {
 
 const _xyzFields = [ 'x', 'y', 'z' ];
 
-function raycastFirst_indirect( bvh, root, side, ray, near, far ) {
+function raycastFirst_indirect( bvh, root, materialOrSide, ray, near, far ) {
 
 	BufferStack.setBuffer( bvh._roots[ root ] );
-	const result = _raycastFirst( 0, bvh, side, ray, near, far );
+	const result = _raycastFirst( 0, bvh, materialOrSide, ray, near, far );
 	BufferStack.clearBuffer();
 
 	return result;
 
 }
 
-function _raycastFirst( nodeIndex32, bvh, side, ray, near, far ) {
+function _raycastFirst( nodeIndex32, bvh, materialOrSide, ray, near, far ) {
 
 	const { float32Array, uint16Array, uint32Array } = BufferStack;
 	let nodeIndex16 = nodeIndex32 * 2;
@@ -4617,7 +5033,7 @@ function _raycastFirst( nodeIndex32, bvh, side, ray, near, far ) {
 		const offset = OFFSET( nodeIndex32, uint32Array );
 		const count = COUNT( nodeIndex16, uint16Array );
 
-		return intersectClosestTri_indirect( bvh, side, ray, offset, count, near, far );
+		return intersectClosestTri_indirect( bvh, materialOrSide, ray, offset, count, near, far );
 
 
 	} else {
@@ -4644,7 +5060,7 @@ function _raycastFirst( nodeIndex32, bvh, side, ray, near, far ) {
 		}
 
 		const c1Intersection = intersectRay( c1, float32Array, ray, near, far );
-		const c1Result = c1Intersection ? _raycastFirst( c1, bvh, side, ray, near, far ) : null;
+		const c1Result = c1Intersection ? _raycastFirst( c1, bvh, materialOrSide, ray, near, far ) : null;
 
 		// if we got an intersection in the first node and it's closer than the second node's bounding
 		// box, we don't need to consider the second node because it couldn't possibly be a better result
@@ -4668,7 +5084,7 @@ function _raycastFirst( nodeIndex32, bvh, side, ray, near, far ) {
 		// either there was no intersection in the first node, or there could still be a closer
 		// intersection in the second, so check the second node and then take the better of the two
 		const c2Intersection = intersectRay( c2, float32Array, ray, near, far );
-		const c2Result = c2Intersection ? _raycastFirst( c2, bvh, side, ray, near, far ) : null;
+		const c2Result = c2Intersection ? _raycastFirst( c2, bvh, materialOrSide, ray, near, far ) : null;
 
 		if ( c1Result && c2Result ) {
 
@@ -4732,8 +5148,8 @@ function _intersectsGeometry( nodeIndex32, bvh, otherGeometry, geometryToBvh, ca
 		const thisIndex = thisGeometry.index;
 		const thisPos = thisGeometry.attributes.position;
 
-		const index = otherGeometry.index;
-		const pos = otherGeometry.attributes.position;
+		const otherIndex = otherGeometry.index;
+		const otherPos = otherGeometry.attributes.position;
 
 		const offset = OFFSET( nodeIndex32, uint32Array );
 		const count = COUNT( nodeIndex16, uint16Array );
@@ -4787,6 +5203,8 @@ function _intersectsGeometry( nodeIndex32, bvh, otherGeometry, geometryToBvh, ca
 		} else {
 
 			// if we're just dealing with raw geometry
+			const otherTriangleCount = getTriCount( otherGeometry );
+
 			for ( let i = offset, l = count + offset; i < l; i ++ ) {
 
 				// this triangle needs to be transformed into the current BVH coordinate frame
@@ -4799,9 +5217,9 @@ function _intersectsGeometry( nodeIndex32, bvh, otherGeometry, geometryToBvh, ca
 				triangle.c.applyMatrix4( invertedMat );
 				triangle.needsUpdate = true;
 
-				for ( let i2 = 0, l2 = index.count; i2 < l2; i2 += 3 ) {
+				for ( let i2 = 0, l2 = otherTriangleCount * 3; i2 < l2; i2 += 3 ) {
 
-					setTriangle( triangle2, i2, index, pos );
+					setTriangle( triangle2, i2, otherIndex, otherPos );
 					triangle2.needsUpdate = true;
 
 					if ( triangle.intersectsTriangle( triangle2 ) ) {
@@ -4819,8 +5237,8 @@ function _intersectsGeometry( nodeIndex32, bvh, otherGeometry, geometryToBvh, ca
 
 	} else {
 
-		const left = nodeIndex32 + 8;
-		const right = uint32Array[ nodeIndex32 + 6 ];
+		const left = LEFT_NODE( nodeIndex32 );
+		const right = RIGHT_NODE( nodeIndex32, uint32Array );
 
 		arrayToBox( BOUNDING_DATA_INDEX( left ), float32Array, boundingBox$1 );
 		const leftIntersection =
@@ -5097,14 +5515,14 @@ function isSharedArrayBufferSupported() {
 
 }
 
-const _bufferStack1 = new BufferStack.constructor();
-const _bufferStack2 = new BufferStack.constructor();
-const _boxPool = new PrimitivePool( () => new Box3() );
-const _leftBox1 = new Box3();
-const _rightBox1 = new Box3();
+const _bufferStack1 = /* @__PURE__ */ new BufferStack.constructor();
+const _bufferStack2 = /* @__PURE__ */ new BufferStack.constructor();
+const _boxPool = /* @__PURE__ */ new PrimitivePool( () => new Box3() );
+const _leftBox1 = /* @__PURE__ */ new Box3();
+const _rightBox1 = /* @__PURE__ */ new Box3();
 
-const _leftBox2 = new Box3();
-const _rightBox2 = new Box3();
+const _leftBox2 = /* @__PURE__ */ new Box3();
+const _rightBox2 = /* @__PURE__ */ new Box3();
 
 let _active = false;
 
@@ -5121,15 +5539,15 @@ function bvhcast( bvh, otherBvh, matrixToLocal, intersectsRanges ) {
 	const roots = bvh._roots;
 	const otherRoots = otherBvh._roots;
 	let result;
-	let offset1 = 0;
-	let offset2 = 0;
+	let nodeOffset1 = 0;
+	let nodeOffset2 = 0;
 	const invMat = new Matrix4().copy( matrixToLocal ).invert();
 
 	// iterate over the first set of roots
 	for ( let i = 0, il = roots.length; i < il; i ++ ) {
 
 		_bufferStack1.setBuffer( roots[ i ] );
-		offset2 = 0;
+		nodeOffset2 = 0;
 
 		// prep the initial root box
 		const localBox = _boxPool.getPrimitive();
@@ -5143,12 +5561,12 @@ function bvhcast( bvh, otherBvh, matrixToLocal, intersectsRanges ) {
 
 			result = _traverse(
 				0, 0, matrixToLocal, invMat, intersectsRanges,
-				offset1, offset2, 0, 0,
+				nodeOffset1, nodeOffset2, 0, 0,
 				localBox,
 			);
 
 			_bufferStack2.clearBuffer();
-			offset2 += otherRoots[ j ].length;
+			nodeOffset2 += otherRoots[ j ].byteLength / BYTES_PER_NODE;
 
 			if ( result ) {
 
@@ -5161,7 +5579,7 @@ function bvhcast( bvh, otherBvh, matrixToLocal, intersectsRanges ) {
 		// release stack info
 		_boxPool.releasePrimitive( localBox );
 		_bufferStack1.clearBuffer();
-		offset1 += roots[ i ].length;
+		nodeOffset1 += roots[ i ].byteLength / BYTES_PER_NODE;
 
 		if ( result ) {
 
@@ -5184,8 +5602,8 @@ function _traverse(
 	intersectsRangesFunc,
 
 	// offsets for ids
-	node1IndexByteOffset = 0,
-	node2IndexByteOffset = 0,
+	node1IndexOffset = 0,
+	node2IndexOffset = 0,
 
 	// tree depth
 	depth1 = 0,
@@ -5227,13 +5645,15 @@ function _traverse(
 	if ( isLeaf2 && isLeaf1 ) {
 
 		// if both bounds are leaf nodes then fire the callback if the boxes intersect
+		// Note the "nodeIndex" values are just intended to be used as unique identifiers in the tree and
+		// not used for accessing data
 		if ( reversed ) {
 
 			result = intersectsRangesFunc(
 				OFFSET( node2Index32, uint32Array2 ), COUNT( node2Index32 * 2, uint16Array2 ),
 				OFFSET( node1Index32, uint32Array1 ), COUNT( node1Index32 * 2, uint16Array1 ),
-				depth2, node2IndexByteOffset + node2Index32,
-				depth1, node1IndexByteOffset + node1Index32,
+				depth2, node2IndexOffset + node2Index32 / UINT32_PER_NODE,
+				depth1, node1IndexOffset + node1Index32 / UINT32_PER_NODE,
 			);
 
 		} else {
@@ -5241,8 +5661,8 @@ function _traverse(
 			result = intersectsRangesFunc(
 				OFFSET( node1Index32, uint32Array1 ), COUNT( node1Index32 * 2, uint16Array1 ),
 				OFFSET( node2Index32, uint32Array2 ), COUNT( node2Index32 * 2, uint16Array2 ),
-				depth1, node1IndexByteOffset + node1Index32,
-				depth2, node2IndexByteOffset + node2Index32,
+				depth1, node1IndexOffset + node1Index32 / UINT32_PER_NODE,
+				depth2, node2IndexOffset + node2Index32 / UINT32_PER_NODE,
 			);
 
 		}
@@ -5270,13 +5690,13 @@ function _traverse(
 		result = (
 			intersectCl1 && _traverse(
 				node2Index32, cl1, matrix1to2, matrix2to1, intersectsRangesFunc,
-				node2IndexByteOffset, node1IndexByteOffset, depth2, depth1 + 1,
+				node2IndexOffset, node1IndexOffset, depth2, depth1 + 1,
 				newBox, ! reversed,
 			)
 		) || (
 			intersectCr1 && _traverse(
 				node2Index32, cr1, matrix1to2, matrix2to1, intersectsRangesFunc,
-				node2IndexByteOffset, node1IndexByteOffset, depth2, depth1 + 1,
+				node2IndexOffset, node1IndexOffset, depth2, depth1 + 1,
 				newBox, ! reversed,
 			)
 		);
@@ -5301,11 +5721,11 @@ function _traverse(
 			// continue to traverse both children if they both intersect
 			result = _traverse(
 				node1Index32, cl2, matrix2to1, matrix1to2, intersectsRangesFunc,
-				node1IndexByteOffset, node2IndexByteOffset, depth1, depth2 + 1,
+				node1IndexOffset, node2IndexOffset, depth1, depth2 + 1,
 				currBox, reversed,
 			) || _traverse(
 				node1Index32, cr2, matrix2to1, matrix1to2, intersectsRangesFunc,
-				node1IndexByteOffset, node2IndexByteOffset, depth1, depth2 + 1,
+				node1IndexOffset, node2IndexOffset, depth1, depth2 + 1,
 				currBox, reversed,
 			);
 
@@ -5316,7 +5736,7 @@ function _traverse(
 				// if the current box is a leaf then just continue
 				result = _traverse(
 					node1Index32, cl2, matrix2to1, matrix1to2, intersectsRangesFunc,
-					node1IndexByteOffset, node2IndexByteOffset, depth1, depth2 + 1,
+					node1IndexOffset, node2IndexOffset, depth1, depth2 + 1,
 					currBox, reversed,
 				);
 
@@ -5338,13 +5758,13 @@ function _traverse(
 				result = (
 					intersectCl1 && _traverse(
 						cl2, cl1, matrix1to2, matrix2to1, intersectsRangesFunc,
-						node2IndexByteOffset, node1IndexByteOffset, depth2, depth1 + 1,
+						node2IndexOffset, node1IndexOffset, depth2, depth1 + 1,
 						newBox, ! reversed,
 					)
 				) || (
 					intersectCr1 && _traverse(
 						cl2, cr1, matrix1to2, matrix2to1, intersectsRangesFunc,
-						node2IndexByteOffset, node1IndexByteOffset, depth2, depth1 + 1,
+						node2IndexOffset, node1IndexOffset, depth2, depth1 + 1,
 						newBox, ! reversed,
 					)
 				);
@@ -5360,7 +5780,7 @@ function _traverse(
 				// if the current box is a leaf then just continue
 				result = _traverse(
 					node1Index32, cr2, matrix2to1, matrix1to2, intersectsRangesFunc,
-					node1IndexByteOffset, node2IndexByteOffset, depth1, depth2 + 1,
+					node1IndexOffset, node2IndexOffset, depth1, depth2 + 1,
 					currBox, reversed,
 				);
 
@@ -5382,13 +5802,13 @@ function _traverse(
 				result = (
 					intersectCl1 && _traverse(
 						cr2, cl1, matrix1to2, matrix2to1, intersectsRangesFunc,
-						node2IndexByteOffset, node1IndexByteOffset, depth2, depth1 + 1,
+						node2IndexOffset, node1IndexOffset, depth2, depth1 + 1,
 						newBox, ! reversed,
 					)
 				) || (
 					intersectCr1 && _traverse(
 						cr2, cr1, matrix1to2, matrix2to1, intersectsRangesFunc,
-						node2IndexByteOffset, node1IndexByteOffset, depth2, depth1 + 1,
+						node2IndexOffset, node1IndexOffset, depth2, depth1 + 1,
 						newBox, ! reversed,
 					)
 				);
@@ -5432,22 +5852,23 @@ class MeshBVH {
 		const rootData = bvh._roots;
 		const indirectBuffer = bvh._indirectBuffer;
 		const indexAttribute = geometry.getIndex();
-		let result;
+		const result = {
+			version: 1,
+			roots: null,
+			index: null,
+			indirectBuffer: null,
+		};
 		if ( options.cloneBuffers ) {
 
-			result = {
-				roots: rootData.map( root => root.slice() ),
-				index: indexAttribute ? indexAttribute.array.slice() : null,
-				indirectBuffer: indirectBuffer ? indirectBuffer.slice() : null,
-			};
+			result.roots = rootData.map( root => root.slice() );
+			result.index = indexAttribute ? indexAttribute.array.slice() : null;
+			result.indirectBuffer = indirectBuffer ? indirectBuffer.slice() : null;
 
 		} else {
 
-			result = {
-				roots: rootData,
-				index: indexAttribute ? indexAttribute.array : null,
-				indirectBuffer: indirectBuffer,
-			};
+			result.roots = rootData;
+			result.index = indexAttribute ? indexAttribute.array : null;
+			result.indirectBuffer = indirectBuffer;
 
 		}
 
@@ -5464,6 +5885,19 @@ class MeshBVH {
 		};
 
 		const { index, roots, indirectBuffer } = data;
+
+		// handle backwards compatibility by fixing up the buffer roots
+		// see issue gkjohnson/three-mesh-bvh#759
+		if ( ! data.version ) {
+
+			console.warn(
+				'MeshBVH.deserialize: Serialization format has been changed and will be fixed up. ' +
+				'It is recommended to regenerate any stored serialized data.'
+			);
+			fixupVersion0( roots );
+
+		}
+
 		const bvh = new MeshBVH( geometry, { ...options, [ SKIP_GENERATION ]: true } );
 		bvh._roots = roots;
 		bvh._indirectBuffer = indirectBuffer || null;
@@ -5486,6 +5920,33 @@ class MeshBVH {
 		}
 
 		return bvh;
+
+		// convert version 0 serialized data (uint32 indices) to version 1 (node indices)
+		function fixupVersion0( roots ) {
+
+			for ( let rootIndex = 0; rootIndex < roots.length; rootIndex ++ ) {
+
+				const root = roots[ rootIndex ];
+				const uint32Array = new Uint32Array( root );
+				const uint16Array = new Uint16Array( root );
+
+				// iterate over nodes and convert right child offsets
+				for ( let node = 0, l = root.byteLength / BYTES_PER_NODE; node < l; node ++ ) {
+
+					const node32Index = UINT32_PER_NODE * node;
+					const node16Index = 2 * node32Index;
+					if ( ! IS_LEAF( node16Index, uint16Array ) ) {
+
+						// convert absolute right child offset to relative offset
+						uint32Array[ node32Index + 6 ] = uint32Array[ node32Index + 6 ] / UINT32_PER_NODE - node;
+
+					}
+
+				}
+
+			}
+
+		}
 
 	}
 
@@ -5546,6 +6007,47 @@ class MeshBVH {
 
 	}
 
+	shiftTriangleOffsets( offset ) {
+
+		const indirectBuffer = this._indirectBuffer;
+		if ( indirectBuffer ) {
+
+			// the offsets are embedded in the indirect buffer
+			for ( let i = 0, l = indirectBuffer.length; i < l; i ++ ) {
+
+				indirectBuffer[ i ] += offset;
+
+			}
+
+		} else {
+
+			// offsets are embedded in the leaf nodes
+			const roots = this._roots;
+			for ( let rootIndex = 0; rootIndex < roots.length; rootIndex ++ ) {
+
+				const root = roots[ rootIndex ];
+				const uint32Array = new Uint32Array( root );
+				const uint16Array = new Uint16Array( root );
+				const totalNodes = root.byteLength / BYTES_PER_NODE;
+				for ( let node = 0; node < totalNodes; node ++ ) {
+
+					const node32Index = UINT32_PER_NODE * node;
+					const node16Index = 2 * node32Index;
+					if ( IS_LEAF( node16Index, uint16Array ) ) {
+
+						// offset value
+						uint32Array[ node32Index + 6 ] += offset;
+
+					}
+
+				}
+
+			}
+
+		}
+
+	}
+
 	refit( nodeIndices = null ) {
 
 		const refitFunc = this.indirect ? refit_indirect : refit;
@@ -5563,7 +6065,7 @@ class MeshBVH {
 		function _traverse( node32Index, depth = 0 ) {
 
 			const node16Index = node32Index * 2;
-			const isLeaf = uint16Array[ node16Index + 15 ] === IS_LEAFNODE_FLAG;
+			const isLeaf = IS_LEAF( node16Index, uint16Array );
 			if ( isLeaf ) {
 
 				const offset = uint32Array[ node32Index + 6 ];
@@ -5572,10 +6074,9 @@ class MeshBVH {
 
 			} else {
 
-				// TODO: use node functions here
-				const left = node32Index + BYTES_PER_NODE / 4;
-				const right = uint32Array[ node32Index + 6 ];
-				const splitAxis = uint32Array[ node32Index + 7 ];
+				const left = LEFT_NODE( node32Index );
+				const right = RIGHT_NODE( node32Index, uint32Array );
+				const splitAxis = SPLIT_AXIS( node32Index, uint32Array );
 				const stopTraversal = callback( depth, isLeaf, new Float32Array( buffer, node32Index * 4, 6 ), splitAxis );
 
 				if ( ! stopTraversal ) {
@@ -5595,31 +6096,11 @@ class MeshBVH {
 	raycast( ray, materialOrSide = FrontSide, near = 0, far = Infinity ) {
 
 		const roots = this._roots;
-		const geometry = this.geometry;
 		const intersects = [];
-		const isMaterial = materialOrSide.isMaterial;
-		const isArrayMaterial = Array.isArray( materialOrSide );
-
-		const groups = geometry.groups;
-		const side = isMaterial ? materialOrSide.side : materialOrSide;
 		const raycastFunc = this.indirect ? raycast_indirect : raycast;
 		for ( let i = 0, l = roots.length; i < l; i ++ ) {
 
-			const materialSide = isArrayMaterial ? materialOrSide[ groups[ i ].materialIndex ].side : side;
-			const startCount = intersects.length;
-
-			raycastFunc( this, i, materialSide, ray, intersects, near, far );
-
-			if ( isArrayMaterial ) {
-
-				const materialIndex = groups[ i ].materialIndex;
-				for ( let j = startCount, jl = intersects.length; j < jl; j ++ ) {
-
-					intersects[ j ].face.materialIndex = materialIndex;
-
-				}
-
-			}
+			raycastFunc( this, i, materialOrSide, ray, intersects, near, far );
 
 		}
 
@@ -5630,27 +6111,15 @@ class MeshBVH {
 	raycastFirst( ray, materialOrSide = FrontSide, near = 0, far = Infinity ) {
 
 		const roots = this._roots;
-		const geometry = this.geometry;
-		const isMaterial = materialOrSide.isMaterial;
-		const isArrayMaterial = Array.isArray( materialOrSide );
-
 		let closestResult = null;
 
-		const groups = geometry.groups;
-		const side = isMaterial ? materialOrSide.side : materialOrSide;
 		const raycastFirstFunc = this.indirect ? raycastFirst_indirect : raycastFirst;
 		for ( let i = 0, l = roots.length; i < l; i ++ ) {
 
-			const materialSide = isArrayMaterial ? materialOrSide[ groups[ i ].materialIndex ].side : side;
-			const result = raycastFirstFunc( this, i, materialSide, ray, near, far );
+			const result = raycastFirstFunc( this, i, materialOrSide, ray, near, far );
 			if ( result != null && ( closestResult == null || result.distance < closestResult.distance ) ) {
 
 				closestResult = result;
-				if ( isArrayMaterial ) {
-
-					result.face.materialIndex = groups[ i ].materialIndex;
-
-				}
 
 			}
 
@@ -5732,12 +6201,12 @@ class MeshBVH {
 
 		// run shapecast
 		let result = false;
-		let byteOffset = 0;
+		let nodeOffset = 0;
 		const roots = this._roots;
 		for ( let i = 0, l = roots.length; i < l; i ++ ) {
 
 			const root = roots[ i ];
-			result = shapecast( this, i, intersectsBounds, intersectsRange, boundsTraverseOrder, byteOffset );
+			result = shapecast( this, i, intersectsBounds, intersectsRange, boundsTraverseOrder, nodeOffset );
 
 			if ( result ) {
 
@@ -5745,7 +6214,7 @@ class MeshBVH {
 
 			}
 
-			byteOffset += root.byteLength;
+			nodeOffset += root.byteLength / BYTES_PER_NODE;
 
 		}
 
@@ -5798,7 +6267,7 @@ class MeshBVH {
 		// generate triangle callback if needed
 		if ( intersectsTriangles ) {
 
-			const iterateOverDoubleTriangles = ( offset1, count1, offset2, count2, depth1, index1, depth2, index2 ) => {
+			const iterateOverDoubleTriangles = ( offset1, count1, offset2, count2, depth1, nodeIndex1, depth2, nodeIndex2 ) => {
 
 				for ( let i2 = offset2, l2 = offset2 + count2; i2 < l2; i2 ++ ) {
 
@@ -5815,7 +6284,7 @@ class MeshBVH {
 
 						triangle1.needsUpdate = true;
 
-						if ( intersectsTriangles( triangle1, triangle2, i1, i2, depth1, index1, depth2, index2 ) ) {
+						if ( intersectsTriangles( triangle1, triangle2, i1, i2, depth1, nodeIndex1, depth2, nodeIndex2 ) ) {
 
 							return true;
 
@@ -5832,11 +6301,11 @@ class MeshBVH {
 			if ( intersectsRanges ) {
 
 				const originalIntersectsRanges = intersectsRanges;
-				intersectsRanges = function ( offset1, count1, offset2, count2, depth1, index1, depth2, index2 ) {
+				intersectsRanges = function ( offset1, count1, offset2, count2, depth1, nodeIndex1, depth2, nodeIndex2 ) {
 
-					if ( ! originalIntersectsRanges( offset1, count1, offset2, count2, depth1, index1, depth2, index2 ) ) {
+					if ( ! originalIntersectsRanges( offset1, count1, offset2, count2, depth1, nodeIndex1, depth2, nodeIndex2 ) ) {
 
-						return iterateOverDoubleTriangles( offset1, count1, offset2, count2, depth1, index1, depth2, index2 );
+						return iterateOverDoubleTriangles( offset1, count1, offset2, count2, depth1, nodeIndex1, depth2, nodeIndex2 );
 
 					}
 
@@ -6212,7 +6681,7 @@ class MeshBVHHelper extends Group {
 
 		const mesh = this.mesh;
 		let bvh = this.bvh || mesh.geometry.boundsTree || null;
-		if ( mesh.isBatchedMesh && mesh.boundsTrees && ! bvh ) {
+		if ( mesh && mesh.isBatchedMesh && mesh.boundsTrees && ! bvh ) {
 
 			// get the bvh from a batchedMesh if not provided
 			// TODO: we should have an official way to get the geometry index cleanly
@@ -6808,15 +7277,8 @@ function computeBatchedBoundsTree( index = - 1, options = {} ) {
 
 	}
 
-	if ( options.indirect ) {
-
-		console.warn( '"Indirect" is set to false because it is not supported for BatchedMesh.' );
-
-	}
-
 	options = {
 		...options,
-		indirect: false,
 		range: null
 	};
 
@@ -6869,7 +7331,7 @@ function disposeBatchedBoundsTree( index = - 1 ) {
 
 	} else {
 
-		if ( index < this.boundsTree.length ) {
+		if ( index < this.boundsTrees.length ) {
 
 			this.boundsTrees[ index ] = null;
 
@@ -7294,17 +7756,17 @@ function bvhToTextures( bvh, boundsTexture, contentsTexture ) {
 			const count = COUNT( nodeIndex16, uint16Array );
 			const offset = OFFSET( nodeIndex32, uint32Array );
 
-			const mergedLeafCount = 0xffff0000 | count;
+			const mergedLeafCount = LEAFNODE_MASK_32 | count;
 			contentsArray[ i * 2 + 0 ] = mergedLeafCount;
 			contentsArray[ i * 2 + 1 ] = offset;
 
 		} else {
 
-			const rightIndex = 4 * RIGHT_NODE( nodeIndex32, uint32Array ) / BYTES_PER_NODE;
+			const rightNodeIndex = uint32Array[ nodeIndex32 + 6 ];
 			const splitAxis = SPLIT_AXIS( nodeIndex32, uint32Array );
 
 			contentsArray[ i * 2 + 0 ] = splitAxis;
-			contentsArray[ i * 2 + 1 ] = rightIndex;
+			contentsArray[ i * 2 + 1 ] = rightNodeIndex;
 
 		}
 
@@ -8238,7 +8700,7 @@ vec3 closestPointToTriangle( vec3 p, vec3 v0, vec3 v1, vec3 v2, out vec3 barycoo
 
 		v = clamp( dot( p1, v21 ) / dot2( v21 ), 0.0, 1.0 );
 		w = 0.0;
-		u = 1.0-v;
+		u = 1.0 - v;
 
 	}
 
@@ -8310,11 +8772,11 @@ float distanceSqToBVHNodeBoundsPoint( vec3 point, sampler2D bvhBounds, uint curr
 #define\
 	bvhClosestPointToPoint(\
 		bvh,\
-		point, faceIndices, faceNormal, barycoord, side, outPoint\
+		point, maxDistance, faceIndices, faceNormal, barycoord, side, outPoint\
 	)\
 	_bvhClosestPointToPoint(\
 		bvh.position, bvh.index, bvh.bvhBounds, bvh.bvhContents,\
-		point, faceIndices, faceNormal, barycoord, side, outPoint\
+		point, maxDistance, faceIndices, faceNormal, barycoord, side, outPoint\
 	)
 
 float _bvhClosestPointToPoint(
@@ -8322,7 +8784,7 @@ float _bvhClosestPointToPoint(
 	sampler2D bvh_position, usampler2D bvh_index, sampler2D bvh_bvhBounds, usampler2D bvh_bvhContents,
 
 	// point to check
-	vec3 point,
+	vec3 point, float maxDistance,
 
 	// output variables
 	inout uvec4 faceIndices, inout vec3 faceNormal, inout vec3 barycoord,
@@ -8335,7 +8797,7 @@ float _bvhClosestPointToPoint(
 	uint stack[ BVH_STACK_DEPTH ];
 	stack[ 0 ] = 0u;
 
-	float closestDistanceSquared = pow( 100000.0, 2.0 );
+	float closestDistanceSquared = maxDistance * maxDistance;
 	bool found = false;
 	while ( ptr > - 1 && ptr < BVH_STACK_DEPTH ) {
 
@@ -8367,7 +8829,7 @@ float _bvhClosestPointToPoint(
 
 			uint leftIndex = currNodeIndex + 1u;
 			uint splitAxis = boundsInfo.x & 0x0000ffffu;
-			uint rightIndex = boundsInfo.y;
+			uint rightIndex = currNodeIndex + boundsInfo.y;
 			bool leftToRight = distanceSqToBVHNodeBoundsPoint( point, bvh_bvhBounds, leftIndex ) < distanceSqToBVHNodeBoundsPoint( point, bvh_bvhBounds, rightIndex );//rayDirection[ splitAxis ] >= 0.0;
 			uint c1 = leftToRight ? leftIndex : rightIndex;
 			uint c2 = leftToRight ? rightIndex : leftIndex;
@@ -8579,7 +9041,7 @@ bool _bvhIntersectFirstHit(
 
 			uint leftIndex = currNodeIndex + 1u;
 			uint splitAxis = boundsInfo.x & 0x0000ffffu;
-			uint rightIndex = boundsInfo.y;
+			uint rightIndex = currNodeIndex + boundsInfo.y;
 
 			bool leftToRight = rayDirection[ splitAxis ] >= 0.0;
 			uint c1 = leftToRight ? leftIndex : rightIndex;
@@ -10413,9 +10875,12 @@ const XRInputDeviceTypes = {
 };
 
 /**
- * @param {BufferGeometry} geometry
- * @param {number} drawMode
- * @return {BufferGeometry}
+ * Returns a new indexed geometry based on `TrianglesDrawMode` draw mode.
+ * This mode corresponds to the `gl.TRIANGLES` primitive in WebGL.
+ *
+ * @param {BufferGeometry} geometry - The geometry to convert.
+ * @param {number} drawMode - The current draw mode.
+ * @return {BufferGeometry} The new geometry using `TrianglesDrawMode`.
  */
 function toTrianglesDrawMode( geometry, drawMode ) {
 
@@ -10522,8 +10987,65 @@ function toTrianglesDrawMode( geometry, drawMode ) {
 
 }
 
+/**
+ * A loader for the glTF 2.0 format.
+ *
+ * [glTF](https://www.khronos.org/gltf/} (GL Transmission Format) is an [open format specification]{@link https://github.com/KhronosGroup/glTF/tree/main/specification/2.0)
+ * for efficient delivery and loading of 3D content. Assets may be provided either in JSON (.gltf) or binary (.glb)
+ * format. External files store textures (.jpg, .png) and additional binary data (.bin). A glTF asset may deliver
+ * one or more scenes, including meshes, materials, textures, skins, skeletons, morph targets, animations, lights,
+ * and/or cameras.
+ *
+ * `GLTFLoader` uses {@link ImageBitmapLoader} whenever possible. Be advised that image bitmaps are not
+ * automatically GC-collected when they are no longer referenced, and they require special handling during
+ * the disposal process.
+ *
+ * `GLTFLoader` supports the following glTF 2.0 extensions:
+ * - KHR_draco_mesh_compression
+ * - KHR_materials_clearcoat
+ * - KHR_materials_dispersion
+ * - KHR_materials_ior
+ * - KHR_materials_specular
+ * - KHR_materials_transmission
+ * - KHR_materials_iridescence
+ * - KHR_materials_unlit
+ * - KHR_materials_volume
+ * - KHR_mesh_quantization
+ * - KHR_lights_punctual
+ * - KHR_texture_basisu
+ * - KHR_texture_transform
+ * - EXT_texture_webp
+ * - EXT_meshopt_compression
+ * - EXT_mesh_gpu_instancing
+ *
+ * The following glTF 2.0 extension is supported by an external user plugin:
+ * - [KHR_materials_variants](https://github.com/takahirox/three-gltf-extensions)
+ * - [MSFT_texture_dds](https://github.com/takahirox/three-gltf-extensions)
+ * - [KHR_animation_pointer](https://github.com/needle-tools/three-animation-pointer)
+ * - [NEEDLE_progressive](https://github.com/needle-tools/gltf-progressive)
+ *
+ * ```js
+ * const loader = new GLTFLoader();
+ *
+ * // Optional: Provide a DRACOLoader instance to decode compressed mesh data
+ * const dracoLoader = new DRACOLoader();
+ * dracoLoader.setDecoderPath( '/examples/jsm/libs/draco/' );
+ * loader.setDRACOLoader( dracoLoader );
+ *
+ * const gltf = await loader.loadAsync( 'models/gltf/duck/duck.gltf' );
+ * scene.add( gltf.scene );
+ * ```
+ *
+ * @augments Loader
+ * @three_import import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+ */
 class GLTFLoader extends Loader {
 
+	/**
+	 * Constructs a new glTF loader.
+	 *
+	 * @param {LoadingManager} [manager] - The loading manager.
+	 */
 	constructor( manager ) {
 
 		super( manager );
@@ -10638,6 +11160,15 @@ class GLTFLoader extends Loader {
 
 	}
 
+	/**
+	 * Starts loading from the given URL and passes the loaded glTF asset
+	 * to the `onLoad()` callback.
+	 *
+	 * @param {string} url - The path/URL of the file to be loaded. This can also be a data URI.
+	 * @param {function(GLTFLoader~LoadObject)} onLoad - Executed when the loading process has been finished.
+	 * @param {onProgressCallback} onProgress - Executed while the loading is in progress.
+	 * @param {onErrorCallback} onError - Executed when errors occur.
+	 */
 	load( url, onLoad, onProgress, onError ) {
 
 		const scope = this;
@@ -10715,6 +11246,13 @@ class GLTFLoader extends Loader {
 
 	}
 
+	/**
+	 * Sets the given Draco loader to this loader. Required for decoding assets
+	 * compressed with the `KHR_draco_mesh_compression` extension.
+	 *
+	 * @param {DRACOLoader} dracoLoader - The Draco loader to set.
+	 * @return {GLTFLoader} A reference to this loader.
+	 */
 	setDRACOLoader( dracoLoader ) {
 
 		this.dracoLoader = dracoLoader;
@@ -10722,6 +11260,13 @@ class GLTFLoader extends Loader {
 
 	}
 
+	/**
+	 * Sets the given KTX2 loader to this loader. Required for loading KTX2
+	 * compressed textures.
+	 *
+	 * @param {KTX2Loader} ktx2Loader - The KTX2 loader to set.
+	 * @return {GLTFLoader} A reference to this loader.
+	 */
 	setKTX2Loader( ktx2Loader ) {
 
 		this.ktx2Loader = ktx2Loader;
@@ -10729,6 +11274,13 @@ class GLTFLoader extends Loader {
 
 	}
 
+	/**
+	 * Sets the given meshopt decoder. Required for decoding assets
+	 * compressed with the `EXT_meshopt_compression` extension.
+	 *
+	 * @param {Object} meshoptDecoder - The meshopt decoder to set.
+	 * @return {GLTFLoader} A reference to this loader.
+	 */
 	setMeshoptDecoder( meshoptDecoder ) {
 
 		this.meshoptDecoder = meshoptDecoder;
@@ -10736,6 +11288,14 @@ class GLTFLoader extends Loader {
 
 	}
 
+	/**
+	 * Registers a plugin callback. This API is internally used to implement the various
+	 * glTF extensions but can also used by third-party code to add additional logic
+	 * to the loader.
+	 *
+	 * @param {function(parser:GLTFParser)} callback - The callback function to register.
+	 * @return {GLTFLoader} A reference to this loader.
+	 */
 	register( callback ) {
 
 		if ( this.pluginCallbacks.indexOf( callback ) === - 1 ) {
@@ -10748,6 +11308,12 @@ class GLTFLoader extends Loader {
 
 	}
 
+	/**
+	 * Unregisters a plugin callback.
+	 *
+	 * @param {Function} callback - The callback function to unregister.
+	 * @return {GLTFLoader} A reference to this loader.
+	 */
 	unregister( callback ) {
 
 		if ( this.pluginCallbacks.indexOf( callback ) !== - 1 ) {
@@ -10760,6 +11326,14 @@ class GLTFLoader extends Loader {
 
 	}
 
+	/**
+	 * Parses the given FBX data and returns the resulting group.
+	 *
+	 * @param {string|ArrayBuffer} data - The raw glTF data.
+	 * @param {string} path - The URL base path.
+	 * @param {function(GLTFLoader~LoadObject)} onLoad - Executed when the loading process has been finished.
+	 * @param {onErrorCallback} onError - Executed when errors occur.
+	 */
 	parse( data, path, onLoad, onError ) {
 
 		let json;
@@ -10883,6 +11457,14 @@ class GLTFLoader extends Loader {
 
 	}
 
+	/**
+	 * Async version of {@link GLTFLoader#parse}.
+	 *
+	 * @async
+	 * @param {string|ArrayBuffer} data - The raw glTF data.
+	 * @param {string} path - The URL base path.
+	 * @return {Promise<GLTFLoader~LoadObject>} A Promise that resolves with the loaded glTF when the parsing has been finished.
+	 */
 	parseAsync( data, path ) {
 
 		const scope = this;
@@ -10966,6 +11548,8 @@ const EXTENSIONS = {
  * Punctual Lights Extension
  *
  * Specification: https://github.com/KhronosGroup/glTF/tree/master/extensions/2.0/Khronos/KHR_lights_punctual
+ *
+ * @private
  */
 class GLTFLightsExtension {
 
@@ -11055,8 +11639,6 @@ class GLTFLightsExtension {
 		// here, because node-level parsing will only override position if explicitly specified.
 		lightNode.position.set( 0, 0, 0 );
 
-		lightNode.decay = 2;
-
 		assignExtrasToUserData( lightNode, lightDef );
 
 		if ( lightDef.intensity !== undefined ) lightNode.intensity = lightDef.intensity;
@@ -11104,6 +11686,8 @@ class GLTFLightsExtension {
  * Unlit Materials Extension
  *
  * Specification: https://github.com/KhronosGroup/glTF/tree/master/extensions/2.0/Khronos/KHR_materials_unlit
+ *
+ * @private
  */
 class GLTFMaterialsUnlitExtension {
 
@@ -11157,6 +11741,8 @@ class GLTFMaterialsUnlitExtension {
  * Materials Emissive Strength Extension
  *
  * Specification: https://github.com/KhronosGroup/glTF/blob/5768b3ce0ef32bc39cdf1bef10b948586635ead3/extensions/2.0/Khronos/KHR_materials_emissive_strength/README.md
+ *
+ * @private
  */
 class GLTFMaterialsEmissiveStrengthExtension {
 
@@ -11196,6 +11782,8 @@ class GLTFMaterialsEmissiveStrengthExtension {
  * Clearcoat Materials Extension
  *
  * Specification: https://github.com/KhronosGroup/glTF/tree/master/extensions/2.0/Khronos/KHR_materials_clearcoat
+ *
+ * @private
  */
 class GLTFMaterialsClearcoatExtension {
 
@@ -11280,6 +11868,8 @@ class GLTFMaterialsClearcoatExtension {
  * Materials dispersion Extension
  *
  * Specification: https://github.com/KhronosGroup/glTF/tree/main/extensions/2.0/Khronos/KHR_materials_dispersion
+ *
+ * @private
  */
 class GLTFMaterialsDispersionExtension {
 
@@ -11326,6 +11916,8 @@ class GLTFMaterialsDispersionExtension {
  * Iridescence Materials Extension
  *
  * Specification: https://github.com/KhronosGroup/glTF/tree/master/extensions/2.0/Khronos/KHR_materials_iridescence
+ *
+ * @private
  */
 class GLTFMaterialsIridescenceExtension {
 
@@ -11414,6 +12006,8 @@ class GLTFMaterialsIridescenceExtension {
  * Sheen Materials Extension
  *
  * Specification: https://github.com/KhronosGroup/glTF/tree/main/extensions/2.0/Khronos/KHR_materials_sheen
+ *
+ * @private
  */
 class GLTFMaterialsSheenExtension {
 
@@ -11490,6 +12084,8 @@ class GLTFMaterialsSheenExtension {
  *
  * Specification: https://github.com/KhronosGroup/glTF/tree/master/extensions/2.0/Khronos/KHR_materials_transmission
  * Draft: https://github.com/KhronosGroup/glTF/pull/1698
+ *
+ * @private
  */
 class GLTFMaterialsTransmissionExtension {
 
@@ -11548,6 +12144,8 @@ class GLTFMaterialsTransmissionExtension {
  * Materials Volume Extension
  *
  * Specification: https://github.com/KhronosGroup/glTF/tree/master/extensions/2.0/Khronos/KHR_materials_volume
+ *
+ * @private
  */
 class GLTFMaterialsVolumeExtension {
 
@@ -11607,6 +12205,8 @@ class GLTFMaterialsVolumeExtension {
  * Materials ior Extension
  *
  * Specification: https://github.com/KhronosGroup/glTF/tree/master/extensions/2.0/Khronos/KHR_materials_ior
+ *
+ * @private
  */
 class GLTFMaterialsIorExtension {
 
@@ -11653,6 +12253,8 @@ class GLTFMaterialsIorExtension {
  * Materials specular Extension
  *
  * Specification: https://github.com/KhronosGroup/glTF/tree/master/extensions/2.0/Khronos/KHR_materials_specular
+ *
+ * @private
  */
 class GLTFMaterialsSpecularExtension {
 
@@ -11717,6 +12319,8 @@ class GLTFMaterialsSpecularExtension {
  * Materials bump Extension
  *
  * Specification: https://github.com/KhronosGroup/glTF/tree/master/extensions/2.0/Khronos/EXT_materials_bump
+ *
+ * @private
  */
 class GLTFMaterialsBumpExtension {
 
@@ -11771,6 +12375,8 @@ class GLTFMaterialsBumpExtension {
  * Materials anisotropy Extension
  *
  * Specification: https://github.com/KhronosGroup/glTF/tree/master/extensions/2.0/Khronos/KHR_materials_anisotropy
+ *
+ * @private
  */
 class GLTFMaterialsAnisotropyExtension {
 
@@ -11835,6 +12441,8 @@ class GLTFMaterialsAnisotropyExtension {
  * BasisU Texture Extension
  *
  * Specification: https://github.com/KhronosGroup/glTF/tree/master/extensions/2.0/Khronos/KHR_texture_basisu
+ *
+ * @private
  */
 class GLTFTextureBasisUExtension {
 
@@ -11886,6 +12494,8 @@ class GLTFTextureBasisUExtension {
  * WebP Texture Extension
  *
  * Specification: https://github.com/KhronosGroup/glTF/tree/master/extensions/2.0/Vendor/EXT_texture_webp
+ *
+ * @private
  */
 class GLTFTextureWebPExtension {
 
@@ -11893,7 +12503,6 @@ class GLTFTextureWebPExtension {
 
 		this.parser = parser;
 		this.name = EXTENSIONS.EXT_TEXTURE_WEBP;
-		this.isSupported = null;
 
 	}
 
@@ -11922,46 +12531,7 @@ class GLTFTextureWebPExtension {
 
 		}
 
-		return this.detectSupport().then( function ( isSupported ) {
-
-			if ( isSupported ) return parser.loadTextureImage( textureIndex, extension.source, loader );
-
-			if ( json.extensionsRequired && json.extensionsRequired.indexOf( name ) >= 0 ) {
-
-				throw new Error( 'THREE.GLTFLoader: WebP required by asset but unsupported.' );
-
-			}
-
-			// Fall back to PNG or JPEG.
-			return parser.loadTexture( textureIndex );
-
-		} );
-
-	}
-
-	detectSupport() {
-
-		if ( ! this.isSupported ) {
-
-			this.isSupported = new Promise( function ( resolve ) {
-
-				const image = new Image();
-
-				// Lossy test image. Support for lossy images doesn't guarantee support for all
-				// WebP images, unfortunately.
-				image.src = 'data:image/webp;base64,UklGRiIAAABXRUJQVlA4IBYAAAAwAQCdASoBAAEADsD+JaQAA3AAAAAA';
-
-				image.onload = image.onerror = function () {
-
-					resolve( image.height === 1 );
-
-				};
-
-			} );
-
-		}
-
-		return this.isSupported;
+		return parser.loadTextureImage( textureIndex, extension.source, loader );
 
 	}
 
@@ -11971,6 +12541,8 @@ class GLTFTextureWebPExtension {
  * AVIF Texture Extension
  *
  * Specification: https://github.com/KhronosGroup/glTF/tree/master/extensions/2.0/Vendor/EXT_texture_avif
+ *
+ * @private
  */
 class GLTFTextureAVIFExtension {
 
@@ -11978,7 +12550,6 @@ class GLTFTextureAVIFExtension {
 
 		this.parser = parser;
 		this.name = EXTENSIONS.EXT_TEXTURE_AVIF;
-		this.isSupported = null;
 
 	}
 
@@ -12007,44 +12578,7 @@ class GLTFTextureAVIFExtension {
 
 		}
 
-		return this.detectSupport().then( function ( isSupported ) {
-
-			if ( isSupported ) return parser.loadTextureImage( textureIndex, extension.source, loader );
-
-			if ( json.extensionsRequired && json.extensionsRequired.indexOf( name ) >= 0 ) {
-
-				throw new Error( 'THREE.GLTFLoader: AVIF required by asset but unsupported.' );
-
-			}
-
-			// Fall back to PNG or JPEG.
-			return parser.loadTexture( textureIndex );
-
-		} );
-
-	}
-
-	detectSupport() {
-
-		if ( ! this.isSupported ) {
-
-			this.isSupported = new Promise( function ( resolve ) {
-
-				const image = new Image();
-
-				// Lossy test image.
-				image.src = 'data:image/avif;base64,AAAAIGZ0eXBhdmlmAAAAAGF2aWZtaWYxbWlhZk1BMUIAAADybWV0YQAAAAAAAAAoaGRscgAAAAAAAAAAcGljdAAAAAAAAAAAAAAAAGxpYmF2aWYAAAAADnBpdG0AAAAAAAEAAAAeaWxvYwAAAABEAAABAAEAAAABAAABGgAAABcAAAAoaWluZgAAAAAAAQAAABppbmZlAgAAAAABAABhdjAxQ29sb3IAAAAAamlwcnAAAABLaXBjbwAAABRpc3BlAAAAAAAAAAEAAAABAAAAEHBpeGkAAAAAAwgICAAAAAxhdjFDgQAMAAAAABNjb2xybmNseAACAAIABoAAAAAXaXBtYQAAAAAAAAABAAEEAQKDBAAAAB9tZGF0EgAKCBgABogQEDQgMgkQAAAAB8dSLfI=';
-				image.onload = image.onerror = function () {
-
-					resolve( image.height === 1 );
-
-				};
-
-			} );
-
-		}
-
-		return this.isSupported;
+		return parser.loadTextureImage( textureIndex, extension.source, loader );
 
 	}
 
@@ -12054,6 +12588,8 @@ class GLTFTextureAVIFExtension {
  * meshopt BufferView Compression Extension
  *
  * Specification: https://github.com/KhronosGroup/glTF/tree/master/extensions/2.0/Vendor/EXT_meshopt_compression
+ *
+ * @private
  */
 class GLTFMeshoptCompression {
 
@@ -12139,6 +12675,7 @@ class GLTFMeshoptCompression {
  *
  * Specification: https://github.com/KhronosGroup/glTF/tree/master/extensions/2.0/Vendor/EXT_mesh_gpu_instancing
  *
+ * @private
  */
 class GLTFMeshGpuInstancing {
 
@@ -12367,6 +12904,8 @@ class GLTFBinaryExtension {
  * DRACO Mesh Compression Extension
  *
  * Specification: https://github.com/KhronosGroup/glTF/tree/master/extensions/2.0/Khronos/KHR_draco_mesh_compression
+ *
+ * @private
  */
 class GLTFDracoMeshCompressionExtension {
 
@@ -12450,6 +12989,8 @@ class GLTFDracoMeshCompressionExtension {
  * Texture Transform Extension
  *
  * Specification: https://github.com/KhronosGroup/glTF/tree/master/extensions/2.0/Khronos/KHR_texture_transform
+ *
+ * @private
  */
 class GLTFTextureTransformExtension {
 
@@ -12509,6 +13050,8 @@ class GLTFTextureTransformExtension {
  * Mesh Quantization Extension
  *
  * Specification: https://github.com/KhronosGroup/glTF/tree/master/extensions/2.0/Khronos/KHR_mesh_quantization
+ *
+ * @private
  */
 class GLTFMeshQuantizationExtension {
 
@@ -12596,7 +13139,7 @@ class GLTFCubicSplineInterpolant extends Interpolant {
 
 }
 
-const _q = new Quaternion();
+const _quaternion = new Quaternion();
 
 class GLTFCubicSplineQuaternionInterpolant extends GLTFCubicSplineInterpolant {
 
@@ -12604,7 +13147,7 @@ class GLTFCubicSplineQuaternionInterpolant extends GLTFCubicSplineInterpolant {
 
 		const result = super.interpolate_( i1, t0, t, t1 );
 
-		_q.fromArray( result ).normalize().toArray( result );
+		_quaternion.fromArray( result ).normalize().toArray( result );
 
 		return result;
 
@@ -12710,6 +13253,10 @@ const ALPHA_MODES = {
 
 /**
  * Specification: https://github.com/KhronosGroup/glTF/blob/master/specification/2.0/README.md#default-material
+ *
+ * @private
+ * @param {Object<string, Material>} cache
+ * @return {Material}
  */
 function createDefaultMaterial( cache ) {
 
@@ -12749,7 +13296,9 @@ function addUnknownExtensionsToUserData( knownExtensions, object, objectDef ) {
 }
 
 /**
- * @param {Object3D|Material|BufferGeometry} object
+ *
+ * @private
+ * @param {Object3D|Material|BufferGeometry|Object|AnimationClip} object
  * @param {GLTF.definition} gltfDef
  */
 function assignExtrasToUserData( object, gltfDef ) {
@@ -12773,6 +13322,7 @@ function assignExtrasToUserData( object, gltfDef ) {
 /**
  * Specification: https://github.com/KhronosGroup/glTF/blob/master/specification/2.0/README.md#morph-targets
  *
+ * @private
  * @param {BufferGeometry} geometry
  * @param {Array<GLTF.Target>} targets
  * @param {GLTFParser} parser
@@ -12860,6 +13410,8 @@ function addMorphTargets( geometry, targets, parser ) {
 }
 
 /**
+ *
+ * @private
  * @param {Mesh} mesh
  * @param {GLTF.Mesh} meshDef
  */
@@ -13148,6 +13700,8 @@ class GLTFParser {
 
 	/**
 	 * Marks the special nodes/meshes in json for efficient parse.
+	 *
+	 * @private
 	 */
 	_markDefs() {
 
@@ -13208,6 +13762,10 @@ class GLTFParser {
 	 * Textures) can be reused directly and are not marked here.
 	 *
 	 * Example: CesiumMilkTruck sample model reuses "Wheel" meshes.
+	 *
+	 * @private
+	 * @param {Object} cache
+	 * @param {Object3D} index
 	 */
 	_addNodeRef( cache, index ) {
 
@@ -13223,7 +13781,15 @@ class GLTFParser {
 
 	}
 
-	/** Returns a reference to a shared resource, cloning it if necessary. */
+	/**
+	 * Returns a reference to a shared resource, cloning it if necessary.
+	 *
+	 * @private
+	 * @param {Object} cache
+	 * @param {number} index
+	 * @param {Object} object
+	 * @return {Object}
+	 */
 	_getNodeRef( cache, index, object ) {
 
 		if ( cache.refs[ index ] <= 1 ) return object;
@@ -13295,9 +13861,11 @@ class GLTFParser {
 
 	/**
 	 * Requests the specified dependency asynchronously, with caching.
+	 *
+	 * @private
 	 * @param {string} type
 	 * @param {number} index
-	 * @return {Promise<Object3D|Material|THREE.Texture|AnimationClip|ArrayBuffer|Object>}
+	 * @return {Promise<Object3D|Material|Texture|AnimationClip|ArrayBuffer|Object>}
 	 */
 	getDependency( type, index ) {
 
@@ -13403,6 +13971,8 @@ class GLTFParser {
 
 	/**
 	 * Requests all dependencies of the specified type asynchronously, with caching.
+	 *
+	 * @private
 	 * @param {string} type
 	 * @return {Promise<Array<Object>>}
 	 */
@@ -13431,6 +14001,8 @@ class GLTFParser {
 
 	/**
 	 * Specification: https://github.com/KhronosGroup/glTF/blob/master/specification/2.0/README.md#buffers-and-buffer-views
+	 *
+	 * @private
 	 * @param {number} bufferIndex
 	 * @return {Promise<ArrayBuffer>}
 	 */
@@ -13468,6 +14040,8 @@ class GLTFParser {
 
 	/**
 	 * Specification: https://github.com/KhronosGroup/glTF/blob/master/specification/2.0/README.md#buffers-and-buffer-views
+	 *
+	 * @private
 	 * @param {number} bufferViewIndex
 	 * @return {Promise<ArrayBuffer>}
 	 */
@@ -13487,6 +14061,8 @@ class GLTFParser {
 
 	/**
 	 * Specification: https://github.com/KhronosGroup/glTF/blob/master/specification/2.0/README.md#accessors
+	 *
+	 * @private
 	 * @param {number} accessorIndex
 	 * @return {Promise<BufferAttribute|InterleavedBufferAttribute>}
 	 */
@@ -13626,8 +14202,10 @@ class GLTFParser {
 
 	/**
 	 * Specification: https://github.com/KhronosGroup/glTF/tree/master/specification/2.0#textures
+	 *
+	 * @private
 	 * @param {number} textureIndex
-	 * @return {Promise<THREE.Texture|null>}
+	 * @return {Promise<?Texture>}
 	 */
 	loadTexture( textureIndex ) {
 
@@ -13795,9 +14373,12 @@ class GLTFParser {
 
 	/**
 	 * Asynchronously assigns a texture to the given material parameters.
+	 *
+	 * @private
 	 * @param {Object} materialParams
 	 * @param {string} mapName
 	 * @param {Object} mapDef
+	 * @param {string} [colorSpace]
 	 * @return {Promise<Texture>}
 	 */
 	assignTexture( materialParams, mapName, mapDef, colorSpace ) {
@@ -13849,7 +14430,9 @@ class GLTFParser {
 	 * but reuse of the same glTF material may require multiple threejs materials
 	 * to accommodate different primitive types, defines, etc. New materials will
 	 * be created if necessary, and reused from a cache.
-	 * @param  {Object3D} mesh Mesh, Line, or Points instance.
+	 *
+	 * @private
+	 * @param {Object3D} mesh Mesh, Line, or Points instance.
 	 */
 	assignFinalMaterial( mesh ) {
 
@@ -13949,6 +14532,8 @@ class GLTFParser {
 
 	/**
 	 * Specification: https://github.com/KhronosGroup/glTF/blob/master/specification/2.0/README.md#materials
+	 *
+	 * @private
 	 * @param {number} materialIndex
 	 * @return {Promise<Material>}
 	 */
@@ -14106,7 +14691,13 @@ class GLTFParser {
 
 	}
 
-	/** When Object3D instances are targeted by animation, they need unique names. */
+	/**
+	 * When Object3D instances are targeted by animation, they need unique names.
+	 *
+	 * @private
+	 * @param {string} originalName
+	 * @return {string}
+	 */
 	createUniqueName( originalName ) {
 
 		const sanitizedName = PropertyBinding.sanitizeNodeName( originalName || '' );
@@ -14130,6 +14721,7 @@ class GLTFParser {
 	 *
 	 * Creates BufferGeometries from primitives.
 	 *
+	 * @private
 	 * @param {Array<GLTF.Primitive>} primitives
 	 * @return {Promise<Array<BufferGeometry>>}
 	 */
@@ -14197,8 +14789,10 @@ class GLTFParser {
 
 	/**
 	 * Specification: https://github.com/KhronosGroup/glTF/blob/master/specification/2.0/README.md#meshes
+	 *
+	 * @private
 	 * @param {number} meshIndex
-	 * @return {Promise<Group|Mesh|SkinnedMesh>}
+	 * @return {Promise<Group|Mesh|SkinnedMesh|Line|Points>}
 	 */
 	loadMesh( meshIndex ) {
 
@@ -14345,8 +14939,10 @@ class GLTFParser {
 
 	/**
 	 * Specification: https://github.com/KhronosGroup/glTF/tree/master/specification/2.0#cameras
+	 *
+	 * @private
 	 * @param {number} cameraIndex
-	 * @return {Promise<THREE.Camera>}
+	 * @return {Promise<Camera>|undefined}
 	 */
 	loadCamera( cameraIndex ) {
 
@@ -14381,6 +14977,8 @@ class GLTFParser {
 
 	/**
 	 * Specification: https://github.com/KhronosGroup/glTF/tree/master/specification/2.0#skins
+	 *
+	 * @private
 	 * @param {number} skinIndex
 	 * @return {Promise<Skeleton>}
 	 */
@@ -14451,6 +15049,8 @@ class GLTFParser {
 
 	/**
 	 * Specification: https://github.com/KhronosGroup/glTF/tree/master/specification/2.0#animations
+	 *
+	 * @private
 	 * @param {number} animationIndex
 	 * @return {Promise<AnimationClip>}
 	 */
@@ -14535,7 +15135,11 @@ class GLTFParser {
 
 			}
 
-			return new AnimationClip( animationName, undefined, tracks );
+			const animation = new AnimationClip( animationName, undefined, tracks );
+
+			assignExtrasToUserData( animation, animationDef );
+
+			return animation;
 
 		} );
 
@@ -14578,6 +15182,8 @@ class GLTFParser {
 
 	/**
 	 * Specification: https://github.com/KhronosGroup/glTF/tree/master/specification/2.0#nodes-and-hierarchy
+	 *
+	 * @private
 	 * @param {number} nodeIndex
 	 * @return {Promise<Object3D>}
 	 */
@@ -14771,6 +15377,11 @@ class GLTFParser {
 
 				parser.associations.set( node, {} );
 
+			} else if ( nodeDef.mesh !== undefined && parser.meshCache.refs[ nodeDef.mesh ] > 1 ) {
+
+				const mapping = parser.associations.get( node );
+				parser.associations.set( node, { ...mapping } );
+
 			}
 
 			parser.associations.get( node ).nodes = nodeIndex;
@@ -14785,6 +15396,8 @@ class GLTFParser {
 
 	/**
 	 * Specification: https://github.com/KhronosGroup/glTF/tree/master/specification/2.0#scenes
+	 *
+	 * @private
 	 * @param {number} sceneIndex
 	 * @return {Promise<Group>}
 	 */
@@ -14900,7 +15513,7 @@ class GLTFParser {
 				TypedKeyframeTrack = QuaternionKeyframeTrack;
 				break;
 
-			case PATH_PROPERTIES.position:
+			case PATH_PROPERTIES.translation:
 			case PATH_PROPERTIES.scale:
 
 				TypedKeyframeTrack = VectorKeyframeTrack;
@@ -14999,6 +15612,8 @@ class GLTFParser {
 }
 
 /**
+ *
+ * @private
  * @param {BufferGeometry} geometry
  * @param {GLTF.Primitive} primitiveDef
  * @param {GLTFParser} parser
@@ -15114,6 +15729,8 @@ function computeBounds( geometry, primitiveDef, parser ) {
 }
 
 /**
+ *
+ * @private
  * @param {BufferGeometry} geometry
  * @param {GLTF.Primitive} primitiveDef
  * @param {GLTFParser} parser
@@ -15519,7 +16136,7 @@ class MotionController {
   /**
    * @param {Object} xrInputSource - The XRInputSource to build the MotionController around
    * @param {Object} profile - The best matched profile description for the supplied xrInputSource
-   * @param {Object} assetUrl
+   * @param {string} assetUrl
    */
   constructor(xrInputSource, profile, assetUrl) {
     if (!xrInputSource) {
@@ -23541,8 +24158,14 @@ class Text extends Mesh {
   get customDepthMaterial() {
     return first(this.material).getDepthMaterial()
   }
+  set customDepthMaterial(m) {
+    // future: let the user override with their own?
+  }
   get customDistanceMaterial() {
     return first(this.material).getDistanceMaterial()
+  }
+  set customDistanceMaterial(m) {
+    // future: let the user override with their own?
   }
 
   _prepareForRender(material) {
@@ -23803,9 +24426,6 @@ class BatchedText extends Text {
     this._onMemberSynced = (e) => {
       this._members.get(e.target).dirty = true;
     };
-    this._onMemberRemoved = (e) => {
-      this.removeText(e.target);
-    };
   }
 
   /**
@@ -23824,6 +24444,20 @@ class BatchedText extends Text {
   }
 
   /**
+   * @override
+   */
+  remove (...objects) {
+    for (let i = 0; i < objects.length; i++) {
+      if (objects[i] instanceof Text) {
+        this.removeText(objects[i]);
+      } else {
+        super.remove(objects[i]);
+      }
+    }
+    return this;
+  }
+
+  /**
    * @param {Text} text
    */
   addText (text) {
@@ -23833,7 +24467,6 @@ class BatchedText extends Text {
         glyphCount: -1,
         dirty: true
       });
-      text.addEventListener("removed", this._onMemberRemoved);
       text.addEventListener("synccomplete", this._onMemberSynced);
     }
   }
@@ -23842,7 +24475,7 @@ class BatchedText extends Text {
    * @param {Text} text
    */
   removeText (text) {
-    text.removeEventListener("removed", this._onMemberRemoved);
+    this._needsRepack = true;
     text.removeEventListener("synccomplete", this._onMemberSynced);
     this._members.delete(text);
   }
@@ -23875,7 +24508,11 @@ class BatchedText extends Text {
 
   /** @override */
   hasOutline() {
-    return this._members.keys().some(m => m.hasOutline())
+    // Iterator.some() not supported in Safari
+    for (let member of this._members.keys()) {
+      if (member.hasOutline()) return true;
+    }
+    return false;
   }
 
   /**
@@ -23893,7 +24530,7 @@ class BatchedText extends Text {
       // console.log(`resizing: ${dataLength}`);
       if (texture) texture.dispose();
       const width = Math.min(dataLength / 4, 1024);
-      texture = this[isOutline ? 'outline' : 'main'] = new DataTexture(
+      texture = this._dataTextures[isOutline ? 'outline' : 'main'] = new DataTexture(
         new Float32Array(dataLength),
         width,
         dataLength / 4 / width,
@@ -23982,7 +24619,8 @@ class BatchedText extends Text {
     // TODO: skip members updating their geometries, just use textRenderInfo directly
 
     // Trigger sync on all members that need it
-    let syncPromises;
+    let syncPromises = this._needsRepack ? [] : null;
+    this._needsRepack = false;
     this._members.forEach((packingInfo, text) => {
       if (packingInfo.dirty || text._needsSync) {
         packingInfo.dirty = false;
@@ -24478,7 +25116,7 @@ class Div extends ScrollableComponent {
 
 const VEC3$5 = new THREE.Vector3();
 
-let Image$1 = class Image extends InteractableComponent {
+class Image extends InteractableComponent {
     constructor(url, ...styles) {
         super(...styles);
         this._defaults['backgroundVisible'] = true;
@@ -24598,7 +25236,7 @@ let Image$1 = class Image extends InteractableComponent {
                 (VEC3$5.y + minY) / this.computedHeight);
         }
     }
-};
+}
 
 /*
  * This Source Code Form is subject to the terms of the Mozilla Public
@@ -24607,7 +25245,7 @@ let Image$1 = class Image extends InteractableComponent {
  */
 
 
-class HueSaturationWheel extends Image$1 {
+class HueSaturationWheel extends Image {
     constructor(texture, ...styles) {
         super(texture, ...styles);
     }
@@ -24664,7 +25302,7 @@ class HSLColor {
         this._lightnessTexture.bypassCloning = true;
         this.hueSaturationWheel = new HueSaturationWheel(this._colorTexture,
             { height: diameter, width: diameter }, ...styles);
-        this.lightnessBar = new Image$1(this._lightnessTexture, {
+        this.lightnessBar = new Image(this._lightnessTexture, {
             borderRadius: diameter / 20,
             height: diameter,
             width: diameter / 10,
@@ -27352,7 +27990,7 @@ THREE.BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
 THREE.BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
 THREE.Mesh.prototype.raycast = acceleratedRaycast;
 
-const version = '0.2.1';
+const version = '0.2.2';
 
 const addGripInteractable = (interactable) => {
     gripInteractableHandler.addInteractable(interactable);
@@ -27430,4 +28068,4 @@ const update = (frame) => {
     instancedBackgroundManager.update();
 };
 
-export { Body, Checkbox, delayedClickHandler as DelayedClickHandler, DeviceTypes, Div, GripInteractable, gripInteractableHandler as GripInteractableHandler, HSLColor, Handedness, Image$1 as Image, inputHandler as InputHandler, instancedBackgroundManager as InstancedBackgroundManager, Interactable, InteractableStates, interactionToolHandler as InteractionToolHandler, keyboard as Keyboard, layoutUpdateHandler as LayoutUpdateHandler, NumberInput, PointerInteractable, pointerInteractableHandler as PointerInteractableHandler, Radio, Range, Select, Span, Style, TextComponent as Text, TextArea, TextInput, ThreeMeshBVH, Toggle, TouchInteractable, touchInteractableHandler as TouchInteractableHandler, troikaThreeText_esm as TroikaThreeText, updateHandler as UpdateHandler, XRInputDeviceTypes, addGripInteractable, addPointerInteractable, addTouchInteractable, init, removeGripInteractable, removePointerInteractable, removeTouchInteractable, update, utils, version };
+export { Body, Checkbox, delayedClickHandler as DelayedClickHandler, DeviceTypes, Div, GripInteractable, gripInteractableHandler as GripInteractableHandler, HSLColor, Handedness, Image, inputHandler as InputHandler, instancedBackgroundManager as InstancedBackgroundManager, Interactable, InteractableStates, interactionToolHandler as InteractionToolHandler, keyboard as Keyboard, layoutUpdateHandler as LayoutUpdateHandler, NumberInput, PointerInteractable, pointerInteractableHandler as PointerInteractableHandler, Radio, Range, Select, Span, Style, TextComponent as Text, TextArea, TextInput, ThreeMeshBVH, Toggle, TouchInteractable, touchInteractableHandler as TouchInteractableHandler, troikaThreeText_esm as TroikaThreeText, updateHandler as UpdateHandler, XRInputDeviceTypes, addGripInteractable, addPointerInteractable, addTouchInteractable, init, removeGripInteractable, removePointerInteractable, removeTouchInteractable, update, utils, version };
